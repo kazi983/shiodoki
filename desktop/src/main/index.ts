@@ -173,11 +173,35 @@ function startFirebase(): void {
   broadcastChanged = () => wired.windows.broadcast(IPC.tasksChanged);
 
   bridge.start();
+  let authKnown = false;
   void firstAuth.then((uid) => {
+    authKnown = true;
     if (uid) wired.controller.start();
     else wired.windows.showLogin();
   });
+
+  // No window is shown until the data window reports the sign-in state.
+  // If it never does (crash, script error), say so instead of showing nothing.
+  setTimeout(() => {
+    if (authKnown || quitting) return;
+    void dialog
+      .showMessageBox({
+        type: "warning",
+        buttons: ["待つ", "終了"],
+        defaultId: 0,
+        cancelId: 0,
+        noLink: true,
+        title: "30min Task Timer",
+        message: "起動に時間がかかっています。",
+        detail: "Firebase の処理を開始できていません。ターミナルに [data] で始まるエラーが出ていないか確認してください。",
+      })
+      .then(({ response }) => {
+        if (response === 1) void wired.controller.exit();
+      });
+  }, STARTUP_TIMEOUT_MS);
 }
+
+const STARTUP_TIMEOUT_MS = 15_000;
 
 async function googleIdToken(): Promise<string> {
   const file = join(app.getAppPath(), "resources", "oauth-client.json");
