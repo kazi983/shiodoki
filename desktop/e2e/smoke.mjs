@@ -93,7 +93,7 @@ try {
   const picker2 = await windowFor("picker");
   await picker2.waitForSelector('.task-list li:has-text("E2Eで追加したタスク")');
   await picker2.click('.task-list li:has-text("E2Eで追加したタスク")');
-  await picker2.fill('input[aria-label="退勤時刻"]', "2359");
+  await picker2.fill('input[aria-label="離席時刻"]', "2359");
   await picker2.click("text=▶ はじめる");
   const overlay = await windowFor("overlay");
   await waitClosed("picker");

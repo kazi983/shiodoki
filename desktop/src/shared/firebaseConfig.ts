@@ -13,4 +13,4 @@ export const FIREBASE_CONFIG = {
 } as const;
 
 /** Project ID used with the local Firebase emulators (tests, E2E). */
-export const EMULATOR_PROJECT_ID = "demo-30min-task-timer";
+export const EMULATOR_PROJECT_ID = "demo-shiodoki";

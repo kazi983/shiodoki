@@ -4,11 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-v2 of a desktop app that asks the user every 30 minutes which task to work on and tracks time
-per task, with a "leave time" schedule that warns and then blocks work before the user has to
-leave. Tasks sync through Firebase (Cloud Firestore) so an Android app (planned, `android/`) can
+Shiodoki (潮時, "the right moment to switch") is v2 of a desktop app that asks the user every
+30 minutes which task to work on and tracks time per task, with a "leave time" schedule (離席時刻:
+when the user has to get up from the desk for their next plan, not the end of a workday) that
+warns and then blocks work shortly before it. Tasks sync through Firebase (Cloud Firestore) so an Android app (planned, `android/`) can
 read and edit them. v1 (Python/Tkinter) lives in kazi983/30min-task-timer-python and is still in
-daily use until v2 replaces it.
+daily use until v2 replaces it. The repository, the Firebase project ID and the local data
+directory (`30min-task-timer-v2`) keep their old names.
 
 `docs/requirements.md` is the source of truth for scope, the Firestore data model (§5) and the
 phase plan (§9). Update it when decisions change. User-facing docs (READMEs, requirements) are

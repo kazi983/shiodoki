@@ -106,7 +106,7 @@ describe("session flow", () => {
 
   test("the first session requires a leave time", async () => {
     const t = await addTask();
-    await expect(controller.startSession({ taskId: t.id })).rejects.toThrow("退勤時刻");
+    await expect(controller.startSession({ taskId: t.id })).rejects.toThrow("離席時刻");
     await controller.startSession({ taskId: t.id, leave: LEAVE });
     await controller.completeFromOverlay();
     // Already scheduled: no leave input needed any more

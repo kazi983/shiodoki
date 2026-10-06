@@ -129,7 +129,7 @@ export class AppController {
     if (task.completed) throw new Error("完了済みのタスクは開始できません");
 
     if (!this.leave.isScheduled) {
-      if (!req.leave) throw new Error("退勤時刻を入力してください");
+      if (!req.leave) throw new Error("離席時刻を入力してください");
       this.leave.scheduleLeave(req.leave, this.now());
       this.leavePhase = "none";
     }

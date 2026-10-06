@@ -8,7 +8,7 @@ export function LeavePage({ mode }: { mode: "warning" | "block" }) {
   const warning = mode === "warning";
 
   useEffect(() => {
-    document.title = "30min Task Timer";
+    document.title = "Shiodoki";
     if (!warning) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") void window.api.leave.dismissWarning();

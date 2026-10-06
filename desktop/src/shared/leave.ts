@@ -1,6 +1,7 @@
 /**
- * Leave schedule: the user enters the time they need to leave and how many
- * minutes before that they want to stop working. A warning fires 5 minutes
+ * Leave schedule: the user enters the time they need to get up from the desk
+ * for their next plan and how many minutes before that they want to stop
+ * working. A warning fires 5 minutes
  * before the stop time and the stop (block) fires at the stop time.
  */
 

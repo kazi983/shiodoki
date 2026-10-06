@@ -201,7 +201,7 @@ function startFirebase(): void {
         defaultId: 0,
         cancelId: 0,
         noLink: true,
-        title: "30min Task Timer",
+        title: "Shiodoki",
         message: "起動に時間がかかっています。",
         detail: "Firebase の処理を開始できていません。ターミナルに [data] で始まるエラーが出ていないか確認してください。",
       })
@@ -336,8 +336,8 @@ function wire(repo: TaskRepository, syncInfo: () => SyncInfo, firebase?: Firebas
       defaultId: 0,
       cancelId: 2,
       noLink: true,
-      title: "30min Task Timer",
-      message: "30min Task Timer はすでに起動しています。",
+      title: "Shiodoki",
+      message: "Shiodoki はすでに起動しています。",
     });
     if (response === 0) void controller.openPicker();
     if (response === 1) void controller.restart();

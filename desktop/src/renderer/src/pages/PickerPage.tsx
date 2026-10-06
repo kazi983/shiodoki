@@ -146,12 +146,12 @@ export function PickerPage() {
         <p className="sub">{lastTask ? `前回の続き: ${lastTask.name}` : " "}</p>
       </header>
 
-      <section className="leave-row" aria-label="退勤スケジュール">
+      <section className="leave-row" aria-label="離席スケジュール">
         {state?.leave ? (
           <>
             <span title="作業終了時刻">⏰ {formatHHMM(new Date(state.leave.stopAt))} まで</span>
-            <span title="退勤時刻と、その何分前に止めるか">
-              💨 退勤 {formatHHMM(new Date(state.leave.leaveAt))} の{state.leave.bufferMinutes}分前
+            <span title="離席時刻と、その何分前に止めるか">
+              💨 離席 {formatHHMM(new Date(state.leave.leaveAt))} の{state.leave.bufferMinutes}分前
             </span>
             <button className="btn btn-secondary btn-small" onClick={changeLeave}>
               変更
@@ -165,7 +165,7 @@ export function PickerPage() {
                 className="input input-dark input-time"
                 value={leaveTime}
                 onChange={(e) => setLeaveTime(e.target.value)}
-                aria-label="退勤時刻"
+                aria-label="離席時刻"
                 placeholder="23:30"
               />
             </label>

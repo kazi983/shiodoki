@@ -1,10 +1,10 @@
 {
-  "name": "30min-task-timer-firebase",
+  "name": "shiodoki-firebase",
   "private": true,
   "type": "module",
   "scripts": {
-    "emulators": "firebase emulators:start --project demo-30min-task-timer",
-    "test": "firebase emulators:exec --only firestore --project demo-30min-task-timer \"vitest run\"",
+    "emulators": "firebase emulators:start --project demo-shiodoki",
+    "test": "firebase emulators:exec --only firestore --project demo-shiodoki \"vitest run\"",
     "deploy:rules": "firebase deploy --only firestore:rules,firestore:indexes"
   },
   "devDependencies": {
