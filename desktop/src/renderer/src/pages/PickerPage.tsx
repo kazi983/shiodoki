@@ -9,6 +9,7 @@ import {
 } from "@shared/leave";
 import { PRIORITY_META, type Task } from "@shared/task";
 import { alertError } from "../errors";
+import { SyncBadge } from "../SyncBadge";
 
 /** "Quick Start": asks what to work on next. */
 export function PickerPage() {
@@ -135,7 +136,10 @@ export function PickerPage() {
 
   return (
     <main className="picker">
-      {state?.testMode && <div className="test-badge">TEST MODE</div>}
+      <div className="picker-badges">
+        <SyncBadge tone="dark" />
+        {state?.testMode && <span className="test-badge">TEST MODE</span>}
+      </div>
 
       <header className="picker-header">
         <h1>今から何をやる？</h1>

@@ -3,3 +3,5 @@ out/
 dist/
 test-results/
 e2e/screenshots/
+*-debug.log
+resources/oauth-client.json

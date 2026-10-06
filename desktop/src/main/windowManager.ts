@@ -4,7 +4,7 @@ import type { WindowPort } from "./appController";
 import { centeredBounds } from "./geometry";
 import { IPC } from "@shared/ipc";
 
-export type Route = "picker" | "management" | "overlay" | "leave-warning" | "leave-block";
+export type Route = "picker" | "management" | "overlay" | "leave-warning" | "leave-block" | "login";
 
 const OVERLAY_SIZE = { collapsed: 44, expanded: 104, height: 44 };
 
@@ -15,6 +15,8 @@ export interface WindowHandlers {
   onManagementClosedByUser(): void;
   /** Warning closed by the user. */
   onWarningClosedByUser(): void;
+  /** Sign-in window closed before signing in -> quit. */
+  onLoginClosedByUser(): void;
   isQuitting(): boolean;
 }
 
@@ -30,6 +32,7 @@ export class WindowManager implements WindowPort {
   private management: BrowserWindow | null = null;
   private overlay: BrowserWindow | null = null;
   private leave: BrowserWindow | null = null;
+  private login: BrowserWindow | null = null;
   private lastDisplayId: number | null = null;
   /** Set while closing a window from code, so "closed by user" handlers do not fire. */
   private closingProgrammatically = new WeakSet<BrowserWindow>();
@@ -129,6 +132,28 @@ export class WindowManager implements WindowPort {
       width,
       height: OVERLAY_SIZE.height,
     });
+  }
+
+  showLogin(): void {
+    if (this.login && !this.login.isDestroyed()) {
+      this.focus(this.login);
+      return;
+    }
+    this.login = this.create("login", {
+      title: "30min Task Timer - ログイン",
+      width: 520,
+      height: 560,
+      minWidth: 420,
+      minHeight: 480,
+    });
+    this.login.on("close", () => {
+      if (!this.isProgrammatic(this.login)) this.handlers.onLoginClosedByUser();
+    });
+    this.login.on("closed", () => (this.login = null));
+  }
+
+  closeLogin(): void {
+    this.closeQuietly(this.login);
   }
 
   showLeave(mode: "warning" | "block"): void {

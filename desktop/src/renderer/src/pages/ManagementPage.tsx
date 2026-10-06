@@ -9,6 +9,7 @@ import {
   type TaskInput,
 } from "@shared/task";
 import { alertError } from "../errors";
+import { SyncBadge } from "../SyncBadge";
 
 const EMPTY_FORM: TaskInput = { name: "", priority: DEFAULT_PRIORITY, memo: "" };
 
@@ -159,10 +160,13 @@ export function ManagementPage() {
           <h1>タスク管理</h1>
           <p className="sub">タスクの追加・編集・整理</p>
         </div>
-        <label className="toggle">
-          <input type="checkbox" checked={showCompleted} onChange={(e) => setShowCompleted(e.target.checked)} />
-          完了済みも表示
-        </label>
+        <div className="header-right">
+          <SyncBadge tone="light" />
+          <label className="toggle">
+            <input type="checkbox" checked={showCompleted} onChange={(e) => setShowCompleted(e.target.checked)} />
+            完了済みも表示
+          </label>
+        </div>
       </header>
 
       <div className="table-card">

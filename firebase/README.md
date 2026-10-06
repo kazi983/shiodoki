@@ -46,13 +46,13 @@ npm test
 
 ## ルールを本番に反映する
 
-自分の PC で実行します（ブラウザで Google ログインが開きます）。
+プロジェクト `min-task-timer` は `.firebaserc` に設定済みです。自分の PC で実行します（ブラウザで Google ログインが開きます）。
 
 ```bash
 cd v2/firebase
+npm install
 npx firebase login
-npx firebase use --add      # 作成したプロジェクトを選び、別名は default
 npm run deploy:rules
 ```
 
-`firebase use --add` で作られる `.firebaserc` にはプロジェクト ID だけが入ります。コミットしても問題ありません。
+ルールを変更したときも、同じ `npm run deploy:rules` で反映します。

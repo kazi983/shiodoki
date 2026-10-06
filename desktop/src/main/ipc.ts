@@ -5,10 +5,16 @@ import type { AppController } from "./appController";
 import type { TaskService } from "./taskService";
 import type { WindowManager } from "./windowManager";
 
+export interface AuthHooks {
+  /** Google sign-in from the login window. */
+  signIn(): Promise<void>;
+}
+
 export function registerIpcHandlers(
   controller: AppController,
   tasks: TaskService,
   windows: WindowManager,
+  auth: AuthHooks,
 ): void {
   const parentOf = (e: IpcMainInvokeEvent) => windows.fromWebContentsId(e.sender.id);
 
@@ -32,6 +38,9 @@ export function registerIpcHandlers(
   ipcMain.handle(IPC.overlaySetExpanded, (_e, expanded: boolean) => windows.setOverlayExpanded(expanded));
 
   ipcMain.handle(IPC.leaveDismissWarning, () => controller.dismissWarning());
+
+  ipcMain.handle(IPC.authSignIn, () => auth.signIn());
+  ipcMain.handle(IPC.syncGet, () => controller.syncInfo());
 
   ipcMain.handle(IPC.dialogConfirm, async (e, title: string, message: string) => {
     const options = {

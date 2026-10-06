@@ -177,10 +177,23 @@ h1 {
   position: relative;
 }
 
-.test-badge {
+.picker-badges {
   position: absolute;
   top: 8px;
+  left: 8px;
   right: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+}
+
+.picker-badges > * {
+  pointer-events: auto;
+}
+
+.test-badge {
+  margin-left: auto;
   background: #b45309;
   color: #fff;
   font-size: 0.7rem;
@@ -503,4 +516,71 @@ h1 {
 
 .leave.block h1 {
   font-size: 2.4rem;
+}
+
+/* ---------- sync badge ---------- */
+
+.sync-badge {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.sync-badge.dark {
+  background: var(--dark-surface);
+  color: var(--dark-sub);
+}
+
+.sync-badge.light {
+  background: #e5e7eb;
+  color: var(--light-sub);
+}
+
+.sync-badge.sync-pending.dark,
+.sync-badge.sync-offline.dark {
+  color: #fbbf24;
+}
+
+.sync-badge.sync-pending.light,
+.sync-badge.sync-offline.light {
+  color: #b45309;
+}
+
+.header-right {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* ---------- login ---------- */
+
+.login {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 24px;
+  background: var(--dark-bg);
+  color: var(--dark-text);
+  text-align: center;
+}
+
+.login h1 {
+  font-size: 1.6rem;
+}
+
+.login .sub {
+  color: var(--dark-sub);
+  font-size: 0.95rem;
+  line-height: 1.8;
+}
+
+.login .hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--dark-sub);
 }

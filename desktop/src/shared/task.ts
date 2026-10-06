@@ -36,6 +36,9 @@ export interface Task {
   updatedBy: UpdatedBy;
 }
 
+/** Fields a client may change on an existing task (updatedAt/updatedBy are set by the repository). */
+export type TaskPatch = Partial<Pick<Task, "name" | "memo" | "priority" | "completed" | "completedAt" | "deleted">>;
+
 export interface TaskInput {
   name: string;
   priority: Priority;

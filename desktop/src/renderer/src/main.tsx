@@ -7,6 +7,7 @@ import { PickerPage } from "./pages/PickerPage";
 import { ManagementPage } from "./pages/ManagementPage";
 import { OverlayPage } from "./pages/OverlayPage";
 import { LeavePage } from "./pages/LeavePage";
+import { LoginPage } from "./pages/LoginPage";
 
 function Page() {
   switch (window.location.hash.slice(1)) {
@@ -18,6 +19,8 @@ function Page() {
       return <LeavePage mode="warning" />;
     case "leave-block":
       return <LeavePage mode="block" />;
+    case "login":
+      return <LoginPage />;
     default:
       return <PickerPage />;
   }

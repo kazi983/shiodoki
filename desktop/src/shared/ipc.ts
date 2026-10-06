@@ -3,6 +3,7 @@
  */
 
 import type { LeaveScheduleInput, LeaveScheduleStatus } from "./leave";
+import type { SyncInfo } from "./sync";
 import type { Task, TaskInput } from "./task";
 
 export interface PickerState {
@@ -10,6 +11,7 @@ export interface PickerState {
   lastSelectedTaskId: string | null;
   leave: LeaveScheduleStatus | null;
   testMode: boolean;
+  sync: SyncInfo;
 }
 
 export interface StartSessionRequest {
@@ -36,6 +38,13 @@ export interface DesktopApi {
     remove(id: string): Promise<void>;
     /** Subscribe to task changes. Returns an unsubscribe function. */
     onChanged(listener: () => void): () => void;
+  };
+  auth: {
+    /** Open the system browser for Google sign-in. Resolves when signed in. */
+    signIn(): Promise<void>;
+  };
+  sync: {
+    get(): Promise<SyncInfo>;
   };
   nav: {
     openPicker(): Promise<void>;
@@ -76,4 +85,6 @@ export const IPC = {
   leaveDismissWarning: "leave:dismissWarning",
   dialogConfirm: "dialog:confirm",
   dialogAlert: "dialog:alert",
+  authSignIn: "auth:signIn",
+  syncGet: "sync:get",
 } as const;

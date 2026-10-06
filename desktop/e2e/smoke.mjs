@@ -1,4 +1,4 @@
-// End-to-end smoke test: launches the built app with Playwright, imports a
+// End-to-end smoke test (local mode, TIMER_LOCAL=1): launches the built app with Playwright, imports a
 // v1 tasks.json, adds a task, runs a (5 second) session and checks that the
 // picker comes back and the time was recorded. Saves screenshots to
 // e2e/screenshots/.
@@ -35,7 +35,7 @@ writeFileSync(
 const app = await electron.launch({
   executablePath: require("electron"),
   args: [join(root, "out/main/index.js"), ...(process.getuid?.() === 0 ? ["--no-sandbox"] : [])],
-  env: { ...process.env, TASK_MODE: "test", XDG_CONFIG_HOME: configHome, ELECTRON_RENDERER_URL: "" },
+  env: { ...process.env, TASK_MODE: "test", TIMER_LOCAL: "1", XDG_CONFIG_HOME: configHome, ELECTRON_RENDERER_URL: "" },
 });
 
 async function windowFor(route) {

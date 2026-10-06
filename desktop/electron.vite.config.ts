@@ -12,9 +12,26 @@ export default defineConfig({
   preload: {
     plugins: [externalizeDepsPlugin()],
     resolve: { alias: shared },
+    build: {
+      rollupOptions: {
+        input: {
+          index: resolve(__dirname, "src/preload/index.ts"),
+          // Hidden window that runs the Firebase SDK
+          data: resolve(__dirname, "src/preload/data.ts"),
+        },
+      },
+    },
   },
   renderer: {
     resolve: { alias: shared },
     plugins: [react()],
+    build: {
+      rollupOptions: {
+        input: {
+          index: resolve(__dirname, "src/renderer/index.html"),
+          data: resolve(__dirname, "src/renderer/data.html"),
+        },
+      },
+    },
   },
 });

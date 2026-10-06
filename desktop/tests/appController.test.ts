@@ -225,6 +225,35 @@ describe("leave schedule", () => {
   });
 });
 
+describe("status reporting (state/desktop)", () => {
+  test("reports each transition with the running task and next prompt time", async () => {
+    const snapshots: Array<{ status: string; currentTaskName: string | null; nextPromptAt: Date | null }> = [];
+    const beforeQuit = vi.fn(async () => {});
+    const c = new AppController(tasks, new SessionService("pc"), new TimerService(), windows, lifecycle, {
+      intervalMs: INTERVAL,
+      snoozeMs: SNOOZE,
+      testMode: false,
+      onStatusChange: (s) => snapshots.push(s),
+      beforeQuit,
+    });
+    c.start();
+    const t = await addTask();
+    await c.startSession({ taskId: t.id, leave: LEAVE });
+    c.dismissWarning();
+    await c.completeFromOverlay();
+    c.snooze();
+    await c.exit();
+
+    expect(snapshots.map((s) => s.status)).toEqual(["idle", "running", "idle", "idle", "snoozed", "stopped"]);
+    const running = snapshots[1];
+    expect(running.currentTaskName).toBe("Write code");
+    expect(running.nextPromptAt).toEqual(new Date(Date.now() + INTERVAL));
+    expect(snapshots[4].nextPromptAt).toEqual(new Date(Date.now() + SNOOZE));
+    expect(snapshots[5].nextPromptAt).toBeNull();
+    expect(beforeQuit).toHaveBeenCalledOnce();
+  });
+});
+
 describe("lifecycle", () => {
   test("exit records the running session exactly once", async () => {
     const t = await addTask();

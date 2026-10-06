@@ -53,41 +53,40 @@ export class TaskService {
       updatedAt: now,
       updatedBy: "desktop",
     };
-    await this.repo.putTask(task);
+    await this.repo.createTask(task);
     this.onChanged();
     return task;
   }
 
   async update(id: string, input: TaskInput): Promise<Task> {
     const v = normalizeTaskInput(input);
-    const task = await this.get(id);
-    const updated = { ...task, ...v, ...this.stamp() };
-    await this.repo.putTask(updated);
+    await this.get(id);
+    await this.repo.updateTask(id, v);
     this.onChanged();
-    return updated;
+    return this.get(id);
   }
 
   async complete(id: string): Promise<void> {
-    const task = await this.get(id);
-    await this.repo.putTask({ ...task, completed: true, completedAt: this.now().toISOString(), ...this.stamp() });
+    await this.get(id);
+    await this.repo.updateTask(id, { completed: true, completedAt: this.now().toISOString() });
     this.onChanged();
   }
 
   async reopen(id: string): Promise<void> {
-    const task = await this.get(id);
-    await this.repo.putTask({ ...task, completed: false, completedAt: null, ...this.stamp() });
+    await this.get(id);
+    await this.repo.updateTask(id, { completed: false, completedAt: null });
     this.onChanged();
   }
 
   async remove(id: string): Promise<void> {
-    const task = await this.get(id);
-    await this.repo.putTask({ ...task, deleted: true, ...this.stamp() });
+    await this.get(id);
+    await this.repo.updateTask(id, { deleted: true });
     this.onChanged();
   }
 
   async recordSession(session: SessionRecord | null): Promise<void> {
     if (!session) return;
-    await this.repo.recordSession(session, this.now().toISOString());
+    await this.repo.recordSession(session);
     this.onChanged();
   }
 
@@ -97,9 +96,5 @@ export class TaskService {
 
   async markLastSelected(id: string): Promise<void> {
     await this.repo.setPreferences({ lastSelectedTaskId: id });
-  }
-
-  private stamp(): Pick<Task, "updatedAt" | "updatedBy"> {
-    return { updatedAt: this.now().toISOString(), updatedBy: "desktop" };
   }
 }

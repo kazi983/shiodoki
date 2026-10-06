@@ -6,6 +6,8 @@ export interface TrayActions {
   openManagement(): void;
   restart(): void;
   exit(): void;
+  /** Omitted in local mode. */
+  logout?: () => void;
 }
 
 /**
@@ -23,6 +25,7 @@ export function createTray(actions: TrayActions, testMode: boolean): Tray | null
         { label: "タスク管理", click: actions.openManagement },
         { type: "separator" },
         { label: "再起動", click: actions.restart },
+        ...(actions.logout ? [{ label: "ログアウト", click: actions.logout }] : []),
         { label: "終了", click: actions.exit },
       ]),
     );

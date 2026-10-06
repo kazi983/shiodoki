@@ -1,5 +1,7 @@
 import type { PickerState, StartSessionRequest } from "@shared/ipc";
+import type { DesktopStatus } from "@shared/desktopState";
 import type { EndReason } from "@shared/session";
+import type { SyncInfo } from "@shared/sync";
 import { LeaveScheduleService } from "./leaveScheduleService";
 import { SessionService } from "./sessionService";
 import { TaskService } from "./taskService";
@@ -22,16 +24,31 @@ export interface LifecyclePort {
   relaunch(): void;
 }
 
-export type DesktopStatus = "idle" | "running" | "snoozed" | "leave_blocked" | "stopped";
 
 /** none -> warned (5 minutes left) -> blocked (stop time reached) */
 type LeavePhase = "none" | "warned" | "blocked";
+
+export type { DesktopStatus };
+
+/** What the PC is doing, written to users/{uid}/state/desktop (requirements D-02). */
+export interface StatusSnapshot {
+  status: DesktopStatus;
+  currentTaskId: string | null;
+  currentTaskName: string | null;
+  startedAt: Date | null;
+  /** When the picker will be shown next (end of the 30-minute session or snooze). */
+  nextPromptAt: Date | null;
+}
 
 export interface AppControllerOptions {
   intervalMs: number;
   snoozeMs: number;
   testMode: boolean;
   now?: () => Date;
+  onStatusChange?: (snapshot: StatusSnapshot) => void;
+  /** Runs after the last session is recorded and before quitting (e.g. flush to the server). */
+  beforeQuit?: () => Promise<void>;
+  syncInfo?: () => SyncInfo;
 }
 
 /**
@@ -50,6 +67,7 @@ export class AppController {
   private intervalTimer: string | null = null;
   private snoozeTimer: string | null = null;
   private shuttingDown = false;
+  private nextPromptAt: Date | null = null;
   private readonly leave: LeaveScheduleService;
   private readonly now: () => Date;
 
@@ -87,6 +105,7 @@ export class AppController {
       lastSelectedTaskId: prefs.lastSelectedTaskId,
       leave: this.leave.status(),
       testMode: this.options.testMode,
+      sync: this.syncInfo(),
     };
   }
 
@@ -124,8 +143,9 @@ export class AppController {
 
     this.windows.closePicker();
     this.sessions.start(task, this.now());
-    this.status = "running";
     this.windows.showOverlay();
+    this.nextPromptAt = new Date(this.now().getTime() + this.options.intervalMs);
+    this.setStatus("running");
 
     this.intervalTimer = this.timer.start(this.options.intervalMs, () => {
       this.intervalTimer = null;
@@ -136,8 +156,9 @@ export class AppController {
   snooze(): void {
     if (this.status !== "idle") return;
     this.windows.closePicker();
-    this.status = "snoozed";
     this.cancelSnooze();
+    this.nextPromptAt = new Date(this.now().getTime() + this.options.snoozeMs);
+    this.setStatus("snoozed");
     this.snoozeTimer = this.timer.start(this.options.snoozeMs, () => {
       this.snoozeTimer = null;
       if (this.leavePhase === "blocked") return;
@@ -168,7 +189,7 @@ export class AppController {
     await this.finishSession("interval");
     // After the leave warning, do not start nagging for a new session.
     if (this.leavePhase !== "none") {
-      this.status = "idle";
+      this.setStatus("idle");
       return;
     }
     this.showPicker();
@@ -177,7 +198,10 @@ export class AppController {
   private async finishSession(reason: EndReason): Promise<void> {
     this.windows.hideOverlay();
     const record = this.sessions.finish(reason, this.now());
-    if (this.status === "running") this.status = "idle";
+    if (this.status === "running") {
+      this.nextPromptAt = null;
+      this.setStatus("idle");
+    }
     await this.tasks.recordSession(record);
   }
 
@@ -202,7 +226,8 @@ export class AppController {
     this.intervalTimer = null;
     this.cancelSnooze();
     await this.finishSession("leave_stop");
-    this.status = "leave_blocked";
+    this.nextPromptAt = null;
+    this.setStatus("leave_blocked");
     this.windows.closePicker();
     this.windows.closeManagement();
     this.windows.closeLeave();
@@ -236,8 +261,10 @@ export class AppController {
     this.lifecycle.quit();
   }
 
-  async restart(): Promise<void> {
+  /** `beforeRelaunch` runs after the session is recorded (e.g. sign out). */
+  async restart(beforeRelaunch?: () => Promise<void>): Promise<void> {
     await this.shutdown();
+    await beforeRelaunch?.();
     this.lifecycle.relaunch();
   }
 
@@ -246,7 +273,13 @@ export class AppController {
     this.shuttingDown = true;
     this.timer.cancelAll();
     await this.finishSession("app_exit");
-    this.status = "stopped";
+    this.nextPromptAt = null;
+    this.setStatus("stopped");
+    try {
+      await this.options.beforeQuit?.();
+    } catch (error) {
+      console.error("beforeQuit failed:", error);
+    }
   }
 
   get isShuttingDown(): boolean {
@@ -255,9 +288,26 @@ export class AppController {
 
   private showPicker(): void {
     this.cancelSnooze();
-    this.status = this.sessions.current ? "running" : "idle";
+    if (!this.sessions.current) this.nextPromptAt = null;
+    this.setStatus(this.sessions.current ? "running" : "idle");
     this.windows.closeManagement();
     this.windows.showPicker();
+  }
+
+  syncInfo(): SyncInfo {
+    return this.options.syncInfo?.() ?? { status: "local", email: null };
+  }
+
+  private setStatus(status: DesktopStatus): void {
+    this.status = status;
+    const current = this.sessions.current;
+    this.options.onStatusChange?.({
+      status,
+      currentTaskId: status === "running" ? (current?.taskId ?? null) : null,
+      currentTaskName: status === "running" ? (current?.taskName ?? null) : null,
+      startedAt: status === "running" ? (current?.startedAt ?? null) : null,
+      nextPromptAt: this.nextPromptAt,
+    });
   }
 
   private cancelSnooze(): void {

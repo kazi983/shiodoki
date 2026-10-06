@@ -24,6 +24,12 @@ const api: DesktopApi = {
     remove: (id) => ipcRenderer.invoke(IPC.tasksRemove, id),
     onChanged: (listener) => subscribe(IPC.tasksChanged, listener),
   },
+  auth: {
+    signIn: () => ipcRenderer.invoke(IPC.authSignIn),
+  },
+  sync: {
+    get: () => ipcRenderer.invoke(IPC.syncGet),
+  },
   nav: {
     openPicker: () => ipcRenderer.invoke(IPC.navOpenPicker),
     openManagement: () => ipcRenderer.invoke(IPC.navOpenManagement),

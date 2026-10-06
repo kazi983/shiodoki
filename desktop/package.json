@@ -15,7 +15,10 @@
     "dist:linux": "electron-vite build && electron-builder --linux",
     "dist:win": "electron-vite build && electron-builder --win",
     "e2e": "electron-vite build && node e2e/smoke.mjs",
-    "e2e:headless": "electron-vite build && xvfb-run -a -s \"-screen 0 1920x1080x24\" node e2e/smoke.mjs"
+    "e2e:headless": "electron-vite build && xvfb-run -a -s \"-screen 0 1920x1080x24\" node e2e/smoke.mjs && ../firebase/node_modules/.bin/firebase emulators:exec --config ../firebase/firebase.json --only auth,firestore --project demo-30min-task-timer \"xvfb-run -a -s '-screen 0 1920x1080x24' node e2e/firebase.mjs\"",
+    "test:integration": "../firebase/node_modules/.bin/firebase emulators:exec --config ../firebase/firebase.json --only auth,firestore --project demo-30min-task-timer \"vitest run --config vitest.integration.config.ts\"",
+    "e2e:firebase": "electron-vite build && ../firebase/node_modules/.bin/firebase emulators:exec --config ../firebase/firebase.json --only auth,firestore --project demo-30min-task-timer \"node e2e/firebase.mjs\"",
+    "dev:local": "cross-env TIMER_LOCAL=1 electron-vite dev"
   },
   "devDependencies": {
     "@fontsource/noto-sans-jp": "^5.3.0",
@@ -27,6 +30,7 @@
     "electron": "^44.5.1",
     "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
+    "firebase": "^12.19.0",
     "playwright": "1.63",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",

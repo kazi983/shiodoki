@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import type { SessionRecord } from "@shared/session";
-import type { Task } from "@shared/task";
+import type { Task, TaskPatch } from "@shared/task";
 
 export interface Preferences {
   lastSelectedTaskId: string | null;
@@ -9,16 +9,21 @@ export interface Preferences {
 }
 
 /**
- * Persistence boundary. P2 uses a local JSON file; P3 replaces this with a
- * Firestore implementation (same shape as requirements §5.1).
+ * Persistence boundary: a local JSON file (JsonFileTaskRepository) or
+ * Firestore (FirestoreTaskRepository, requirements §5.1).
+ *
+ * Writes only send the changed fields so that concurrent edits from the PC
+ * and Android do not overwrite each other (requirements §5.3). The
+ * repository stamps updatedAt / updatedBy itself.
  */
 export interface TaskRepository {
   /** All tasks including soft-deleted ones. */
   listTasks(): Promise<Task[]>;
   getTask(id: string): Promise<Task | null>;
-  putTask(task: Task): Promise<void>;
+  createTask(task: Task): Promise<void>;
+  updateTask(id: string, patch: TaskPatch): Promise<void>;
   /** Append a session and add its minutes to the task in one write. */
-  recordSession(session: SessionRecord, updatedAt: string): Promise<void>;
+  recordSession(session: SessionRecord): Promise<void>;
   getPreferences(): Promise<Preferences>;
   setPreferences(patch: Partial<Preferences>): Promise<void>;
 }
@@ -45,7 +50,10 @@ function emptyStore(): StoreData {
 export class JsonFileTaskRepository implements TaskRepository {
   private data: StoreData;
 
-  constructor(private readonly file: string) {
+  constructor(
+    private readonly file: string,
+    private readonly now: () => Date = () => new Date(),
+  ) {
     this.data = existsSync(file) ? this.read() : emptyStore();
   }
 
@@ -62,23 +70,38 @@ export class JsonFileTaskRepository implements TaskRepository {
     return t ? { ...t } : null;
   }
 
-  async putTask(task: Task): Promise<void> {
-    const i = this.data.tasks.findIndex((x) => x.id === task.id);
-    if (i >= 0) this.data.tasks[i] = { ...task };
-    else this.data.tasks.push({ ...task });
+  async createTask(task: Task): Promise<void> {
+    if (this.data.tasks.some((x) => x.id === task.id)) throw new Error(`Task already exists: ${task.id}`);
+    this.data.tasks.push({ ...task });
     this.write();
   }
 
-  async recordSession(session: SessionRecord, updatedAt: string): Promise<void> {
+  async updateTask(id: string, patch: TaskPatch): Promise<void> {
+    const t = this.data.tasks.find((x) => x.id === id);
+    if (!t) throw new Error(`Task not found: ${id}`);
+    Object.assign(t, patch, { updatedAt: this.now().toISOString(), updatedBy: "desktop" });
+    this.write();
+  }
+
+  async recordSession(session: SessionRecord): Promise<void> {
     this.data.sessions.push({ ...session });
     const t = this.data.tasks.find((x) => x.id === session.taskId);
     if (t) {
       t.totalMinutes += session.elapsedMinutes;
       t.sessionCount += 1;
-      t.updatedAt = updatedAt;
+      t.updatedAt = this.now().toISOString();
       t.updatedBy = "desktop";
     }
     this.write();
+  }
+
+  /** Local data that has not been copied to Firestore yet. */
+  hasData(): boolean {
+    return this.data.tasks.some((t) => !t.deleted);
+  }
+
+  async listSessions(): Promise<SessionRecord[]> {
+    return this.data.sessions.map((s) => ({ ...s }));
   }
 
   async getPreferences(): Promise<Preferences> {
