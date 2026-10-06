@@ -26,6 +26,21 @@ Electron ＋ TypeScript ＋ React で作り直したデスクトップアプリ�
 
 あわせて、`firebase/README.md` の手順でセキュリティルールを反映（`npm run deploy:rules`）しておいてください。
 
+### Ubuntu 24.04 以降のみ：サンドボックスの許可（1回だけ）
+
+Ubuntu 24.04 以降では、AppArmor の制限により開発用の Electron がそのままでは起動せず、
+`The SUID sandbox helper binary was found, but is not configured correctly` で止まります。
+`npm install` のあとに一度だけ次を実行してください（`sudo` のパスワードを聞かれます）。
+
+```bash
+cd desktop
+npm run setup:linux-sandbox
+```
+
+このプロジェクトの Electron だけに、サンドボックスの作成を許可する AppArmor の設定（`/etc/apparmor.d/electron-30min-task-timer-dev`）を追加します。
+プロジェクトのフォルダを移動した場合は、もう一度実行してください。不要になったら `sudo rm /etc/apparmor.d/electron-30min-task-timer-dev` で削除できます。
+`.deb` でインストールした配布版では不要です（インストール時に設定されます）。
+
 ## 起動
 
 ```bash
@@ -129,6 +144,7 @@ src/
 
 | 症状 | 対処 |
 |------|------|
+| `The SUID sandbox helper binary was found, but is not configured correctly` | Ubuntu 24.04 以降の AppArmor の制限。上の「サンドボックスの許可」で `npm run setup:linux-sandbox` を実行する。`--no-sandbox` での起動はセキュリティが下がるので使わない |
 | `npm run dev` で `Error: Electron uninstall` | Electron 本体のダウンロードが済んでいない。`npm install` をもう一度実行する（`postinstall` でダウンロードされる）。それでも出る場合は `npx install-electron` |
 | `npm install` で `vulnerabilities` の警告 | 開発用ツールの依存（Firestore の Node.js 用通信ライブラリ、electron-builder）に対する警告で、アプリ本体には含まれない。`npm audit fix --force` は依存のバージョンを大きく変えて動かなくなることがあるので実行しない |
 | 「Google ログインの設定ファイルがありません」 | 上の「初回の準備」で `resources/oauth-client.json` を置く |
