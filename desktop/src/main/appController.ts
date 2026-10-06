@@ -198,11 +198,13 @@ export class AppController {
   private async finishSession(reason: EndReason): Promise<void> {
     this.windows.hideOverlay();
     const record = this.sessions.finish(reason, this.now());
+    // Record before reporting the new status, so whoever sees "idle" in
+    // state/desktop (the Android app) also finds the finished session.
+    await this.tasks.recordSession(record);
     if (this.status === "running") {
       this.nextPromptAt = null;
       this.setStatus("idle");
     }
-    await this.tasks.recordSession(record);
   }
 
   // -------------------------

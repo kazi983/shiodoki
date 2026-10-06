@@ -129,6 +129,8 @@ src/
 
 | 症状 | 対処 |
 |------|------|
+| `npm run dev` で `Error: Electron uninstall` | Electron 本体のダウンロードが済んでいない。`npm install` をもう一度実行する（`postinstall` でダウンロードされる）。それでも出る場合は `npx install-electron` |
+| `npm install` で `vulnerabilities` の警告 | 開発用ツールの依存（Firestore の Node.js 用通信ライブラリ、electron-builder）に対する警告で、アプリ本体には含まれない。`npm audit fix --force` は依存のバージョンを大きく変えて動かなくなることがあるので実行しない |
 | 「Google ログインの設定ファイルがありません」 | 上の「初回の準備」で `resources/oauth-client.json` を置く |
 | ブラウザで「このアプリはブロックされています」「アクセスをブロック」 | OAuth 同意画面のテストユーザーに自分の Gmail を追加する |
 | ログイン後に `invalid_idp_response` や audience に関するエラー | Firebase コンソール →「Authentication」→「Sign-in method」→「Google」→「外部プロジェクトからのクライアント ID をホワイトリストに登録」に、`oauth-client.json` の `client_id` を追加する |

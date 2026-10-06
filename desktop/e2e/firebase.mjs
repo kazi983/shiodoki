@@ -149,7 +149,11 @@ try {
 
   // TASK_MODE=test: the picker comes back after 5 seconds
   await poll(desktopState, (s) => s?.status === "idle", "idle state");
-  const sessions = (await getDocs(collection(phoneDb, `${base}/sessions`))).docs.map((d) => d.data());
+  const sessions = await poll(
+    async () => (await getDocs(collection(phoneDb, `${base}/sessions`))).docs.map((d) => d.data()),
+    (s) => s.length >= 1,
+    "session record",
+  );
   assert.equal(sessions.length, 1);
   assert.equal(sessions[0].taskName, "PCで追加");
   assert.equal(sessions[0].endReason, "interval");

@@ -226,6 +226,26 @@ describe("leave schedule", () => {
 });
 
 describe("status reporting (state/desktop)", () => {
+  test("the session is recorded before idle is reported", async () => {
+    const order: string[] = [];
+    const recording = new TaskService(new JsonFileTaskRepository(file));
+    const original = recording.recordSession.bind(recording);
+    recording.recordSession = async (s) => {
+      await original(s);
+      if (s) order.push("session");
+    };
+    const c = new AppController(recording, new SessionService("pc"), new TimerService(), windows, lifecycle, {
+      intervalMs: INTERVAL,
+      snoozeMs: SNOOZE,
+      testMode: false,
+      onStatusChange: (s) => order.push(s.status),
+    });
+    const t = await recording.add({ name: "Ordered", priority: "NOW", memo: "" });
+    await c.startSession({ taskId: t.id, leave: LEAVE });
+    await vi.advanceTimersByTimeAsync(INTERVAL);
+    expect(order).toEqual(["running", "session", "idle", "idle"]);
+  });
+
   test("reports each transition with the running task and next prompt time", async () => {
     const snapshots: Array<{ status: string; currentTaskName: string | null; nextPromptAt: Date | null }> = [];
     const beforeQuit = vi.fn(async () => {});
