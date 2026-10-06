@@ -7,10 +7,10 @@
   "main": "./out/main/index.js",
   "scripts": {
     "postinstall": "install-electron",
-    "dev": "electron-vite dev",
-    "dev:test": "cross-env TASK_MODE=test electron-vite dev",
+    "dev": "electron-vite dev -- --ozone-platform=x11",
+    "dev:test": "cross-env TASK_MODE=test electron-vite dev -- --ozone-platform=x11",
     "build": "electron-vite build",
-    "start": "electron-vite preview",
+    "start": "electron-vite preview -- --ozone-platform=x11",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "test": "vitest run",
     "dist:linux": "electron-vite build && electron-builder --linux",
@@ -19,7 +19,7 @@
     "e2e:headless": "electron-vite build && xvfb-run -a -s \"-screen 0 1920x1080x24\" node e2e/smoke.mjs && ../firebase/node_modules/.bin/firebase emulators:exec --config ../firebase/firebase.json --only auth,firestore --project demo-30min-task-timer \"xvfb-run -a -s '-screen 0 1920x1080x24' node e2e/firebase.mjs\"",
     "test:integration": "../firebase/node_modules/.bin/firebase emulators:exec --config ../firebase/firebase.json --only auth,firestore --project demo-30min-task-timer \"vitest run --config vitest.integration.config.ts\"",
     "e2e:firebase": "electron-vite build && ../firebase/node_modules/.bin/firebase emulators:exec --config ../firebase/firebase.json --only auth,firestore --project demo-30min-task-timer \"node e2e/firebase.mjs\"",
-    "dev:local": "cross-env TIMER_LOCAL=1 electron-vite dev",
+    "dev:local": "cross-env TIMER_LOCAL=1 electron-vite dev -- --ozone-platform=x11",
     "setup:linux-sandbox": "bash scripts/setup-linux-sandbox.sh"
   },
   "devDependencies": {
@@ -57,7 +57,10 @@
         "deb"
       ],
       "category": "Utility",
-      "icon": "resources/icon.png"
+      "icon": "resources/icon.png",
+      "executableArgs": [
+        "--ozone-platform=x11"
+      ]
     },
     "win": {
       "target": [

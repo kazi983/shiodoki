@@ -113,7 +113,9 @@ npm run dist:win     # dist/ に Windows インストーラーを作成（Window
 
 Wayland ではアプリがウィンドウを常に最前面にしたり、決まった位置に置いたりできません。
 そのため Linux では X11 互換モード（XWayland）で起動します（v1 の Tk と同じ動き）。
-Wayland のまま動かしたい場合は `TIMER_ALLOW_WAYLAND=1` を付けて起動してください。
+`npm run dev` などのスクリプトと、配布版のメニュー登録（.desktop）が `--ozone-platform=x11` を付けて Electron を起動します。
+この指定はコマンドラインで渡す必要があります。アプリのコードの中から指定しても、Wayland 環境ではウィンドウが表示されなくなります。
+Wayland のまま動かしたい場合は `npx electron-vite dev` を直接実行してください（常に最前面・位置指定は効きません）。
 
 また、Linux では GPU を使わずに描画します（XWayland で GPU の処理がクラッシュしやすいため。画面が単純なので速度に影響はありません）。
 GPU を使いたい場合は `TIMER_ENABLE_GPU=1` を付けて起動してください。

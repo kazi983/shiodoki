@@ -34,7 +34,7 @@ writeFileSync(
 
 const app = await electron.launch({
   executablePath: require("electron"),
-  args: [join(root, "out/main/index.js"), ...(process.getuid?.() === 0 ? ["--no-sandbox"] : [])],
+  args: [join(root, "out/main/index.js"), "--ozone-platform=x11", ...(process.getuid?.() === 0 ? ["--no-sandbox"] : [])],
   env: { ...process.env, TASK_MODE: "test", TIMER_LOCAL: "1", XDG_CONFIG_HOME: configHome, ELECTRON_RENDERER_URL: "" },
 });
 

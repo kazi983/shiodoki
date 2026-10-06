@@ -34,9 +34,19 @@ const DEVICE = hostname();
 
 // On Ubuntu (Wayland), apps cannot keep windows always-on-top or place them
 // at a fixed position. Run through XWayland like v1 (Tk) did.
-// Set TIMER_ALLOW_WAYLAND=1 to opt out.
-if (process.platform === "linux" && !process.env.TIMER_ALLOW_WAYLAND) {
-  app.commandLine.appendSwitch("ozone-platform", "x11");
+// The npm scripts and the packaged .desktop entry pass --ozone-platform=x11.
+// It must be on the command line: the main process picks its Ozone platform
+// before this code runs, so app.commandLine.appendSwitch() would only switch
+// the child processes, and the GPU process could not draw into the windows.
+if (
+  process.platform === "linux" &&
+  process.env.WAYLAND_DISPLAY &&
+  app.commandLine.getSwitchValue("ozone-platform") !== "x11"
+) {
+  console.warn(
+    "Running on Wayland: always-on-top and window placement may not work. " +
+      "Start with --ozone-platform=x11 to use XWayland.",
+  );
 }
 
 // The UI is a few simple windows and does not need the GPU. On Linux the GPU

@@ -61,5 +61,8 @@ written in Japanese.
   priorities `NOW | SOONER | ANYTIME | SOMEDAY`, append-only sessions, soft delete only. When the
   data model changes, update `firebase/firestore.rules`, its tests, `src/renderer/data/mapping.ts`
   and `docs/requirements.md` §5 together.
-- On Linux the app forces XWayland (`ozone-platform=x11`) so always-on-top and window placement
-  work; the tray needs the GNOME AppIndicator extension.
+- On Linux the app runs through XWayland so always-on-top and window placement work. The npm
+  scripts and electron-builder `linux.executableArgs` pass `--ozone-platform=x11` on the command
+  line; never use `app.commandLine.appendSwitch` for it (the main process has already picked
+  Wayland, only child processes switch, and windows stay invisible). The tray needs the GNOME
+  AppIndicator extension.
