@@ -115,6 +115,9 @@ Wayland ではアプリがウィンドウを常に最前面にしたり、決ま
 そのため Linux では X11 互換モード（XWayland）で起動します（v1 の Tk と同じ動き）。
 Wayland のまま動かしたい場合は `TIMER_ALLOW_WAYLAND=1` を付けて起動してください。
 
+また、Linux では GPU を使わずに描画します（XWayland で GPU の処理がクラッシュしやすいため。画面が単純なので速度に影響はありません）。
+GPU を使いたい場合は `TIMER_ENABLE_GPU=1` を付けて起動してください。
+
 ## 構成
 
 ```
@@ -145,6 +148,7 @@ src/
 | 症状 | 対処 |
 |------|------|
 | `The SUID sandbox helper binary was found, but is not configured correctly` | Ubuntu 24.04 以降の AppArmor の制限。上の「サンドボックスの許可」で `npm run setup:linux-sandbox` を実行する。`--no-sandbox` での起動はセキュリティが下がるので使わない |
+| `GPU process exited unexpectedly: exit_code=139` や `vaInitialize failed` | GPU まわりのログ。Linux では GPU を使わない設定にしてあるので通常は出ない。`vaInitialize failed`（動画再生支援が使えない）は無視してよい |
 | `npm run dev` で `Error: Electron uninstall` | Electron 本体のダウンロードが済んでいない。`npm install` をもう一度実行する（`postinstall` でダウンロードされる）。それでも出る場合は `npx install-electron` |
 | `npm install` で `vulnerabilities` の警告 | 開発用ツールの依存（Firestore の Node.js 用通信ライブラリ、electron-builder）に対する警告で、アプリ本体には含まれない。`npm audit fix --force` は依存のバージョンを大きく変えて動かなくなることがあるので実行しない |
 | 「Google ログインの設定ファイルがありません」 | 上の「初回の準備」で `resources/oauth-client.json` を置く |

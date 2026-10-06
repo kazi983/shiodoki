@@ -39,6 +39,14 @@ if (process.platform === "linux" && !process.env.TIMER_ALLOW_WAYLAND) {
   app.commandLine.appendSwitch("ozone-platform", "x11");
 }
 
+// The UI is a few simple windows and does not need the GPU. On Linux the GPU
+// process often crashes under XWayland (exit_code=139) before Chromium falls
+// back to software rendering, which slows startup and floods the log.
+// Set TIMER_ENABLE_GPU=1 to use the GPU anyway.
+if (process.platform === "linux" && !process.env.TIMER_ENABLE_GPU) {
+  app.disableHardwareAcceleration();
+}
+
 app.setName(APP_DIR_NAME);
 app.setPath(
   "userData",
