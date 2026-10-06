@@ -1,0 +1,115 @@
+rules_version = '2';
+
+// Data layout (see v2/docs/requirements.md §5):
+//   users/{uid}/tasks/{taskId}
+//   users/{uid}/sessions/{sessionId}   (append-only)
+//   users/{uid}/state/desktop
+//   users/{uid}/state/preferences
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function isNullOrString(v) {
+      return v == null || v is string;
+    }
+
+    function isNullOrTimestamp(v) {
+      return v == null || v is timestamp;
+    }
+
+    function isNonNegativeInt(v) {
+      return v is int && v >= 0;
+    }
+
+    function isValidTask(d) {
+      return d.keys().hasAll(['name', 'memo', 'priority', 'completed', 'completedAt',
+                              'deleted', 'totalMinutes', 'sessionCount',
+                              'createdAt', 'updatedAt', 'updatedBy'])
+        && d.keys().hasOnly(['name', 'memo', 'priority', 'completed', 'completedAt',
+                             'deleted', 'totalMinutes', 'sessionCount',
+                             'createdAt', 'updatedAt', 'updatedBy'])
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 200
+        && d.memo is string && d.memo.size() <= 5000
+        && d.priority in ['NOW', 'SOONER', 'ANYTIME', 'SOMEDAY']
+        && d.completed is bool
+        && isNullOrTimestamp(d.completedAt)
+        && d.deleted is bool
+        && isNonNegativeInt(d.totalMinutes)
+        && isNonNegativeInt(d.sessionCount)
+        && d.createdAt is timestamp
+        // Clients must write updatedAt with serverTimestamp().
+        && d.updatedAt == request.time
+        && d.updatedBy in ['desktop', 'android', 'migration'];
+    }
+
+    function isValidSession(d) {
+      return d.keys().hasOnly(['taskId', 'taskName', 'startedAt', 'endedAt',
+                               'elapsedMinutes', 'endReason', 'device'])
+        && d.keys().hasAll(['taskId', 'taskName', 'startedAt', 'endedAt',
+                            'elapsedMinutes', 'endReason', 'device'])
+        && d.taskId is string && d.taskId.size() > 0
+        && d.taskName is string && d.taskName.size() <= 200
+        && d.startedAt is timestamp
+        && d.endedAt is timestamp
+        && d.endedAt >= d.startedAt
+        && isNonNegativeInt(d.elapsedMinutes)
+        && d.endReason in ['completed', 'interval', 'leave_stop', 'app_exit']
+        && d.device is string && d.device.size() <= 100;
+    }
+
+    function isValidDesktopState(d) {
+      return d.keys().hasOnly(['status', 'currentTaskId', 'currentTaskName', 'startedAt',
+                               'nextPromptAt', 'heartbeatAt', 'device'])
+        && d.keys().hasAll(['status', 'heartbeatAt', 'device'])
+        && d.status in ['idle', 'running', 'snoozed', 'leave_blocked', 'stopped']
+        && isNullOrString(d.get('currentTaskId', null))
+        && isNullOrString(d.get('currentTaskName', null))
+        && isNullOrTimestamp(d.get('startedAt', null))
+        && isNullOrTimestamp(d.get('nextPromptAt', null))
+        && d.heartbeatAt == request.time
+        && d.device is string && d.device.size() <= 100;
+    }
+
+    function isValidPreferences(d) {
+      return d.keys().hasOnly(['lastSelectedTaskId', 'nextTaskId', 'updatedAt'])
+        && isNullOrString(d.get('lastSelectedTaskId', null))
+        && isNullOrString(d.get('nextTaskId', null))
+        && d.updatedAt == request.time;
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+
+      match /tasks/{taskId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid) && isValidTask(request.resource.data);
+        allow update: if isOwner(uid)
+          && isValidTask(request.resource.data)
+          && request.resource.data.createdAt == resource.data.createdAt;
+        // Deletes are soft (deleted flag) only.
+        allow delete: if false;
+      }
+
+      match /sessions/{sessionId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid) && isValidSession(request.resource.data);
+        allow update, delete: if false;
+      }
+
+      match /state/desktop {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) && isValidDesktopState(request.resource.data);
+        allow delete: if false;
+      }
+
+      match /state/preferences {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) && isValidPreferences(request.resource.data);
+        allow delete: if false;
+      }
+    }
+  }
+}

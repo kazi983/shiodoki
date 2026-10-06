@@ -1,6 +1,6 @@
 # 30min-task-timer v2 要件定義書
 
-- ステータス: ドラフト v0.2
+- ステータス: 確定 v0.3
 - 更新日: 2026-10-06
 - 対象: 現行アプリ（リポジトリ直下の `main.pyw` / `app/`）の作り替え
 
@@ -9,6 +9,7 @@
 | 版 | 日付 | 内容 |
 |----|------|------|
 | v0.1 | 2026-10-06 | 初版（Supabase + PWA 案） |
+| v0.3 | 2026-10-06 | デスクトップを Electron ＋ TypeScript に決定。優先度の選択肢を固定（§5.5）。退勤スケジュールは Android に表示しないことに決定。P0 完了 |
 | v0.2 | 2026-10-06 | DB を Firebase（Cloud Firestore）に変更。モバイルを Android ネイティブアプリに変更（ストア公開なし）。Google ログインに決定。デスクトップはオンラインで動かしつつ、オフラインでも使える方針に決定。デスクトップの技術見直し（§6.3）を追加 |
 
 ---
@@ -137,7 +138,7 @@ users/{uid}
 |-----------|----|------|
 | name | string | タスク名（必須） |
 | memo | string | メモ |
-| priority | string | 優先度（選択肢は Q-04 で確定） |
+| priority | string | 優先度（`NOW` / `SOONER` / `ANYTIME` / `SOMEDAY` のいずれか。§5.5） |
 | completed | boolean | 完了フラグ |
 | completedAt | timestamp \| null | 完了日時（新規） |
 | deleted | boolean | 論理削除フラグ |
@@ -165,12 +166,11 @@ users/{uid}
 
 | フィールド | 型 | 説明 |
 |-----------|----|------|
-| status | string | `idle`（選択画面表示中）/ `running`（セッション中）/ `snoozed` / `leave_blocked` / `stopped`（アプリ終了） |
+| status | string | `idle`（選択画面表示中）/ `running`（セッション中）/ `snoozed` / `leave_blocked`（退勤のため停止中。Android では「停止中」と表示）/ `stopped`（アプリ終了） |
 | currentTaskId | string \| null | 実行中タスク |
 | currentTaskName | string \| null | 実行中タスク名 |
 | startedAt | timestamp \| null | セッション開始時刻 |
 | nextPromptAt | timestamp \| null | 次にタスク選択画面が出る予定時刻 |
-| leaveTime | timestamp \| null | 設定中の退勤時刻 |
 | heartbeatAt | timestamp | 最終生存確認時刻（数分おきに更新。古ければ Android 側で「PC オフライン」と表示） |
 | device | string | 端末名 |
 
@@ -206,7 +206,22 @@ match /users/{uid}/{document=**} {
 
 - 実装時にフィールドの型・必須チェックを追加する。ルールはリポジトリで管理し、Emulator でテストする。
 
-### 5.5 無料枠（Spark プラン）の目安
+### 5.5 優先度（固定）
+
+優先度は次の 4 つに固定する。値は Firestore に英字のまま保存し、セキュリティルールでもこの 4 つ以外を拒否する。
+
+| 値 | 表示 | 意味 | 並び順 | 色（現行踏襲） |
+|----|------|------|--------|---------------|
+| `NOW` | 🔥 NOW | 今すぐやる | 1 | `#fee2e2` |
+| `SOONER` | ⭐ SOONER | 近いうちにやる | 2 | `#fef3c7` |
+| `ANYTIME` | 📝 ANYTIME | いつでもよい | 3 | `#dcfce7` |
+| `SOMEDAY` | 💤 SOMEDAY | いつか | 4 | `#f3f4f6` |
+
+- 新規作成時の初期値は `NOW`（タスク選択画面のクイック追加・タスク管理画面とも現行どおり）。
+- 一覧は「優先度の並び順 → 作成日時の古い順」で表示する。
+- 移行時、`tasks.json` の priority が上記 4 つ以外（`なし`、空文字など）の場合は `SOMEDAY` にする。
+
+### 5.6 無料枠（Spark プラン）の目安
 
 Firestore の無料枠はおおむね「保存 1 GiB、読み取り 5 万回/日、書き込み 2 万回/日」。
 本アプリの想定（タスク数百件、1 日 20〜30 セッション、heartbeat 5 分間隔）なら、書き込みは 1 日数百回程度で、十分に収まる。
@@ -277,13 +292,13 @@ Android をネイティブアプリにすることで、Firebase のほうが有
 
 | 候補 | 言語 | Firebase 連携 | Ubuntu での見た目 | 常駐系の機能（トレイ・最前面・多重起動防止） | 評価 |
 |------|------|--------------|------------------|------------------------------|------|
-| **A. Electron**（推奨） | TypeScript | **公式 JS SDK がそのまま動く**（オフライン永続化・リアルタイム購読・トークン自動更新が標準） | Chromium を同梱するので **Windows と完全に同じ表示**。CSS で伸縮するレイアウト、高 DPI 対応 | トレイ・最前面・透明ウィンドウ・多重起動防止（`requestSingleInstanceLock`）が標準 API である | ◎ |
+| **A. Electron**（採用） | TypeScript | **公式 JS SDK がそのまま動く**（オフライン永続化・リアルタイム購読・トークン自動更新が標準） | Chromium を同梱するので **Windows と完全に同じ表示**。CSS で伸縮するレイアウト、高 DPI 対応 | トレイ・最前面・透明ウィンドウ・多重起動防止（`requestSingleInstanceLock`）が標準 API である | ◎ |
 | B. Tauri v2 | TypeScript ＋ 少量の Rust | 公式 JS SDK が動く | Linux では WebKitGTK で描画するため、Windows（WebView2）と細部の見た目・挙動が異なることがある | プラグインで対応 | ○ 軽量（数 MB）だが Linux での安定性で A に劣る |
 | C. Python ＋ PySide6（Qt） | Python | REST を自前実装。オフライン対応・リアルタイム購読も自前 | Tk より大幅に改善（高 DPI 対応、フォント描画が良い） | `QSystemTrayIcon`、`QLocalServer` で対応 | ○ Python を続けたい場合の選択肢。Firebase 部分の実装が重い |
 | D. Flutter（Android と共通化） | Dart | **公式の FlutterFire が Linux 非対応** | 良好 | パッケージで対応 | △ Ubuntu がメインなので不適 |
 | E. 現行 Tkinter を改修 | Python | C と同じく自前実装 | 根本解決が難しい | 現状のまま | △ |
 
-#### 6.3.3 推奨案：Electron ＋ TypeScript
+#### 6.3.3 採用案：Electron ＋ TypeScript
 
 **理由**
 - Firebase の公式 SDK がそのまま使え、**「オフラインでも使える」「Android の変更がすぐ届く」が SDK の標準機能で実現できる**。自前の同期処理が不要になり、作る量とバグの元が大きく減る。
@@ -295,7 +310,7 @@ Android をネイティブアプリにすることで、Firebase のほうが有
 - Python から TypeScript への言語変更になる。
 
 **主な構成**
-- UI: React または Svelte（Q-08）＋ CSS（レイアウトは画面サイズに合わせて伸縮）
+- UI: React または Svelte（Q-09）＋ CSS（レイアウトは画面サイズに合わせて伸縮）
 - ウィンドウ: タスク選択 / タスク管理 / 退勤スケジュールの各ウィンドウ ＋ 常に最前面の小さなオーバーレイ
 - タイマー: メインプロセスで管理（現行 `TimerService` の役割）
 - Firebase: Web SDK（`persistentLocalCache` でオフライン永続化）
@@ -366,16 +381,16 @@ v2/
 | Q-03 | ログイン方式 | Google ログイン |
 | Q-05 | 新しいコードの置き場所 | `v2/` 配下で並行開発し、完成後に置き換え |
 | — | デスクトップのネットワーク | 普段はオンラインで動かし、タスクの状況を書き込む。オフラインでも使える |
+| Q-04 | 優先度の選択肢 | `NOW` / `SOONER` / `ANYTIME` / `SOMEDAY` に固定（§5.5） |
+| Q-06 | 退勤スケジュールの Android 表示 | 表示しない（設定・確認ともデスクトップのみ） |
+| Q-08 | デスクトップの技術 | Electron ＋ TypeScript |
 
-### 8.2 未決事項（要確認）
+### 8.2 未決事項（仮決めのまま進め、必要になったら見直す）
 
 | # | 内容 | 現時点の仮決め |
 |---|------|---------------|
-| Q-04 | 優先度の選択肢を固定するか（現行はタスク選択画面の `NOW` と管理画面の入力値が混在） | 管理画面の選択肢に統一して確定する |
-| Q-06 | 退勤スケジュールの設定を Android からも設定・確認できるようにするか | 確認のみ（`state/desktop.leaveTime` を表示） |
 | Q-07 | 複数台の PC で同時に使う想定があるか | 1 台のみ想定 |
-| Q-08 | **デスクトップの技術**：Electron（推奨）/ Tauri / Python＋PySide6 のどれにするか | Electron ＋ TypeScript |
-| Q-09 | デスクトップの UI フレームワーク（React / Svelte など） | Q-08 確定後に決める |
+| Q-09 | デスクトップの UI フレームワーク（React / Svelte など） | P2 着手時に決める |
 | Q-10 | Android からの操作を PC に通知するか（例：「スマホでタスクが追加されました」） | 通知しない（次にタスク選択画面を開いたときに反映） |
 
 ---
@@ -384,8 +399,8 @@ v2/
 
 | フェーズ | 内容 | 完了条件 |
 |---------|------|---------|
-| P0 | 要件定義（本書）の確定 | §8.2 の Q-08 が確定 |
-| P1 | Firebase プロジェクト作成、Google ログイン有効化、セキュリティルールと Emulator 環境を `v2/firebase/` に用意 | ルールのテストが Emulator で通る |
+| P0 | 要件定義（本書）の確定 | 完了（v0.3） |
+| P1 | Firebase プロジェクト作成、Google ログイン有効化、セキュリティルールと Emulator 環境を `v2/firebase/` に用意 | ルールのテストが Emulator で通る（ルール・テストは作成済み。プロジェクト作成は `v2/firebase/README.md` の手順で手作業） |
 | P2 | デスクトップ：ローカル動作のみで現行機能を作り直す（タイマー、選択・管理画面、オーバーレイ、退勤スケジュール、トレイ、多重起動防止） | Ubuntu で現行と同じ使い方ができ、UI が崩れない |
 | P3 | デスクトップ：Google ログイン、Firestore 連携、`state/desktop` の書き込み、`tasks.json` 移行 | オフラインで操作 → 復帰後に Firestore と一致する |
 | P4 | Android：ログイン、タスク一覧・追加・編集・完了・削除、PC の状況表示 | Android で追加したタスクが PC のタスク選択画面にすぐ出る |
@@ -399,5 +414,5 @@ v2/
 - 退勤時刻の入力が日付またぎに未対応（`TaskPickerController.on_start_session` の `#fix` コメント）。
 - 表示タイムゾーンが `America/Vancouver` に固定（`app/models/task.py`）。
 - ウィンドウサイズが固定ピクセル（1200×1400）で、画面に収まらない場合がある（§6.3.1）。
-- 優先度の値が画面によって不統一（Q-04）。
+- 優先度の既定値が不統一（`Task` の既定値は `なし`、読み込み時は空文字）。v2 では §5.5 の 4 つに固定する。
 - 自動テスト・lint が未整備。
