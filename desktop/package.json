@@ -1,0 +1,67 @@
+{
+  "name": "30min-task-timer",
+  "productName": "30min Task Timer",
+  "version": "2.0.0-alpha.1",
+  "description": "Desktop app that asks what to work on every 30 minutes and tracks time per task",
+  "private": true,
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "dev:test": "cross-env TASK_MODE=test electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "test": "vitest run",
+    "dist:linux": "electron-vite build && electron-builder --linux",
+    "dist:win": "electron-vite build && electron-builder --win",
+    "e2e": "electron-vite build && node e2e/smoke.mjs",
+    "e2e:headless": "electron-vite build && xvfb-run -a -s \"-screen 0 1920x1080x24\" node e2e/smoke.mjs"
+  },
+  "devDependencies": {
+    "@fontsource/noto-sans-jp": "^5.3.0",
+    "@types/node": "^24.19.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "cross-env": "^10.1.0",
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
+    "playwright": "1.63",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "typescript": "^7.0.2",
+    "vite": "^7.3.7",
+    "vitest": "^5.0.3"
+  },
+  "build": {
+    "appId": "io.github.kazi983.thirtymin-task-timer",
+    "productName": "30min Task Timer",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "out/**",
+      "resources/**",
+      "package.json"
+    ],
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility",
+      "icon": "resources/icon.png"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "resources/icon.png"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kazi983/30min-task-timer-python.git"
+  }
+}
