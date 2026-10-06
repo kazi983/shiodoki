@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// Data layout (see v2/docs/requirements.md §5):
+// Data layout (see docs/requirements.md §5):
 //   users/{uid}/tasks/{taskId}
 //   users/{uid}/sessions/{sessionId}   (append-only)
 //   users/{uid}/state/desktop

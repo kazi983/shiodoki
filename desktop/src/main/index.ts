@@ -177,7 +177,7 @@ async function googleIdToken(): Promise<string> {
   if (!client) {
     throw new Error(
       "Google ログインの設定ファイルがありません。\n" +
-        "v2/desktop/README.md の「Google ログインの設定」に従って resources/oauth-client.json を置いてください。",
+        "desktop/README.md の「初回の準備：Google ログインの設定」に従って resources/oauth-client.json を置いてください。",
     );
   }
   return signInWithGoogle(client, (url) => shell.openExternal(url));

@@ -1,6 +1,6 @@
 /**
  * Task domain model shared by main and renderer.
- * Field names follow the Firestore schema in v2/docs/requirements.md §5.1.
+ * Field names follow the Firestore schema in docs/requirements.md §5.1.
  */
 
 export const PRIORITIES = ["NOW", "SOONER", "ANYTIME", "SOMEDAY"] as const;

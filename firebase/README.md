@@ -15,7 +15,7 @@ Cloud Firestore のセキュリティルール、インデックス、Emulator �
 Node.js 22 以上と Java 21 以上が必要です（Firestore Emulator が Java で動くため）。
 
 ```bash
-cd v2/firebase
+cd firebase
 npm install
 npm test
 ```
@@ -49,7 +49,7 @@ npm test
 プロジェクト `min-task-timer` は `.firebaserc` に設定済みです。自分の PC で実行します（ブラウザで Google ログインが開きます）。
 
 ```bash
-cd v2/firebase
+cd firebase
 npm install
 npx firebase login
 npm run deploy:rules

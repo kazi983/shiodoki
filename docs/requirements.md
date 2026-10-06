@@ -1,14 +1,16 @@
 # 30min-task-timer v2 要件定義書
 
-- ステータス: 確定 v0.5
+- ステータス: 確定 v0.6
 - 更新日: 2026-10-06
-- 対象: 現行アプリ（リポジトリ直下の `main.pyw` / `app/`）の作り替え
+- 対象: 現行アプリ v1（[kazi983/30min-task-timer-python](https://github.com/kazi983/30min-task-timer-python) の `main.pyw` / `app/`）の作り替え
+- 本文中の `app/...` などのパスは v1 リポジトリのファイルを指す
 
 ## 変更履歴
 
 | 版 | 日付 | 内容 |
 |----|------|------|
 | v0.1 | 2026-10-06 | 初版（Supabase + PWA 案） |
+| v0.6 | 2026-10-06 | 新リポジトリ kazi983/30min-task-timer に移動（`v2/` の中身をリポジトリ直下へ）。リポジトリ構成（§6.5）を更新 |
 | v0.5 | 2026-10-06 | P3 実装（Google ログイン、Firestore 同期、PC の状況の書き込み、初回移行、同期状態表示、ログアウト）。Emulator での自動テストまで完了。本番プロジェクトでの動作確認は未実施 |
 | v0.4 | 2026-10-06 | UI フレームワークを React に決定（Q-09）。P2 完了。§10 に v1 の不具合を追記 |
 | v0.3 | 2026-10-06 | デスクトップを Electron ＋ TypeScript に決定。優先度の選択肢を固定（§5.5）。退勤スケジュールは Android に表示しないことに決定。P0 完了 |
@@ -336,17 +338,19 @@ Android をネイティブアプリにすることで、Firebase のほうが有
 | 配布 | Android Studio から署名付き APK を作り、自分の端末に直接インストール（Firebase App Distribution も無料で使える） |
 | 必要な設定 | Firebase コンソールに Android アプリを登録し、署名証明書の SHA-1 を登録（Google ログインに必須） |
 
-### 6.5 リポジトリ構成（案）
+### 6.5 リポジトリ構成
+
+v2 は新しいリポジトリ [kazi983/30min-task-timer](https://github.com/kazi983/30min-task-timer) で開発する。
 
 ```
-v2/
+30min-task-timer/
 ├─ docs/          要件定義書・設計書
-├─ desktop/       デスクトップアプリ（Electron + TypeScript）
-├─ android/       Android アプリ（Kotlin）
+├─ desktop/       デスクトップアプリ（Electron + TypeScript + React）
+├─ android/       Android アプリ（Kotlin、P4 で追加）
 └─ firebase/      セキュリティルール・インデックス・Emulator 設定
 ```
 
-現行アプリ（`main.pyw` / `app/`）は v2 が完成するまでそのまま残し、日常利用を続ける。
+現行アプリ v1（kazi983/30min-task-timer-python）は v2 が完成するまでそのまま残し、日常利用を続ける。
 
 ---
 
@@ -381,7 +385,7 @@ v2/
 | Q-01 | データベース | Firebase（Cloud Firestore） |
 | Q-02 | モバイル | Android ネイティブアプリ。ストア公開はしない |
 | Q-03 | ログイン方式 | Google ログイン |
-| Q-05 | 新しいコードの置き場所 | `v2/` 配下で並行開発し、完成後に置き換え |
+| Q-05 | 新しいコードの置き場所 | 新リポジトリ kazi983/30min-task-timer で開発し、完成後に v1 から乗り換える |
 | — | デスクトップのネットワーク | 普段はオンラインで動かし、タスクの状況を書き込む。オフラインでも使える |
 | Q-04 | 優先度の選択肢 | `NOW` / `SOONER` / `ANYTIME` / `SOMEDAY` に固定（§5.5） |
 | Q-06 | 退勤スケジュールの Android 表示 | 表示しない（設定・確認ともデスクトップのみ） |
@@ -402,8 +406,8 @@ v2/
 | フェーズ | 内容 | 完了条件 |
 |---------|------|---------|
 | P0 | 要件定義（本書）の確定 | 完了（v0.3） |
-| P1 | Firebase プロジェクト作成、Google ログイン有効化、セキュリティルールと Emulator 環境を `v2/firebase/` に用意 | ルールのテストが Emulator で通る（ルール・テストは作成済み。プロジェクト作成は `v2/firebase/README.md` の手順で手作業） |
-| P2 | デスクトップ：ローカル動作のみで現行機能を作り直す（タイマー、選択・管理画面、オーバーレイ、退勤スケジュール、トレイ、多重起動防止） | 完了（`v2/desktop/`）。ユニットテスト・E2E テストで確認済み |
+| P1 | Firebase プロジェクト作成、Google ログイン有効化、セキュリティルールと Emulator 環境を `firebase/` に用意 | ルールのテストが Emulator で通る（ルール・テストは作成済み。プロジェクト作成は `firebase/README.md` の手順で手作業） |
+| P2 | デスクトップ：ローカル動作のみで現行機能を作り直す（タイマー、選択・管理画面、オーバーレイ、退勤スケジュール、トレイ、多重起動防止） | 完了（`desktop/`）。ユニットテスト・E2E テストで確認済み |
 | P3 | デスクトップ：Google ログイン、Firestore 連携、`state/desktop` の書き込み、`tasks.json` 移行 | 実装済み（Emulator で E2E 確認）。本番の Firebase / Google ログインでの動作確認待ち |
 | P4 | Android：ログイン、タスク一覧・追加・編集・完了・削除、PC の状況表示 | Android で追加したタスクが PC のタスク選択画面にすぐ出る |
 | P5 | Should / Could 項目（完了済み表示、次タスク予約、集計、ウィジェットなど） | — |

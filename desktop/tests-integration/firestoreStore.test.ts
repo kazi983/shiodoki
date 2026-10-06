@@ -1,6 +1,6 @@
 /**
  * FirestoreStore against the Auth + Firestore emulators with the real
- * security rules (v2/firebase/firestore.rules), so every write the app makes
+ * security rules (firebase/firestore.rules), so every write the app makes
  * is checked by the rules.
  */
 import { randomUUID } from "node:crypto";

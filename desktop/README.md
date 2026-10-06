@@ -21,15 +21,15 @@ Electron ＋ TypeScript ＋ React で作り直したデスクトップアプリ�
    - 「OAuth 同意画面を構成してください」と出た場合は、先に同意画面を作る（ユーザーの種類は「外部」、アプリ名とメールアドレスだけ入力すればよい。テストユーザーに自分の Gmail を追加する）。
 3. アプリケーションの種類で **「デスクトップ アプリ」** を選び、名前は例として `desktop` で作成。
 4. 作成後のダイアログで **「JSON をダウンロード」** を押す。
-5. ダウンロードしたファイルを **`v2/desktop/resources/oauth-client.json`** という名前で保存する。
+5. ダウンロードしたファイルを **`desktop/resources/oauth-client.json`** という名前で保存する。
    - このファイルは `.gitignore` 済みで、コミットされません。チャットなどに貼る必要もありません。
 
-あわせて、`v2/firebase/README.md` の手順でセキュリティルールを反映（`npm run deploy:rules`）しておいてください。
+あわせて、`firebase/README.md` の手順でセキュリティルールを反映（`npm run deploy:rules`）しておいてください。
 
 ## 起動
 
 ```bash
-cd v2/desktop
+cd desktop
 npm install
 npm run dev         # 開発モード（コードを保存すると画面が自動で再読み込みされる）
 npm run dev:test    # テストモード（30分 → 5秒、スヌーズ 5分 → 10秒）
@@ -74,7 +74,7 @@ npm run dev:local   # Firebase を使わず、PC 内の JSON ファイルだけ�
 ## テスト
 
 Firebase を使うテストは Firebase Emulator（PC 上で動く Firebase の模擬環境）で行い、本番のデータには触れません。
-Emulator には Java 21 以上と、`v2/firebase` での `npm install` が必要です。
+Emulator には Java 21 以上と、`firebase` での `npm install` が必要です。
 
 ```bash
 npm run typecheck          # 型チェック
@@ -132,4 +132,4 @@ src/
 | 「Google ログインの設定ファイルがありません」 | 上の「初回の準備」で `resources/oauth-client.json` を置く |
 | ブラウザで「このアプリはブロックされています」「アクセスをブロック」 | OAuth 同意画面のテストユーザーに自分の Gmail を追加する |
 | ログイン後に `invalid_idp_response` や audience に関するエラー | Firebase コンソール →「Authentication」→「Sign-in method」→「Google」→「外部プロジェクトからのクライアント ID をホワイトリストに登録」に、`oauth-client.json` の `client_id` を追加する |
-| 書き込みが反映されない（ターミナルに `permission-denied`） | `v2/firebase` で `npm run deploy:rules` を実行してルールを反映する |
+| 書き込みが反映されない（ターミナルに `permission-denied`） | `firebase` で `npm run deploy:rules` を実行してルールを反映する |
