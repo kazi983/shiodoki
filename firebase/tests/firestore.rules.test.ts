@@ -157,6 +157,25 @@ describe("sessions", () => {
     await assertSucceeds(batch.commit());
   });
 
+  test("android session ended by screen off is written with the task increment", async () => {
+    await seedTask(ALICE, "t1");
+    const db = dbAs(ALICE);
+    const batch = writeBatch(db);
+    batch.set(doc(db, `users/${ALICE}/sessions/s1`), {
+      ...session,
+      elapsedMinutes: 7,
+      endReason: "screen_off",
+      device: "Pixel 8",
+    });
+    batch.update(doc(db, `users/${ALICE}/tasks/t1`), {
+      totalMinutes: increment(7),
+      sessionCount: increment(1),
+      updatedAt: serverTimestamp(),
+      updatedBy: "android",
+    });
+    await assertSucceeds(batch.commit());
+  });
+
   test("sessions are append-only", async () => {
     const ref = doc(dbAs(ALICE), `users/${ALICE}/sessions/s1`);
     await assertSucceeds(setDoc(ref, session));
