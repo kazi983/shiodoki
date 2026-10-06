@@ -56,7 +56,7 @@ service cloud.firestore {
         && d.endedAt is timestamp
         && d.endedAt >= d.startedAt
         && isNonNegativeInt(d.elapsedMinutes)
-        && d.endReason in ['completed', 'interval', 'leave_stop', 'app_exit']
+        && d.endReason in ['completed', 'interval', 'leave_stop', 'app_exit', 'screen_off']
         && d.device is string && d.device.size() <= 100;
     }
 
