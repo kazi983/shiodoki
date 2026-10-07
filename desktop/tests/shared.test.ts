@@ -4,9 +4,11 @@ import {
   normalizeTimeInput,
   resolveNextOccurrence,
 } from "@shared/leave";
+import { startOfWorkDay, summarizeSessions, type SessionRecord } from "@shared/session";
 import {
   compareTasks,
   compareTasksForManagement,
+  formatDuration,
   formatMinutes,
   normalizeTaskInput,
   type Task,
@@ -110,6 +112,46 @@ describe("task helpers", () => {
     expect(formatMinutes(0)).toBe("0分");
     expect(formatMinutes(45)).toBe("45分");
     expect(formatMinutes(125)).toBe("2時間5分");
+  });
+});
+
+describe("formatDuration", () => {
+  test("compact hours and minutes, a dash (or the given text) for zero", () => {
+    expect(formatDuration(0)).toBe("—");
+    expect(formatDuration(0, "0m")).toBe("0m");
+    expect(formatDuration(45)).toBe("45m");
+    expect(formatDuration(150)).toBe("2h 30m");
+    expect(formatDuration(65)).toBe("1h 05m");
+  });
+});
+
+describe("work day summary", () => {
+  test("the work day starts at 4:00, so late-night work counts as the same day", () => {
+    expect(startOfWorkDay(new Date(2026, 9, 6, 20, 0))).toEqual(new Date(2026, 9, 6, 4, 0));
+    expect(startOfWorkDay(new Date(2026, 9, 7, 1, 30))).toEqual(new Date(2026, 9, 6, 4, 0));
+    expect(startOfWorkDay(new Date(2026, 9, 7, 4, 0))).toEqual(new Date(2026, 9, 7, 4, 0));
+  });
+
+  test("sums minutes per task, most time first", () => {
+    const s = (taskId: string, taskName: string, elapsedMinutes: number): SessionRecord => ({
+      id: `${taskId}-${elapsedMinutes}`,
+      taskId,
+      taskName,
+      startedAt: "2026-10-06T10:00:00.000Z",
+      endedAt: "2026-10-06T10:30:00.000Z",
+      elapsedMinutes,
+      endReason: "interval",
+      device: "pc",
+    });
+    expect(summarizeSessions([s("a", "A", 10), s("b", "B", 30), s("a", "A2", 25)])).toEqual({
+      totalMinutes: 65,
+      sessionCount: 3,
+      tasks: [
+        { taskId: "a", taskName: "A2", minutes: 35 },
+        { taskId: "b", taskName: "B", minutes: 30 },
+      ],
+    });
+    expect(summarizeSessions([])).toEqual({ totalMinutes: 0, sessionCount: 0, tasks: [] });
   });
 });
 

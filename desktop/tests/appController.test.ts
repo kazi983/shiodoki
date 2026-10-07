@@ -214,6 +214,38 @@ describe("leave schedule", () => {
     expect(windows.calls).toEqual([]);
   });
 
+  test("overlay and leave windows get the running session, the stop time and today's work", async () => {
+    const t = await addTask();
+    vi.setSystemTime(new Date(2026, 9, 6, 22, 30));
+    expect(controller.getRunningInfo()).toBeNull();
+    await controller.startSession({ taskId: t.id, leave: LEAVE });
+    expect(controller.getRunningInfo()).toEqual({
+      taskName: "Write code",
+      startedAt: new Date(2026, 9, 6, 22, 30).toISOString(),
+      endsAt: new Date(2026, 9, 6, 23, 0).toISOString(),
+      stopAt: new Date(2026, 9, 6, 23, 15).toISOString(),
+    });
+
+    // 23:00 interval, next session, 23:10 warning
+    await vi.advanceTimersByTimeAsync(30 * MIN);
+    await controller.startSession({ taskId: t.id });
+    await vi.advanceTimersByTimeAsync(10 * MIN);
+    const warning = await controller.getLeaveInfo();
+    expect(warning.task?.id).toBe(t.id);
+    expect(warning.schedule?.stopAt).toBe(new Date(2026, 9, 6, 23, 15).toISOString());
+    expect(warning.today).toMatchObject({ totalMinutes: 30, sessionCount: 1 });
+
+    // 23:15 stop: the last session is in the summary
+    await vi.advanceTimersByTimeAsync(5 * MIN);
+    const block = await controller.getLeaveInfo();
+    expect(block.task).toBeNull();
+    expect(block.today).toEqual({
+      totalMinutes: 45,
+      sessionCount: 2,
+      tasks: [{ taskId: t.id, taskName: "Write code", minutes: 45 }],
+    });
+  });
+
   test("changing the leave time cancels the schedule", async () => {
     const t = await addTask();
     vi.setSystemTime(new Date(2026, 9, 6, 22, 50));

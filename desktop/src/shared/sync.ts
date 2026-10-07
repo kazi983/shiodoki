@@ -46,6 +46,8 @@ export type DataRequest =
   | { op: "createTask"; task: Task }
   | { op: "updateTask"; id: string; patch: TaskPatch }
   | { op: "recordSession"; session: SessionRecord }
+  /** since: ISO 8601 */
+  | { op: "listSessionsSince"; since: string }
   | { op: "setPreferences"; patch: Partial<PreferencesData> }
   | { op: "setDesktopState"; state: DesktopStateData }
   | { op: "countRemoteTasks" }

@@ -82,6 +82,10 @@ export class FirestoreTaskRepository implements TaskRepository {
     await this.data.request({ op: "recordSession", session });
   }
 
+  async listSessionsSince(since: Date): Promise<SessionRecord[]> {
+    return this.data.request<SessionRecord[]>({ op: "listSessionsSince", since: since.toISOString() });
+  }
+
   async getPreferences(): Promise<Preferences> {
     return { ...this.preferences };
   }

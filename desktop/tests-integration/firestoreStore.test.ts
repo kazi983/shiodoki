@@ -122,6 +122,28 @@ describe("FirestoreStore (rules enforced)", () => {
     expect(writeErrors).toEqual([]);
   });
 
+  test("listSessionsSince returns only sessions that ended after the given time", async () => {
+    const task = newTask();
+    store.createTask(task);
+    const session = (endedAt: Date, minutes: number) => ({
+      id: randomUUID(),
+      taskId: task.id,
+      taskName: task.name,
+      startedAt: new Date(endedAt.getTime() - minutes * 60000).toISOString(),
+      endedAt: endedAt.toISOString(),
+      elapsedMinutes: minutes,
+      endReason: "interval" as const,
+      device: "test-pc",
+    });
+    const since = new Date(Date.now() - 60 * 60000);
+    const recent = session(new Date(), 25);
+    store.recordSession(session(new Date(since.getTime() - 60000), 30));
+    store.recordSession(recent);
+    expect(await store.flush(10000)).toBe(true);
+    const found = (await store.listSessionsSince(since)).filter((s) => s.taskId === task.id);
+    expect(found).toEqual([recent]);
+  });
+
   test("preferences and desktop state", async () => {
     store.setPreferences({ lastSelectedTaskId: "abc" });
     store.setDesktopState({

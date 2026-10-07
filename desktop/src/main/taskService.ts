@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { SessionRecord } from "@shared/session";
+import { startOfWorkDay, summarizeSessions, type DaySummary, type SessionRecord } from "@shared/session";
 import {
   compareTasks,
   compareTasksForManagement,
@@ -88,6 +88,11 @@ export class TaskService {
     if (!session) return;
     await this.repo.recordSession(session);
     this.onChanged();
+  }
+
+  /** Time worked per task since the start of the work day. */
+  async todaySummary(): Promise<DaySummary> {
+    return summarizeSessions(await this.repo.listSessionsSince(startOfWorkDay(this.now())));
   }
 
   async getPreferences(): Promise<Preferences> {

@@ -1,4 +1,4 @@
-import type { PickerState, StartSessionRequest } from "@shared/ipc";
+import type { LeaveInfo, PickerState, RunningInfo, StartSessionRequest } from "@shared/ipc";
 import type { DesktopStatus } from "@shared/desktopState";
 import type { EndReason } from "@shared/session";
 import type { SyncInfo } from "@shared/sync";
@@ -106,8 +106,33 @@ export class AppController {
       lastSelectedTaskId: prefs.lastSelectedTaskId,
       leave: this.leave.status(),
       testMode: this.options.testMode,
+      intervalMs: this.options.intervalMs,
+      snoozeMs: this.options.snoozeMs,
       sync: this.syncInfo(),
     };
+  }
+
+  /** For the overlay: what is running and until when. */
+  getRunningInfo(): RunningInfo | null {
+    const current = this.sessions.current;
+    if (!current) return null;
+    const endsAt = this.nextPromptAt ?? new Date(current.startedAt.getTime() + this.options.intervalMs);
+    return {
+      taskName: current.taskName,
+      startedAt: current.startedAt.toISOString(),
+      endsAt: endsAt.toISOString(),
+      stopAt: this.leave.status()?.stopAt ?? null,
+    };
+  }
+
+  /** For the leave warning / block windows. */
+  async getLeaveInfo(): Promise<LeaveInfo> {
+    const current = this.sessions.current;
+    const [task, today] = await Promise.all([
+      current ? this.tasks.get(current.taskId).catch(() => null) : Promise.resolve(null),
+      this.tasks.todaySummary(),
+    ]);
+    return { schedule: this.leave.status(), task, today };
   }
 
   /**

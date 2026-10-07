@@ -6,7 +6,11 @@ import { IPC } from "@shared/ipc";
 
 export type Route = "picker" | "management" | "overlay" | "leave-warning" | "leave-block" | "login";
 
-const OVERLAY_SIZE = { collapsed: 44, expanded: 104, height: 44 };
+/** Collapsed: timer ring tab. Expanded (hover): task name, remaining time and the complete button. */
+const OVERLAY_SIZE = {
+  collapsed: { width: 56, height: 56 },
+  expanded: { width: 280, height: 128 },
+};
 
 export interface WindowHandlers {
   /** Picker closed by the user (title bar X) -> snooze. */
@@ -93,8 +97,7 @@ export class WindowManager implements WindowPort {
   showOverlay(): void {
     if (!this.overlay || this.overlay.isDestroyed()) {
       this.overlay = new BrowserWindow({
-        width: OVERLAY_SIZE.collapsed,
-        height: OVERLAY_SIZE.height,
+        ...OVERLAY_SIZE.collapsed,
         frame: false,
         resizable: false,
         movable: false,
@@ -105,7 +108,9 @@ export class WindowManager implements WindowPort {
         focusable: false,
         alwaysOnTop: true,
         show: false,
-        backgroundColor: "#554e4e",
+        // Transparent so the tab's rounded left corners show the desktop behind them.
+        transparent: true,
+        backgroundColor: "#00000000",
         webPreferences: this.webPreferences(),
       });
       this.overlay.setAlwaysOnTop(true, "screen-saver");
@@ -114,6 +119,7 @@ export class WindowManager implements WindowPort {
       this.overlay.on("closed", () => (this.overlay = null));
     }
     this.setOverlayExpanded(false);
+    this.overlay.webContents.send(IPC.overlayRefresh);
     this.overlay.showInactive();
   }
 
@@ -121,16 +127,15 @@ export class WindowManager implements WindowPort {
     if (this.overlay && !this.overlay.isDestroyed()) this.overlay.hide();
   }
 
-  /** Grow to the left on hover so the label "完了 ▶" fits; stays on the right edge. */
+  /** Grow to the left and down on hover; the top-right corner stays on the right edge. */
   setOverlayExpanded(expanded: boolean): void {
     if (!this.overlay || this.overlay.isDestroyed()) return;
     const { workArea } = this.targetDisplay();
-    const width = expanded ? OVERLAY_SIZE.expanded : OVERLAY_SIZE.collapsed;
+    const size = expanded ? OVERLAY_SIZE.expanded : OVERLAY_SIZE.collapsed;
     this.overlay.setBounds({
-      x: workArea.x + workArea.width - width,
+      x: workArea.x + workArea.width - size.width,
       y: workArea.y + Math.round(workArea.height * 0.2),
-      width,
-      height: OVERLAY_SIZE.height,
+      ...size,
     });
   }
 
@@ -250,7 +255,7 @@ export class WindowManager implements WindowPort {
       skipTaskbar: opts.skipTaskbar ?? false,
       autoHideMenuBar: true,
       show: false,
-      backgroundColor: route === "management" ? "#f3f4f6" : "#0b1326",
+      backgroundColor: route === "leave-block" ? "#070d1c" : "#0b1326",
       webPreferences: this.webPreferences(),
     });
     win.setMenu(null);

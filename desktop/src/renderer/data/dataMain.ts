@@ -79,6 +79,8 @@ async function main(): Promise<void> {
         return requireStore().updateTask(request.id, request.patch);
       case "recordSession":
         return requireStore().recordSession(request.session);
+      case "listSessionsSince":
+        return requireStore().listSessionsSince(new Date(request.since));
       case "setPreferences":
         return requireStore().setPreferences(request.patch);
       case "setDesktopState":
