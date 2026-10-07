@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi, type Mock } from "vitest";
-import { AppController, type WindowPort } from "../src/main/appController";
+import { AppController, type StatusSnapshot, type WindowPort } from "../src/main/appController";
 import { SessionService } from "../src/main/sessionService";
 import { JsonFileTaskRepository } from "../src/main/taskRepository";
 import { TaskService } from "../src/main/taskService";
@@ -302,7 +302,34 @@ describe("status reporting (state/desktop)", () => {
     expect(running.nextPromptAt).toEqual(new Date(Date.now() + INTERVAL));
     expect(snapshots[4].nextPromptAt).toEqual(new Date(Date.now() + SNOOZE));
     expect(snapshots[5].nextPromptAt).toBeNull();
+    // Nothing was running at exit.
+    expect(snapshots[5].currentTaskName).toBeNull();
     expect(beforeQuit).toHaveBeenCalledOnce();
+  });
+
+  test("exiting during a session reports the interrupted task with stopped", async () => {
+    const snapshots: StatusSnapshot[] = [];
+    const c = new AppController(tasks, new SessionService("pc"), new TimerService(), windows, lifecycle, {
+      intervalMs: INTERVAL,
+      snoozeMs: SNOOZE,
+      testMode: false,
+      onStatusChange: (s) => snapshots.push(s),
+    });
+    const t = await addTask();
+    const startedAt = new Date(Date.now());
+    await c.startSession({ taskId: t.id, leave: LEAVE });
+    await vi.advanceTimersByTimeAsync(5 * MIN);
+    await c.exit();
+
+    expect(snapshots.map((s) => s.status)).toEqual(["running", "idle", "stopped"]);
+    expect(snapshots[1].currentTaskId).toBeNull();
+    expect(snapshots[2]).toEqual({
+      status: "stopped",
+      currentTaskId: t.id,
+      currentTaskName: "Write code",
+      startedAt,
+      nextPromptAt: null,
+    });
   });
 });
 

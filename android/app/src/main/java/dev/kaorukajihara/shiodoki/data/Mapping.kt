@@ -2,6 +2,8 @@ package dev.kaorukajihara.shiodoki.data
 
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
+import dev.kaorukajihara.shiodoki.model.DesktopState
+import dev.kaorukajihara.shiodoki.model.DesktopStatus
 import dev.kaorukajihara.shiodoki.model.Priority
 import dev.kaorukajihara.shiodoki.model.Task
 import dev.kaorukajihara.shiodoki.model.TaskInput
@@ -62,3 +64,20 @@ fun docToTask(id: String, d: Map<String, Any?>, now: Instant = Instant.now()): T
   createdAt = (d["createdAt"] as? Timestamp)?.toInstant() ?: now,
   updatedAt = (d["updatedAt"] as? Timestamp)?.toInstant() ?: now,
 )
+
+/**
+ * Reads `state/desktop`. An unknown status makes the whole document unusable, so it reads as
+ * missing (null); other unexpected values fall back to null / "".
+ */
+fun docToDesktopState(d: Map<String, Any?>): DesktopState? {
+  val status = DesktopStatus.fromValue(d["status"]) ?: return null
+  return DesktopState(
+    status = status,
+    currentTaskId = d["currentTaskId"] as? String,
+    currentTaskName = d["currentTaskName"] as? String,
+    startedAt = (d["startedAt"] as? Timestamp)?.toInstant(),
+    nextPromptAt = (d["nextPromptAt"] as? Timestamp)?.toInstant(),
+    heartbeatAt = (d["heartbeatAt"] as? Timestamp)?.toInstant(),
+    device = d["device"] as? String ?: "",
+  )
+}

@@ -23,14 +23,20 @@ object ShiodokiColors {
   val Background = Color(0xFF0B1326)
   /** Task rows, inputs, settings cards. */
   val Surface = Color(0xFF131B2E)
+  /** The PC status card while a session runs. */
+  val SurfaceRaised = Color(0xFF16213A)
   val NavBar = Color(0xFF101828)
   val NavIndicator = Color(0xFF1F2C4D)
   val Divider = Color(0xFF1C2439)
   val Outline = Color(0xFF2D3449)
+  /** Dashed outline of an inactive card (PC offline). */
+  val OutlineInactive = Color(0xFF3A4560)
   val Text = Color(0xFFDAE2FD)
   val TextStrong = Color(0xFFF2F5FF)
   val TextMuted = Color(0xFF9AA3B8)
   val Accent = Color(0xFF4D8EFF)
+  /** Dot of "PC で途中終了". */
+  val Ended = Color(0xFF8B93A7)
   val OnAccent = Color(0xFF00285D)
   val Danger = Color(0xFFFF8F8F)
   val Synced = Color(0xFF4FD1A5)

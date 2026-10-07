@@ -33,6 +33,7 @@ export type { DesktopStatus };
 /** What the PC is doing, written to users/{uid}/state/desktop (requirements D-02). */
 export interface StatusSnapshot {
   status: DesktopStatus;
+  /** The running task; for "stopped", the task whose session the exit cut short. */
   currentTaskId: string | null;
   currentTaskName: string | null;
   startedAt: Date | null;
@@ -299,9 +300,11 @@ export class AppController {
     if (this.shuttingDown) return;
     this.shuttingDown = true;
     this.timer.cancelAll();
+    // Copied before finishSession() clears it, so Android can show which task was cut short.
+    const interrupted = this.sessions.current ? { ...this.sessions.current } : null;
     await this.finishSession("app_exit");
     this.nextPromptAt = null;
-    this.setStatus("stopped");
+    this.setStatus("stopped", interrupted);
     try {
       await this.options.beforeQuit?.();
     } catch (error) {
@@ -325,14 +328,21 @@ export class AppController {
     return this.options.syncInfo?.() ?? { status: "local", email: null };
   }
 
-  private setStatus(status: DesktopStatus): void {
+  /**
+   * The task fields carry the running session, or for "stopped" the session the exit cut short
+   * (`interrupted`); otherwise they are null.
+   */
+  private setStatus(
+    status: DesktopStatus,
+    interrupted: { taskId: string; taskName: string; startedAt: Date } | null = null,
+  ): void {
     this.status = status;
-    const current = this.sessions.current;
+    const session = status === "running" ? this.sessions.current : status === "stopped" ? interrupted : null;
     this.options.onStatusChange?.({
       status,
-      currentTaskId: status === "running" ? (current?.taskId ?? null) : null,
-      currentTaskName: status === "running" ? (current?.taskName ?? null) : null,
-      startedAt: status === "running" ? (current?.startedAt ?? null) : null,
+      currentTaskId: session?.taskId ?? null,
+      currentTaskName: session?.taskName ?? null,
+      startedAt: session?.startedAt ?? null,
       nextPromptAt: this.nextPromptAt,
     });
   }

@@ -2,6 +2,7 @@
 
 - ステータス: 確定 v0.11
 - 更新日: 2026-10-07
+- 更新日: 2026-10-06
 - 対象: 現行アプリ v1（[kazi983/30min-task-timer-python](https://github.com/kazi983/30min-task-timer-python) の `main.pyw` / `app/`）の作り替え
 - 本文中の `app/...` などのパスは v1 リポジトリのファイルを指す
 
@@ -11,6 +12,7 @@
 |----|------|------|
 | v0.1 | 2026-10-06 | 初版（Supabase + PWA 案） |
 | v0.11 | 2026-10-07 | デスクトップの画面をデザインキャンバス「Shiodoki UI/UX改善案」（デスクトップページ）に合わせる（§7.1）。オーバーレイに残り時間、作業終了5分前の警告に続きのメモ、作業終了ブロックに今日のタスク別作業時間を表示する |
+| v0.11 | 2026-10-07 | `state/desktop` の `stopped` に、セッション中にアプリを終了したときの途中終了したタスクを残す（§5.1。Android の「PC で途中終了」表示用） |
 | v0.10 | 2026-10-06 | v1 の `tasks.json` の読み込み（ローカルモードでの取り込み、初回ログイン時の移行）を廃止。初回移行の対象はローカルモードのデータだけにする（D-07、§5） |
 | v0.9 | 2026-10-06 | アプリ名の変更に合わせ、リポジトリを kazi983/shiodoki、Firebase プロジェクトを `shiodoki-e4e8f`、PC 内のデータの保存先を `shiodoki` に変更（§1.3、§6.5） |
 | v0.8 | 2026-10-06 | アプリ名を「Shiodoki（潮時）」に決定（§1.3）。「退勤スケジュール」を「離席スケジュール」に改称し、意味（次の予定のために席を立つ時刻）を明記（F-09） |
@@ -200,9 +202,9 @@ users/{uid}
 | フィールド | 型 | 説明 |
 |-----------|----|------|
 | status | string | `idle`（選択画面表示中）/ `running`（セッション中）/ `snoozed` / `leave_blocked`（離席のため停止中。Android では「停止中」と表示）/ `stopped`（アプリ終了） |
-| currentTaskId | string \| null | 実行中タスク |
-| currentTaskName | string \| null | 実行中タスク名 |
-| startedAt | timestamp \| null | セッション開始時刻 |
+| currentTaskId | string \| null | 実行中タスク。`stopped` では、セッション中にアプリを終了したときの途中終了したタスク（それ以外は null） |
+| currentTaskName | string \| null | 実行中タスク名（`stopped` では途中終了したタスク名） |
+| startedAt | timestamp \| null | セッション開始時刻（`stopped` では途中終了したセッションの開始時刻） |
 | nextPromptAt | timestamp \| null | 次にタスク選択画面が出る予定時刻 |
 | heartbeatAt | timestamp | 最終生存確認時刻（数分おきに更新。古ければ Android 側で「PC オフライン」と表示） |
 | device | string | 端末名 |
