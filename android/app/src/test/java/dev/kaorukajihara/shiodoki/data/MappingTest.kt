@@ -2,6 +2,7 @@ package dev.kaorukajihara.shiodoki.data
 
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
+import dev.kaorukajihara.shiodoki.model.DesktopStatus
 import dev.kaorukajihara.shiodoki.model.Priority
 import dev.kaorukajihara.shiodoki.model.TaskInput
 import dev.kaorukajihara.shiodoki.model.TaskPatch
@@ -88,5 +89,51 @@ class MappingTest {
     assertEquals(2L, task.totalMinutes)
     assertEquals(0L, task.sessionCount)
     assertEquals(fallback, task.createdAt)
+  }
+
+  @Test
+  fun `docToDesktopState reads the desktop document`() {
+    val started = Timestamp(Instant.parse("2026-10-06T09:50:00Z"))
+    val next = Timestamp(Instant.parse("2026-10-06T10:20:00Z"))
+    val state = docToDesktopState(
+      mapOf(
+        "status" to "running", "currentTaskId" to "t1", "currentTaskName" to "a",
+        "startedAt" to started, "nextPromptAt" to next, "heartbeatAt" to now, "device" to "pc",
+      ),
+    )!!
+    assertEquals(DesktopStatus.RUNNING, state.status)
+    assertEquals("t1", state.currentTaskId)
+    assertEquals("a", state.currentTaskName)
+    assertEquals(started.toInstant(), state.startedAt)
+    assertEquals(next.toInstant(), state.nextPromptAt)
+    assertEquals(now.toInstant(), state.heartbeatAt)
+    assertEquals("pc", state.device)
+  }
+
+  @Test
+  fun `docToDesktopState maps every desktop status`() {
+    for ((value, status) in listOf(
+      "idle" to DesktopStatus.IDLE,
+      "snoozed" to DesktopStatus.SNOOZED,
+      "leave_blocked" to DesktopStatus.LEAVE_BLOCKED,
+      "stopped" to DesktopStatus.STOPPED,
+    )) {
+      assertEquals(status, docToDesktopState(mapOf("status" to value))?.status)
+    }
+  }
+
+  @Test
+  fun `docToDesktopState with an unknown status reads as missing`() {
+    assertNull(docToDesktopState(mapOf("status" to "paused", "heartbeatAt" to now)))
+    assertNull(docToDesktopState(emptyMap()))
+  }
+
+  @Test
+  fun `docToDesktopState falls back for unexpected values`() {
+    val state = docToDesktopState(mapOf("status" to "idle", "currentTaskName" to 1, "startedAt" to "x"))!!
+    assertNull(state.currentTaskName)
+    assertNull(state.startedAt)
+    assertNull(state.heartbeatAt)
+    assertEquals("", state.device)
   }
 }

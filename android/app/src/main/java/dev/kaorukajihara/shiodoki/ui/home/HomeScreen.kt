@@ -6,6 +6,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -45,6 +46,7 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
@@ -60,10 +62,7 @@ import dev.kaorukajihara.shiodoki.ui.theme.MonoFamily
 import dev.kaorukajihara.shiodoki.ui.theme.ShiodokiColors
 import dev.kaorukajihara.shiodoki.ui.theme.color
 
-/**
- * Design §5.3 and the "ホーム" artboard: incomplete tasks grouped by priority. The PC status card
- * comes in step 4.
- */
+/** Design §5.3 and the "ホーム" artboard: the PC status card and incomplete tasks by priority. */
 @Composable
 fun HomeScreen(
   viewModel: HomeViewModel,
@@ -72,6 +71,7 @@ fun HomeScreen(
   onSelectTab: (MainTab) -> Unit,
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
+  val pcStatus by viewModel.pcStatus.collectAsStateWithLifecycle()
   val snackbarHostState = remember { SnackbarHostState() }
   // Only the id survives configuration changes; the task itself is looked up again.
   var confirmCompleteId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -96,33 +96,15 @@ fun HomeScreen(
     },
     snackbarHost = { SnackbarHost(snackbarHostState) },
   ) { padding ->
-    val groups = state.groups
-    when {
-      groups == null -> Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) {
-        CircularProgressIndicator(color = ShiodokiColors.Accent)
-      }
-      groups.isEmpty() -> Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) {
-        Text("未完了のタスクはありません", color = ShiodokiColors.TextMuted)
-      }
-      else -> LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(padding).bottomFade(),
-        // The bottom padding keeps the last row clear of the add button.
-        contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 88.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-      ) {
-        groups.forEachIndexed { index, group ->
-          item(key = group.priority.name) {
-            GroupHeader(group.priority, Modifier.padding(top = if (index == 0) 0.dp else 16.dp))
-          }
-          items(group.tasks, key = { it.id }) { task ->
-            TaskRow(
-              task = task,
-              onClick = { onEditTask(task.id) },
-              onLongClick = { confirmCompleteId = task.id },
-            )
-          }
-        }
-      }
+    Column(Modifier.fillMaxSize().padding(padding)) {
+      // Not shown until state/desktop is loaded, so "no data" does not flash on start.
+      pcStatus?.let { PcStatusCard(it, Modifier.padding(horizontal = 24.dp)) }
+      TaskList(
+        groups = state.groups,
+        topPadding = if (pcStatus == null) 8.dp else 28.dp,
+        onEditTask = onEditTask,
+        onLongClick = { confirmCompleteId = it },
+      )
     }
   }
 
@@ -144,6 +126,43 @@ fun HomeScreen(
         TextButton(onClick = { confirmCompleteId = null }) { Text("キャンセル") }
       },
     )
+  }
+}
+
+@Composable
+private fun ColumnScope.TaskList(
+  groups: List<PriorityGroup>?,
+  topPadding: Dp,
+  onEditTask: (taskId: String) -> Unit,
+  onLongClick: (taskId: String) -> Unit,
+) {
+  val fill = Modifier.weight(1f).fillMaxWidth()
+  when {
+    groups == null -> Box(fill, Alignment.Center) {
+      CircularProgressIndicator(color = ShiodokiColors.Accent)
+    }
+    groups.isEmpty() -> Box(fill, Alignment.Center) {
+      Text("未完了のタスクはありません", color = ShiodokiColors.TextMuted)
+    }
+    else -> LazyColumn(
+      modifier = fill.bottomFade(),
+      // The bottom padding keeps the last row clear of the add button.
+      contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = topPadding, bottom = 88.dp),
+      verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+      groups.forEachIndexed { index, group ->
+        item(key = group.priority.name) {
+          GroupHeader(group.priority, Modifier.padding(top = if (index == 0) 0.dp else 16.dp))
+        }
+        items(group.tasks, key = { it.id }) { task ->
+          TaskRow(
+            task = task,
+            onClick = { onEditTask(task.id) },
+            onLongClick = { onLongClick(task.id) },
+          )
+        }
+      }
+    }
   }
 }
 

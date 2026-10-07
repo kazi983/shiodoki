@@ -36,6 +36,7 @@ import kotlinx.serialization.Serializable
 fun ShiodokiNavHost(container: AppContainer) {
   val authManager = container.authManager
   val taskRepository = container.taskRepository
+  val desktopStateRepository = container.desktopStateRepository
   val account by authManager.account.collectAsStateWithLifecycle()
   val signedIn = account != null
   val navController = rememberNavController()
@@ -69,7 +70,7 @@ fun ShiodokiNavHost(container: AppContainer) {
     }
     composable<HomeRoute> {
       HomeScreen(
-        viewModel = viewModel { HomeViewModel(taskRepository) },
+        viewModel = viewModel { HomeViewModel(taskRepository, desktopStateRepository) },
         onAddTask = { navController.navigate(EditTaskRoute()) },
         onEditTask = { navController.navigate(EditTaskRoute(it)) },
         onSelectTab = selectTab,

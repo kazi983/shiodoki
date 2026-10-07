@@ -6,6 +6,8 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.firestore
 import dev.kaorukajihara.shiodoki.auth.AuthManager
+import dev.kaorukajihara.shiodoki.data.DesktopStateRepository
+import dev.kaorukajihara.shiodoki.data.FirestoreDesktopStateRepository
 import dev.kaorukajihara.shiodoki.data.FirestoreTaskRepository
 import dev.kaorukajihara.shiodoki.data.TaskRepository
 import kotlinx.coroutines.CoroutineScope
@@ -35,13 +37,14 @@ class AppContainer(context: Context) {
     useEmulator = BuildConfig.USE_FIREBASE_EMULATOR,
   )
 
-  val taskRepository: TaskRepository = FirestoreTaskRepository(
-    db = firestore,
-    uid = authManager.account
-      .map { it?.uid }
-      .stateIn(appScope, SharingStarted.Eagerly, authManager.account.value?.uid),
-    scope = appScope,
-  )
+  private val uid = authManager.account
+    .map { it?.uid }
+    .stateIn(appScope, SharingStarted.Eagerly, authManager.account.value?.uid)
+
+  val taskRepository: TaskRepository = FirestoreTaskRepository(firestore, uid, appScope)
+
+  val desktopStateRepository: DesktopStateRepository =
+    FirestoreDesktopStateRepository(firestore, uid, appScope)
 
   private companion object {
     /** The host PC as seen from the Android Emulator. */
