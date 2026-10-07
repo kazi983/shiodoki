@@ -1,0 +1,16 @@
+*.iml
+.gradle/
+.kotlin/
+/local.properties
+/.idea/
+.DS_Store
+/build/
+/app/build/
+/app/release/
+/captures/
+.externalNativeBuild/
+.cxx/
+# Release signing (design §9.2). google-services.json is public and committed.
+*.jks
+*.keystore
+keystore.properties

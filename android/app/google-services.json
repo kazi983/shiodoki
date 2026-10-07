@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "536655814128",
+    "project_id": "shiodoki-e4e8f",
+    "storage_bucket": "shiodoki-e4e8f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:536655814128:android:28d52400307ebfd6815135",
+        "android_client_info": {
+          "package_name": "dev.kaorukajihara.shiodoki"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "536655814128-3d7fn6unnu80dfioqr9bc1mil0q7b0rk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "dev.kaorukajihara.shiodoki",
+            "certificate_hash": "ba22049611b7dad12a682f53f76565ea15969573"
+          }
+        },
+        {
+          "client_id": "536655814128-9gbmvoh36e3aru5k5p2phmhk8tne3mso.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCdGdWYLyFRySG4SQJ1TsH9L71o35q1fO8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "536655814128-9gbmvoh36e3aru5k5p2phmhk8tne3mso.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
