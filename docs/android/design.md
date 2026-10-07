@@ -1,6 +1,6 @@
 # Shiodoki Android アプリ 設計書
 
-- ステータス: ドラフト v0.1（レビュー待ち）
+- ステータス: ドラフト v0.2（レビュー待ち）
 - 作成日: 2026-10-06
 - 対象フェーズ: P4（タスク管理・PC の状況表示）、P5（フォーカス画面）、P6 の一部
 - 前提: [要件定義書](../requirements.md) v0.7。要件・データモデルは要件定義書が正で、本書は「どう作るか」を決める
@@ -10,6 +10,7 @@
 | 版 | 日付 | 内容 |
 |----|------|------|
 | v0.1 | 2026-10-06 | 初版 |
+| v0.2 | 2026-10-06 | パッケージ名を `dev.kaorukajihara.shiodoki` に決定（Q-A1）。SDK と Kotlin のバージョン、Emulator 接続時のログイン方法とローカルネットワーク権限を、実装（手順 1）に合わせて更新 |
 
 ---
 
@@ -47,7 +48,8 @@
 | 端末内の小さな設定 | Jetpack DataStore（Preferences） | フォーカス機能のオン/オフ、スマホの前回選択、実行中セッション（§6.6） |
 | DI | 手書きの `AppContainer`（`Application` が保持） | 依存は 10 個程度。Hilt の学習・ビルドコストに見合わない |
 | テスト | JUnit 4、kotlinx-coroutines-test、Turbine（Flow のテスト） | §10 |
-| 最小 / ターゲット SDK | `minSdk = 29`（Android 10）、`targetSdk` は最新の安定版 | 要件 N-07 |
+| 最小 / ターゲット SDK | `minSdk = 29`（Android 10）、`compileSdk` / `targetSdk` = 37 | 要件 N-07。最新の AndroidX が `compileSdk` 37 以上を要求する |
+| ビルド | AGP 9.4.1（組み込みの Kotlin）、Gradle 9.6.0、Kotlin 2.4.20 | AGP 9.4.1 が持つ Kotlin 2.2 は、Kotlin 2.4 でビルドされたライブラリ（`googleid` 1.2.1 など）を読めない。ルートの `build.gradle.kts` で `org.jetbrains.kotlin.android` を宣言して新しい KGP を使わせる |
 
 ---
 
@@ -63,7 +65,7 @@ android/
 │  └─ src/
 │     ├─ main/
 │     │  ├─ AndroidManifest.xml
-│     │  └─ java/<package>/
+│     │  └─ java/dev/kaorukajihara/shiodoki/
 │     │     ├─ ShiodokiApp.kt            Application。AppContainer を作る
 │     │     ├─ AppContainer.kt           依存の組み立て（手書き DI）
 │     │     ├─ model/                    Task, Priority, Session, DesktopState など
@@ -92,7 +94,7 @@ android/
 └─ gradle/libs.versions.toml            バージョンカタログ
 ```
 
-パッケージ名（`applicationId`）は Firebase に登録すると変えにくいので、作成前に決める（§12 の Q-A1）。
+パッケージ名（`applicationId`）は `dev.kaorukajihara.shiodoki`（§12 の Q-A1）。Firebase に登録すると変えにくい。
 
 ### 3.2 レイヤー構成
 
@@ -514,7 +516,7 @@ sequenceDiagram
 
 ### 9.1 Firebase への登録（P4 着手時、手作業）
 
-1. Firebase コンソール → プロジェクト `shiodoki-e4e8f` → Android アプリを追加（パッケージ名は Q-A1 で決めたもの）。
+1. Firebase コンソール → プロジェクト `shiodoki-e4e8f` → Android アプリを追加（パッケージ名 `dev.kaorukajihara.shiodoki`）。
 2. **debug 用と release 用、両方の署名証明書の SHA-1** を登録する（Google ログインに必須）。debug 用は `./gradlew signingReport` で確認できる。
 3. `google-services.json` をダウンロードして `android/app/` に置く。
 4. この手順は `android/README.md` に書く（`firebase/README.md` の「Android アプリの登録」から参照する）。
@@ -528,8 +530,10 @@ sequenceDiagram
 
 ### 9.3 Emulator 接続
 
-- debug ビルドで `BuildConfig.USE_FIREBASE_EMULATOR`（`local.properties` などで切り替え）が true のとき、`useEmulator("10.0.2.2", 8080)`（Firestore）と `useEmulator("10.0.2.2", 9099)`（Auth）を呼ぶ。`10.0.2.2` は Android Emulator からホスト PC を指すアドレス。
-- Emulator の Auth は Google ログインを本物では行わないので、Emulator 接続時は匿名ではなくテスト用のメールアドレスでログインする手段を debug ビルドにだけ用意する（デスクトップの `TIMER_FIREBASE_EMULATOR=1` の偽アカウントに相当）。
+- debug ビルドで `BuildConfig.USE_FIREBASE_EMULATOR`（`local.properties` の `shiodoki.useFirebaseEmulator=true` で切り替え）が true のとき、`useEmulator("10.0.2.2", 8080)`（Firestore）と `useEmulator("10.0.2.2", 9099)`（Auth）を呼ぶ。`10.0.2.2` は Android Emulator からホスト PC を指すアドレス。
+- Emulator の Auth は Google ログインを本物では行わないので、Emulator 接続時は Credential Manager を使わず、署名のない偽の Google ID トークン（`{"sub":"e2e-user","email":"e2e@example.com",...}`）で `signInWithCredential` する。デスクトップの `TIMER_FIREBASE_EMULATOR=1` と同じ偽アカウントなので、同じ Emulator プロジェクトなら同じユーザーになる。
+- Emulator は平文の HTTP なので、debug ビルドだけ `network_security_config` で `10.0.2.2` への平文通信を許可する。
+- Android 17（API 37）以降、`10.0.2.2` のようなローカルネットワークのアドレスへの接続には `ACCESS_LOCAL_NETWORK`（実行時権限）が要る。debug のマニフェストにだけ宣言し、許可は `adb install -g` で与える（画面での権限リクエストは作らない）。
 
 ### 9.4 配布
 
@@ -574,7 +578,7 @@ sequenceDiagram
 
 | # | 内容 | 本書の仮決め |
 |---|------|-------------|
-| Q-A1 | パッケージ名（`applicationId`） | 例：`io.github.kazi983.shiodoki`（デスクトップの `appId` と同じ）。Firebase 登録前に決める |
+| Q-A1 | パッケージ名（`applicationId`） | **決定**：`dev.kaorukajihara.shiodoki`（所有ドメイン `kaorukajihara.dev` を逆にしたもの）。デスクトップの `appId` も別 PR でそろえる |
 | Q-A2 | スキップ後、画面をつけたまま 30 分経ったらフォーカス画面を再表示するか | 再表示しない（次のロック解除まで出さない） |
 | Q-A3 | フォーカス画面のクイック追加で、追加したタスクをそのまま開始するか | 開始しない（デスクトップと同じく追加と開始は別操作） |
 | Q-A4 | スマホのセッション中に、そのタスクを完了にしたらセッションを終えるか | 終えない（画面オフ・30 分で記録） |

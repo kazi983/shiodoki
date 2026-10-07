@@ -42,7 +42,7 @@ npm test
    - 「プロジェクトの設定」→「マイアプリ」→ Web アイコン `</>` → ニックネーム `desktop` で登録。
    - 表示される `firebaseConfig`（`apiKey`、`projectId` など）は、P3 でデスクトップアプリの設定に使うので控えておく。
    - この値はアプリに埋め込む前提の公開情報で、秘密ではない。データはセキュリティルールで守る。
-5. **Android アプリの登録**は P4（Android アプリ作成時）に行う。署名証明書の SHA-1 の登録が必要。
+5. **Android アプリの登録**：手順は [android/README.md](../android/README.md) の「Firebase への登録」を参照。署名証明書の SHA-1 の登録が必要。
 
 ## ルールを本番に反映する
 
