@@ -91,20 +91,25 @@ fun PcStatusCard(status: PcStatus, modifier: Modifier = Modifier) {
       modifier = modifier,
       inactive = true,
     )
-    is PcStatus.Stopped -> StatusCard(
-      icon = Icons.Power,
-      title = "アプリ終了",
-      detail = {
-        if (status.stoppedAt != null) {
-          append("終了時刻 ")
-          time(status.stoppedAt)
-        } else {
-          append("PC のアプリは終了しています")
-        }
-      },
-      modifier = modifier,
-      inactive = true,
-    )
+    is PcStatus.Stopped -> if (status.interruptedTaskName != null) {
+      // "ホーム（PC で途中終了）" artboard: the app quit while a session was running.
+      TaskCard(
+        label = "PC で途中終了",
+        dotColor = ShiodokiColors.Ended,
+        ring = { IconRing(Icons.Stop) },
+        taskName = status.interruptedTaskName,
+        detail = { endTime(status.stoppedAt) },
+        modifier = modifier,
+      )
+    } else {
+      StatusCard(
+        icon = Icons.Power,
+        title = "アプリ終了",
+        detail = { endTime(status.stoppedAt) },
+        modifier = modifier,
+        inactive = true,
+      )
+    }
     PcStatus.NoData -> StatusCard(
       icon = Icons.Power,
       title = "情報がありません",
@@ -117,22 +122,52 @@ fun PcStatusCard(status: PcStatus, modifier: Modifier = Modifier) {
 
 @Composable
 private fun RunningCard(status: PcStatus.Running, modifier: Modifier) {
+  TaskCard(
+    label = "PC で実行中",
+    dotColor = ShiodokiColors.Accent,
+    ring = { ProgressRing(status.remainingMinutes, status.totalMinutes) },
+    taskName = status.taskName,
+    detail = {
+      if (status.startedAt != null) {
+        time(status.startedAt)
+        append(" 開始")
+      }
+      if (status.elapsedMinutes != null) append(" · ${status.elapsedMinutes}分経過")
+    },
+    modifier = modifier,
+  )
+}
+
+/** A card about one task on the PC: "● label", the task name and a detail line. */
+@Composable
+private fun TaskCard(
+  label: String,
+  dotColor: Color,
+  ring: @Composable () -> Unit,
+  taskName: String,
+  detail: AnnotatedBuilder,
+  modifier: Modifier,
+) {
   CardFrame(modifier, ShiodokiColors.SurfaceRaised) {
-    ProgressRing(status.remainingMinutes, status.totalMinutes)
+    ring()
     Column(Modifier.weight(1f)) {
       Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Dot(ShiodokiColors.Accent, 6)
-        Text("PC で実行中", fontSize = 12.sp, color = ShiodokiColors.TextMuted)
+        Dot(dotColor, 6)
+        Text(label, fontSize = 12.sp, color = ShiodokiColors.TextMuted)
       }
-      Title(status.taskName)
-      Detail {
-        if (status.startedAt != null) {
-          time(status.startedAt)
-          append(" 開始")
-        }
-        if (status.elapsedMinutes != null) append(" · ${status.elapsedMinutes}分経過")
-      }
+      Title(taskName)
+      Detail(detail)
     }
+  }
+}
+
+/** "終了時間 HH:mm" (the design's wording). */
+private fun AnnotatedString.Builder.endTime(stoppedAt: Instant?) {
+  if (stoppedAt == null) {
+    append("PC のアプリは終了しています")
+  } else {
+    append("終了時間 ")
+    time(stoppedAt)
   }
 }
 
@@ -147,32 +182,38 @@ private fun StatusCard(
 ) {
   val background = if (inactive) Color.Transparent else ShiodokiColors.Surface
   CardFrame(modifier, background, dashed = inactive) {
-    Box(
-      Modifier.size(RING_SIZE).drawBehind {
-        val stroke = RING_STROKE.toPx()
-        drawCircle(
-          color = ShiodokiColors.Outline,
-          radius = (size.minDimension - stroke) / 2,
-          style = Stroke(
-            width = stroke,
-            pathEffect = if (inactive) PathEffect.dashPathEffect(floatArrayOf(10f, 8f)) else null,
-          ),
-        )
-      },
-      contentAlignment = Alignment.Center,
-    ) {
-      Icon(
-        icon,
-        contentDescription = null,
-        tint = if (inactive) ShiodokiColors.TextMuted else ShiodokiColors.Text,
-        modifier = Modifier.size(20.dp),
-      )
-    }
+    IconRing(icon, inactive)
     Column(Modifier.weight(1f)) {
       Text("PC", fontSize = 12.sp, color = ShiodokiColors.TextMuted)
       Title(title, color = if (inactive) ShiodokiColors.Text else ShiodokiColors.TextStrong)
       Detail(detail)
     }
+  }
+}
+
+/** An icon in an empty ring; dashed and dimmed when the PC is not running the app. */
+@Composable
+private fun IconRing(icon: ImageVector, inactive: Boolean = false) {
+  Box(
+    Modifier.size(RING_SIZE).drawBehind {
+      val stroke = RING_STROKE.toPx()
+      drawCircle(
+        color = ShiodokiColors.Outline,
+        radius = (size.minDimension - stroke) / 2,
+        style = Stroke(
+          width = stroke,
+          pathEffect = if (inactive) PathEffect.dashPathEffect(floatArrayOf(10f, 8f)) else null,
+        ),
+      )
+    },
+    contentAlignment = Alignment.Center,
+  ) {
+    Icon(
+      icon,
+      contentDescription = null,
+      tint = if (inactive) ShiodokiColors.TextMuted else ShiodokiColors.Text,
+      modifier = Modifier.size(20.dp),
+    )
   }
 }
 

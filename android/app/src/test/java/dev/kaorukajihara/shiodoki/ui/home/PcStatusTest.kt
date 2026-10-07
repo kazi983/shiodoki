@@ -33,7 +33,18 @@ class PcStatusTest {
   @Test
   fun `stopped wins over an old heartbeat`() {
     val old = now.minusSeconds(3 * 3600)
-    assertEquals(PcStatus.Stopped(old), toPcStatus(state(DesktopStatus.STOPPED, heartbeatAt = old), now))
+    assertEquals(
+      PcStatus.Stopped(old, null),
+      toPcStatus(state(DesktopStatus.STOPPED, heartbeatAt = old), now),
+    )
+  }
+
+  @Test
+  fun `stopped during a session keeps the interrupted task`() {
+    assertEquals(
+      PcStatus.Stopped(now, "資料作成"),
+      toPcStatus(state(DesktopStatus.STOPPED, heartbeatAt = now, taskName = "資料作成"), now),
+    )
   }
 
   @Test

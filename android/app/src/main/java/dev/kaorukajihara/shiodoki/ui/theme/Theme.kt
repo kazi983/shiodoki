@@ -35,6 +35,8 @@ object ShiodokiColors {
   val TextStrong = Color(0xFFF2F5FF)
   val TextMuted = Color(0xFF9AA3B8)
   val Accent = Color(0xFF4D8EFF)
+  /** Dot of "PC で途中終了". */
+  val Ended = Color(0xFF8B93A7)
   val OnAccent = Color(0xFF00285D)
   val Danger = Color(0xFFFF8F8F)
   val Synced = Color(0xFF4FD1A5)

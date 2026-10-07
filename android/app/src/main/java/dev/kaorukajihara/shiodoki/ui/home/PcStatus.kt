@@ -16,7 +16,11 @@ sealed interface PcStatus {
   /** No `state/desktop` yet: the desktop app has never signed in with this account. */
   data object NoData : PcStatus
 
-  data class Stopped(val stoppedAt: Instant?) : PcStatus
+  /**
+   * [interruptedTaskName] is the task whose session the exit cut short ("途中終了"), null when
+   * nothing was running.
+   */
+  data class Stopped(val stoppedAt: Instant?, val interruptedTaskName: String?) : PcStatus
 
   /** No heartbeat for [PC_OFFLINE_AFTER]: the PC sleeps, lost its network or the app crashed. */
   data class Offline(val lastSeen: Instant?) : PcStatus
@@ -45,7 +49,7 @@ sealed interface PcStatus {
  */
 fun toPcStatus(state: DesktopState?, now: Instant): PcStatus {
   if (state == null) return PcStatus.NoData
-  if (state.status == DesktopStatus.STOPPED) return PcStatus.Stopped(state.heartbeatAt)
+  if (state.status == DesktopStatus.STOPPED) return stopped(state)
   val heartbeat = state.heartbeatAt
   if (heartbeat == null || Duration.between(heartbeat, now) > PC_OFFLINE_AFTER) {
     return PcStatus.Offline(heartbeat)
@@ -61,9 +65,12 @@ fun toPcStatus(state: DesktopState?, now: Instant): PcStatus {
     DesktopStatus.SNOOZED -> PcStatus.Snoozed(state.nextPromptAt)
     DesktopStatus.IDLE -> PcStatus.Choosing
     DesktopStatus.LEAVE_BLOCKED -> PcStatus.LeaveBlocked
-    DesktopStatus.STOPPED -> PcStatus.Stopped(state.heartbeatAt)
+    DesktopStatus.STOPPED -> stopped(state)
   }
 }
+
+/** The desktop writes the cut-short task into the current task fields of "stopped". */
+private fun stopped(state: DesktopState) = PcStatus.Stopped(state.heartbeatAt, state.currentTaskName)
 
 /** Whole minutes from [from] to [to], never negative (clocks of the PC and phone may differ). */
 private fun wholeMinutes(from: Instant, to: Instant): Long =
