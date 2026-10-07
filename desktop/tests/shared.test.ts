@@ -4,7 +4,6 @@ import {
   normalizeTimeInput,
   resolveNextOccurrence,
 } from "@shared/leave";
-import { convertLegacyTasks, legacyDataFile } from "@shared/legacy";
 import {
   compareTasks,
   compareTasksForManagement,
@@ -111,67 +110,6 @@ describe("task helpers", () => {
     expect(formatMinutes(0)).toBe("0分");
     expect(formatMinutes(45)).toBe("45分");
     expect(formatMinutes(125)).toBe("2時間5分");
-  });
-});
-
-describe("legacy import", () => {
-  const now = new Date("2026-10-06T00:00:00.000Z");
-  let n = 0;
-  const newId = () => `new-${++n}`;
-
-  test("converts v1 tasks", () => {
-    const { tasks, lastSelectedTaskId } = convertLegacyTasks(
-      [
-        {
-          id: "a",
-          name: "Write docs",
-          memo: "memo",
-          completed: false,
-          priority: "SOONER",
-          total_minutes: 90,
-          completed_sessions: 3,
-          created_at: "2026-09-01T10:00:00+00:00",
-          last_selected: true,
-          deleted: false,
-        },
-        { id: "b", name: "No priority", priority: "なし" },
-        { id: "c", name: "Empty priority", priority: "", completed: true },
-        { id: "d", name: "Deleted", deleted: true },
-        { name: "No id", created_at: "broken" },
-        { name: "   " },
-      ],
-      now,
-      newId,
-    );
-
-    expect(tasks.map((t) => t.id)).toEqual(["a", "b", "c", "new-1"]);
-    expect(lastSelectedTaskId).toBe("a");
-    expect(tasks[0]).toMatchObject({
-      name: "Write docs",
-      memo: "memo",
-      priority: "SOONER",
-      totalMinutes: 90,
-      sessionCount: 3,
-      createdAt: "2026-09-01T10:00:00.000Z",
-      updatedBy: "migration",
-    });
-    expect(tasks[1].priority).toBe("SOMEDAY");
-    expect(tasks[2]).toMatchObject({ priority: "SOMEDAY", completed: true, completedAt: now.toISOString() });
-    expect(tasks[3].createdAt).toBe(now.toISOString());
-  });
-
-  test("rejects a non-array file", () => {
-    expect(() => convertLegacyTasks({}, now, newId)).toThrow();
-  });
-
-  test("finds the v1 data file like app/config/paths.py", () => {
-    expect(legacyDataFile("linux", {}, "/home/u", false)).toBe("/home/u/.30min-task-timer/tasks.json");
-    expect(legacyDataFile("linux", { XDG_CONFIG_HOME: "/x" }, "/home/u", true)).toBe(
-      "/x/30min-task-timer/tasks_test.json",
-    );
-    expect(legacyDataFile("win32", { APPDATA: "C:\\AppData" }, "C:\\Users\\u", false)).toBe(
-      "C:\\AppData\\30min-task-timer\\tasks.json",
-    );
   });
 });
 

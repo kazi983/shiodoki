@@ -28,7 +28,7 @@ npm test
 以下は [Firebase コンソール](https://console.firebase.google.com/) で行います。
 
 1. **プロジェクトを作成**
-   - 「プロジェクトを追加」→ 名前は例として `30min-task-timer`。
+   - 「プロジェクトを追加」→ 名前は例として `shiodoki`（プロジェクト ID は `shiodoki-e4e8f` のように自動で末尾が付く）。
    - Google アナリティクスは不要なのでオフにしてよい。
    - 料金プランは **Spark（無料）のまま** にする。課金アカウントは登録しない（登録しなければ無料枠を超えても請求されない）。
 2. **Google ログインを有効化**
@@ -46,7 +46,7 @@ npm test
 
 ## ルールを本番に反映する
 
-プロジェクト `min-task-timer` は `.firebaserc` に設定済みです。自分の PC で実行します（ブラウザで Google ログインが開きます）。
+プロジェクト `shiodoki-e4e8f` は `.firebaserc` に設定済みです。自分の PC で実行します（ブラウザで Google ログインが開きます）。
 
 ```bash
 cd firebase

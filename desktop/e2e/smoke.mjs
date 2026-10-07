@@ -1,5 +1,5 @@
-// End-to-end smoke test (local mode, TIMER_LOCAL=1): launches the built app with Playwright, imports a
-// v1 tasks.json, adds a task, runs a (5 second) session and checks that the
+// End-to-end smoke test (local mode, TIMER_LOCAL=1): launches the built app with Playwright, loads a
+// seeded local store, adds a task, runs a (5 second) session and checks that the
 // picker comes back and the time was recorded. Saves screenshots to
 // e2e/screenshots/.
 //
@@ -20,16 +20,33 @@ const shots = join(root, "e2e", "screenshots");
 mkdirSync(shots, { recursive: true });
 
 const configHome = mkdtempSync(join(tmpdir(), "timer-e2e-"));
-const legacyDir = join(configHome, "30min-task-timer");
-mkdirSync(legacyDir, { recursive: true });
+const dataDir = join(configHome, "shiodoki");
+mkdirSync(dataDir, { recursive: true });
+const seedTask = (fields) => ({
+  memo: "",
+  completed: false,
+  completedAt: null,
+  deleted: false,
+  totalMinutes: 0,
+  sessionCount: 0,
+  createdAt: "2026-09-01T10:00:00.000Z",
+  updatedAt: "2026-09-01T10:00:00.000Z",
+  updatedBy: "desktop",
+  ...fields,
+});
 writeFileSync(
-  join(legacyDir, "tasks_test.json"),
-  JSON.stringify([
-    { id: "legacy-1", name: "既存タスク（v1から移行）", priority: "SOONER", total_minutes: 95, completed_sessions: 3, created_at: "2026-09-01T10:00:00+00:00", last_selected: true },
-    { id: "legacy-2", name: "優先度なしのタスク", priority: "なし", created_at: "2026-09-02T10:00:00+00:00" },
-    { id: "legacy-3", name: "完了済みタスク", priority: "NOW", completed: true, created_at: "2026-09-03T10:00:00+00:00" },
-    { id: "legacy-4", name: "削除済みタスク", priority: "NOW", deleted: true },
-  ]),
+  join(dataDir, "store_test.json"),
+  JSON.stringify({
+    version: 1,
+    tasks: [
+      seedTask({ id: "local-1", name: "既存タスク", priority: "SOONER", totalMinutes: 95, sessionCount: 3 }),
+      seedTask({ id: "local-2", name: "いつかのタスク", priority: "SOMEDAY", createdAt: "2026-09-02T10:00:00.000Z" }),
+      seedTask({ id: "local-3", name: "完了済みタスク", priority: "NOW", completed: true, completedAt: "2026-09-03T10:00:00.000Z" }),
+      seedTask({ id: "local-4", name: "削除済みタスク", priority: "NOW", deleted: true }),
+    ],
+    sessions: [],
+    preferences: { lastSelectedTaskId: "local-1", nextTaskId: null },
+  }),
 );
 
 const app = await electron.launch({
@@ -61,11 +78,11 @@ try {
     dialog.showMessageBox = async () => ({ response: 0, checkboxChecked: false });
   });
 
-  // ---- picker with imported v1 tasks ----
+  // ---- picker with the seeded tasks ----
   const picker = await windowFor("picker");
   await picker.waitForSelector(".task-list li[role=option]");
   const names = await picker.locator(".task-list .task-name").allTextContents();
-  assert.deepEqual(names, ["既存タスク（v1から移行）", "優先度なしのタスク"]);
+  assert.deepEqual(names, ["既存タスク", "いつかのタスク"]);
   assert.match(await picker.locator(".picker-header .sub").textContent(), /前回の続き: 既存タスク/);
   await picker.screenshot({ path: join(shots, "1-picker.png") });
 
@@ -105,7 +122,7 @@ try {
   await picker3.screenshot({ path: join(shots, "4-picker-after-session.png") });
 
   const store = JSON.parse(
-    readFileSync(join(configHome, "30min-task-timer-v2", "store_test.json"), "utf8"),
+    readFileSync(join(dataDir, "store_test.json"), "utf8"),
   );
   assert.equal(store.sessions.length, 1);
   assert.equal(store.sessions[0].endReason, "interval");

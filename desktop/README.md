@@ -16,7 +16,7 @@ Electron ＋ TypeScript ＋ React で作り直したデスクトップアプリ�
 デスクトップアプリは、システムのブラウザで Google にログインします（Electron の画面内でのログインは Google が禁止しているため）。
 そのための「OAuth クライアント」を Google Cloud コンソールで作ります。
 
-1. [Google Cloud コンソール](https://console.cloud.google.com/) を開き、上部のプロジェクト選択で **min-task-timer** を選ぶ（Firebase プロジェクトと同じもの）。
+1. [Google Cloud コンソール](https://console.cloud.google.com/) を開き、上部のプロジェクト選択で **shiodoki-e4e8f** を選ぶ（Firebase プロジェクトと同じもの）。
 2. 「API とサービス」→「認証情報」→「認証情報を作成」→「OAuth クライアント ID」。
    - 「OAuth 同意画面を構成してください」と出た場合は、先に同意画面を作る（ユーザーの種類は「外部」、アプリ名とメールアドレスだけ入力すればよい。テストユーザーに自分の Gmail を追加する）。
 3. アプリケーションの種類で **「デスクトップ アプリ」** を選び、名前は例として `desktop` で作成。
@@ -37,8 +37,8 @@ cd desktop
 npm run setup:linux-sandbox
 ```
 
-このプロジェクトの Electron だけに、サンドボックスの作成を許可する AppArmor の設定（`/etc/apparmor.d/electron-30min-task-timer-dev`）を追加します。
-プロジェクトのフォルダを移動した場合は、もう一度実行してください。不要になったら `sudo rm /etc/apparmor.d/electron-30min-task-timer-dev` で削除できます。
+このプロジェクトの Electron だけに、サンドボックスの作成を許可する AppArmor の設定（`/etc/apparmor.d/electron-shiodoki-dev`）を追加します。
+プロジェクトのフォルダを移動した場合は、もう一度実行してください。不要になったら `sudo rm /etc/apparmor.d/electron-shiodoki-dev` で削除できます。
 `.deb` でインストールした配布版では不要です（インストール時に設定されます）。
 
 ## 起動
@@ -52,7 +52,7 @@ npm run dev:local   # Firebase を使わず、PC 内の JSON ファイルだけ�
 ```
 
 初回はログイン画面が出ます。「Google でログイン」を押すとブラウザが開くので、ログインしてアプリに戻ってください。
-この PC にタスク（v1 の `tasks.json`、またはローカルモードのデータ）があり、Firebase 側が空なら、コピーするか確認されます。
+この PC にローカルモード（`npm run dev:local`）で作ったタスクがあり、Firebase 側が空なら、コピーするか確認されます。
 2回目以降はログイン状態が保たれ、オフラインでもそのまま起動できます。
 
 ## 使い方（v1 との違い）
@@ -75,7 +75,7 @@ npm run dev:local   # Firebase を使わず、PC 内の JSON ファイルだけ�
 | モード | 保存先 |
 |--------|--------|
 | 通常（Firebase） | Cloud Firestore の `users/{uid}/...`。PC 内にもキャッシュ（オフライン用）を持つ |
-| ローカル（`TIMER_LOCAL=1`） | Ubuntu: `~/.config/30min-task-timer-v2/store.json`、Windows: `%APPDATA%\30min-task-timer-v2\store.json` |
+| ローカル（`TIMER_LOCAL=1`） | Ubuntu: `~/.config/shiodoki/store.json`、Windows: `%APPDATA%\shiodoki\store.json` |
 
 テストモード（`TASK_MODE=test`）は v1 と同じく、時間を短縮するだけです。Firebase のデータは本番と同じアカウントに入るので、試すときは `npm run dev:local` も使ってください。
 
@@ -84,7 +84,7 @@ npm run dev:local   # Firebase を使わず、PC 内の JSON ファイルだけ�
 - 作業セッションの記録（`sessions`）と、タスクの累計時間の加算
 - PC の今の状況（`state/desktop`）：選択画面を表示中 / 作業中（タスク名・開始時刻・次に選択画面が出る時刻）/ スヌーズ中 / 離席のため停止中 / 終了。起動中は 5 分ごとに更新し、Android はこれが古いと「PC オフライン」と判断します。
 
-**v1 からの移行**: 初回ログイン時に確認されます。v1 の `tasks.json` は変更しないので、v1 と並行して使えます（ただしデータは別々になります）。
+**v1 のデータ**: v1 の `tasks.json` は読み込みません。v1 と v2 のデータは別々です。
 
 ## テスト
 
@@ -124,7 +124,7 @@ GPU を使いたい場合は `TIMER_ENABLE_GPU=1` を付けて起動してくだ
 
 ```
 src/
-├─ shared/     main と画面の両方で使う型・ロジック（タスク、優先度、離席時刻の計算、v1 データの変換）
+├─ shared/     main と画面の両方で使う型・ロジック（タスク、優先度、離席時刻の計算）
 ├─ main/       メインプロセス
 │  ├─ appController.ts        セッションの流れ全体（開始・30分経過・スヌーズ・離席・終了）
 │  ├─ taskService.ts          タスクの追加・編集・完了・削除

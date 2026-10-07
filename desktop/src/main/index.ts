@@ -1,11 +1,8 @@
-import { existsSync, readFileSync } from "node:fs";
-import { hostname, homedir } from "node:os";
+import { hostname } from "node:os";
 import { join } from "node:path";
-import { randomUUID } from "node:crypto";
 import { app, dialog, shell } from "electron";
 import { EMULATOR_PROJECT_ID, FIREBASE_CONFIG } from "@shared/firebaseConfig";
 import { IPC } from "@shared/ipc";
-import { convertLegacyTasks, legacyDataFile } from "@shared/legacy";
 import type { DataEvent, SyncInfo } from "@shared/sync";
 import { AppController } from "./appController";
 import { APP_DIR_NAME, INTERVAL_MS, SNOOZE_MS, STORE_FILE_NAME, TEST_MODE } from "./config";
@@ -69,10 +66,6 @@ function storeFile(): string {
   return join(app.getPath("userData"), STORE_FILE_NAME);
 }
 
-function legacyFile(): string {
-  return legacyDataFile(process.platform, process.env, homedir(), TEST_MODE);
-}
-
 function main(): void {
   if (!app.requestSingleInstanceLock()) {
     app.quit();
@@ -91,23 +84,8 @@ function main(): void {
 
 function startLocal(): void {
   const repo = new JsonFileTaskRepository(storeFile());
-  importLegacyIfNeeded(repo);
   const wired = wire(repo, () => ({ status: "local", email: null }));
   wired.controller.start();
-}
-
-function importLegacyIfNeeded(repo: JsonFileTaskRepository): void {
-  if (repo.exists) return;
-  const file = legacyFile();
-  if (!existsSync(file)) return;
-  try {
-    const raw = JSON.parse(readFileSync(file, "utf8"));
-    const { tasks, lastSelectedTaskId } = convertLegacyTasks(raw, new Date(), randomUUID);
-    repo.importLegacy(tasks, lastSelectedTaskId, new Date());
-    console.info(`Imported ${tasks.length} tasks from ${file}`);
-  } catch (error) {
-    console.error(`Failed to import ${file}:`, error);
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -227,7 +205,7 @@ async function googleIdToken(): Promise<string> {
 
 /** First sign-in: copy tasks from this PC if the account has none yet (requirements D-07). */
 async function offerMigration(bridge: DataBridge): Promise<void> {
-  const local = await findLocalData(storeFile(), legacyFile(), randomUUID);
+  const local = await findLocalData(storeFile());
   if (!local) return;
   const remoteCount = await bridge.request<number>({ op: "countRemoteTasks" }, 30_000).catch(() => -1);
   if (remoteCount !== 0) return;
