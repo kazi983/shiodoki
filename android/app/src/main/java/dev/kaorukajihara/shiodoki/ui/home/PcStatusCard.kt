@@ -166,8 +166,8 @@ private fun AnnotatedString.Builder.endTime(stoppedAt: Instant?) {
   if (stoppedAt == null) {
     append("PC のアプリは終了しています")
   } else {
-    append("終了時間 ")
     time(stoppedAt)
+    append(" 終了")
   }
 }
 
