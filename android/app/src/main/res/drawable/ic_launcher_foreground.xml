@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder icon: two waves (潮, tide). The safe zone is the central 66dp of 108dp. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+  <path
+      android:pathData="M30,48 q6,-8 12,0 t12,0 t12,0 t12,0"
+      android:strokeWidth="5"
+      android:strokeColor="#FFFFFF"
+      android:strokeLineCap="round" />
+  <path
+      android:pathData="M30,62 q6,-8 12,0 t12,0 t12,0 t12,0"
+      android:strokeWidth="5"
+      android:strokeColor="#9EC5E8"
+      android:strokeLineCap="round" />
+</vector>

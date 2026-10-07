@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Shiodoki (潮時, "the right moment to switch") is v2 of a desktop app that asks the user every
 30 minutes which task to work on and tracks time per task, with a "leave time" schedule (離席時刻:
 when the user has to get up from the desk for their next plan, not the end of a workday) that
-warns and then blocks work shortly before it. Tasks sync through Firebase (Cloud Firestore) so an Android app (planned, `android/`) can
+warns and then blocks work shortly before it. Tasks sync through Firebase (Cloud Firestore) so an Android app (`android/`, in progress) can
 read and edit them. v1 (Python/Tkinter) lives in kazi983/30min-task-timer-python and is still in
 daily use until v2 replaces it. The repository is kazi983/shiodoki, the Firebase project is
 `shiodoki-e4e8f` and the local data directory is `shiodoki`. v2 does not read v1 data; only the
@@ -36,6 +36,15 @@ written in Japanese.
   - `npm run dev` (Firebase), `npm run dev:local` (`TIMER_LOCAL=1`, JSON file only),
     `TASK_MODE=test` shrinks intervals (30 min → 5 s, snooze 5 min → 10 s).
   - `TIMER_FIREBASE_EMULATOR=1` points the app at the emulators with a fake Google account (E2E).
+- `android/` — Kotlin + Jetpack Compose, package `dev.kaorukajihara.shiodoki`. Design:
+  `docs/android/design.md`. Build with Android Studio's JDK (`JAVA_HOME=/snap/android-studio/current/jbr`):
+  `./gradlew assembleDebug testDebugUnitTest`. `app/google-services.json` is public and committed.
+  - Kotlin 2.4.20 is forced via `org.jetbrains.kotlin.android` in the root build (AGP 9.4.1's
+    built-in Kotlin 2.2 cannot read libraries built with Kotlin 2.4); keep all Kotlin plugins on
+    the same version.
+  - `shiodoki.useFirebaseEmulator=true` in `local.properties` makes debug builds use the emulators
+    at `10.0.2.2` with the desktop E2E fake Google account. API 37 needs `ACCESS_LOCAL_NETWORK`
+    (debug manifest only), so install with `adb install -r -g`.
 
 ## Desktop architecture
 
