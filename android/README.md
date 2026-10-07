@@ -69,4 +69,6 @@ cd android
    adb install -r -g app/build/outputs/apk/debug/app-debug.apk
    ```
 
+注意：Android アプリは Emulator でも `google-services.json` のプロジェクト ID（`shiodoki-e4e8f`）を使います。`npm run emulators`（`demo-shiodoki`）でも警告付きで動きますが、Emulator のデータとユーザーはプロジェクト ID ごとに分かれるため、デスクトップの Emulator モードとはデータを共有しません。Android だけを確かめるときは、`npx firebase emulators:start --only auth,firestore --project shiodoki-e4e8f` で起動すると警告が出ません。
+
 元に戻すときは、`local.properties` の行を消すか、値を `false` にしてビルドし直します。release ビルドは、この設定に関係なく常に本物のプロジェクトにつながります。
