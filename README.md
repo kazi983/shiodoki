@@ -24,7 +24,7 @@ Python / Tkinter 版（v1）は [kazi983/30min-task-timer-python](https://github
 | P1 | Firebase の準備（ルール・Emulator） | 完了（本番へのルール反映は手作業） |
 | P2 | デスクトップ版の作り直し（ローカル保存） | 完了 |
 | P3 | Google ログインと Firestore 同期 | 実装済み・本番での動作確認待ち |
-| P4 | Android アプリ | 着手（タスクの一覧・追加・編集・完了・削除まで） |
+| P4 | Android アプリ | 着手（タスクの一覧・追加・編集・完了・削除、PC の状況カードまで） |
 
 ## はじめかた
 
