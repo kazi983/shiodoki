@@ -18,7 +18,7 @@ export function createTray(actions: TrayActions, testMode: boolean): Tray | null
   try {
     const icon = nativeImage.createFromPath(join(app.getAppPath(), "resources", "tray.png"));
     const tray = new Tray(icon);
-    tray.setToolTip(testMode ? "30min Task Timer (TEST)" : "30min Task Timer");
+    tray.setToolTip(testMode ? "Shiodoki (TEST)" : "Shiodoki");
     tray.setContextMenu(
       Menu.buildFromTemplate([
         { label: "タスクを選ぶ", click: actions.openPicker },

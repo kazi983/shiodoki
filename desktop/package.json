@@ -1,6 +1,6 @@
 {
-  "name": "30min-task-timer",
-  "productName": "30min Task Timer",
+  "name": "shiodoki",
+  "productName": "Shiodoki",
   "version": "2.0.0-alpha.1",
   "description": "Desktop app that asks what to work on every 30 minutes and tracks time per task",
   "private": true,
@@ -16,9 +16,9 @@
     "dist:linux": "electron-vite build && electron-builder --linux",
     "dist:win": "electron-vite build && electron-builder --win",
     "e2e": "electron-vite build && node e2e/smoke.mjs",
-    "e2e:headless": "electron-vite build && xvfb-run -a -s \"-screen 0 1920x1080x24\" node e2e/smoke.mjs && ../firebase/node_modules/.bin/firebase emulators:exec --config ../firebase/firebase.json --only auth,firestore --project demo-30min-task-timer \"xvfb-run -a -s '-screen 0 1920x1080x24' node e2e/firebase.mjs\"",
-    "test:integration": "../firebase/node_modules/.bin/firebase emulators:exec --config ../firebase/firebase.json --only auth,firestore --project demo-30min-task-timer \"vitest run --config vitest.integration.config.ts\"",
-    "e2e:firebase": "electron-vite build && ../firebase/node_modules/.bin/firebase emulators:exec --config ../firebase/firebase.json --only auth,firestore --project demo-30min-task-timer \"node e2e/firebase.mjs\"",
+    "e2e:headless": "electron-vite build && xvfb-run -a -s \"-screen 0 1920x1080x24\" node e2e/smoke.mjs && ../firebase/node_modules/.bin/firebase emulators:exec --config ../firebase/firebase.json --only auth,firestore --project demo-shiodoki \"xvfb-run -a -s '-screen 0 1920x1080x24' node e2e/firebase.mjs\"",
+    "test:integration": "../firebase/node_modules/.bin/firebase emulators:exec --config ../firebase/firebase.json --only auth,firestore --project demo-shiodoki \"vitest run --config vitest.integration.config.ts\"",
+    "e2e:firebase": "electron-vite build && ../firebase/node_modules/.bin/firebase emulators:exec --config ../firebase/firebase.json --only auth,firestore --project demo-shiodoki \"node e2e/firebase.mjs\"",
     "dev:local": "cross-env TIMER_LOCAL=1 electron-vite dev -- --ozone-platform=x11",
     "setup:linux-sandbox": "bash scripts/setup-linux-sandbox.sh"
   },
@@ -41,8 +41,8 @@
     "vitest": "^5.0.3"
   },
   "build": {
-    "appId": "io.github.kazi983.thirtymin-task-timer",
-    "productName": "30min Task Timer",
+    "appId": "io.github.kazi983.shiodoki",
+    "productName": "Shiodoki",
     "directories": {
       "output": "dist"
     },

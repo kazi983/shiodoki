@@ -35,7 +35,7 @@ const shots = join(root, "e2e", "screenshots");
 mkdirSync(shots, { recursive: true });
 
 // ---- the "Android" side: a plain Firebase client signed in as the same fake user ----
-const phoneApp = initializeApp({ apiKey: "demo-key", projectId: "demo-30min-task-timer" }, "phone");
+const phoneApp = initializeApp({ apiKey: "demo-key", projectId: "demo-shiodoki" }, "phone");
 const phoneAuth = getAuth(phoneApp);
 connectAuthEmulator(phoneAuth, "http://127.0.0.1:9099", { disableWarnings: true });
 const { user } = await signInWithCredential(
@@ -140,7 +140,7 @@ try {
 
   // ---- 3. session + PC status ----
   await picker.click('.task-list li:has-text("PCで追加")');
-  await picker.fill('input[aria-label="退勤時刻"]', "2359");
+  await picker.fill('input[aria-label="離席時刻"]', "2359");
   await picker.click("text=▶ はじめる");
   await windowFor(app, "overlay");
   const running = await poll(desktopState, (s) => s?.status === "running", "running state");

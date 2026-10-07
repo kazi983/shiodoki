@@ -26,7 +26,7 @@ let env: RulesTestEnvironment;
 
 beforeAll(async () => {
   env = await initializeTestEnvironment({
-    projectId: "demo-30min-task-timer",
+    projectId: "demo-shiodoki",
     firestore: { rules: readFileSync("firestore.rules", "utf8") },
   });
 });

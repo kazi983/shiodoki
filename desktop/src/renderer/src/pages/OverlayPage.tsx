@@ -5,7 +5,7 @@ export function OverlayPage() {
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
-    document.title = "30min Task Timer";
+    document.title = "Shiodoki";
   }, []);
 
   function setHover(next: boolean) {

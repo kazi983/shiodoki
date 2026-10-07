@@ -6,7 +6,7 @@ export function LoginPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    document.title = "30min Task Timer - ログイン";
+    document.title = "Shiodoki - ログイン";
   }, []);
 
   async function signIn() {
@@ -21,7 +21,7 @@ export function LoginPage() {
 
   return (
     <main className="login">
-      <h1>30min Task Timer</h1>
+      <h1>Shiodoki</h1>
       <p className="sub">
         タスクを Google アカウントに保存して、
         <br />

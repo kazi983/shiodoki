@@ -140,7 +140,7 @@ export class WindowManager implements WindowPort {
       return;
     }
     this.login = this.create("login", {
-      title: "30min Task Timer - ログイン",
+      title: "Shiodoki - ログイン",
       width: 520,
       height: 560,
       minWidth: 420,
@@ -161,7 +161,7 @@ export class WindowManager implements WindowPort {
     const display = this.targetDisplay();
     const block = mode === "block";
     const win = this.create(block ? "leave-block" : "leave-warning", {
-      title: "30min Task Timer",
+      title: "Shiodoki",
       width: 720,
       height: 420,
       frame: false,

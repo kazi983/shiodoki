@@ -21,7 +21,7 @@ npm test
 ```
 
 `npm test` は Firestore Emulator を起動してテストを実行し、終わると Emulator を停止します。
-プロジェクト ID は `demo-30min-task-timer`（`demo-` で始まる ID は本物の Firebase プロジェクトにつながらない Emulator 専用 ID）を使うので、Firebase へのログインは不要です。
+プロジェクト ID は `demo-shiodoki`（`demo-` で始まる ID は本物の Firebase プロジェクトにつながらない Emulator 専用 ID）を使うので、Firebase へのログインは不要です。
 
 ## Firebase プロジェクトの作成（初回のみ・手作業）
 
