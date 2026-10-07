@@ -33,7 +33,6 @@ interface StoreData {
   tasks: Task[];
   sessions: SessionRecord[];
   preferences: Preferences;
-  legacyImportedAt: string | null;
 }
 
 function emptyStore(): StoreData {
@@ -42,7 +41,6 @@ function emptyStore(): StoreData {
     tasks: [],
     sessions: [],
     preferences: { lastSelectedTaskId: null, nextTaskId: null },
-    legacyImportedAt: null,
   };
 }
 
@@ -55,10 +53,6 @@ export class JsonFileTaskRepository implements TaskRepository {
     private readonly now: () => Date = () => new Date(),
   ) {
     this.data = existsSync(file) ? this.read() : emptyStore();
-  }
-
-  get exists(): boolean {
-    return existsSync(this.file);
   }
 
   async listTasks(): Promise<Task[]> {
@@ -110,17 +104,6 @@ export class JsonFileTaskRepository implements TaskRepository {
 
   async setPreferences(patch: Partial<Preferences>): Promise<void> {
     this.data.preferences = { ...this.data.preferences, ...patch };
-    this.write();
-  }
-
-  /** Seed from v1 tasks.json. Only used when the store does not exist yet. */
-  importLegacy(tasks: Task[], lastSelectedTaskId: string | null, now: Date): void {
-    this.data = {
-      ...emptyStore(),
-      tasks: tasks.map((t) => ({ ...t })),
-      preferences: { lastSelectedTaskId, nextTaskId: null },
-      legacyImportedAt: now.toISOString(),
-    };
     this.write();
   }
 

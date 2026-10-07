@@ -208,7 +208,7 @@ describe("findLocalData (first sign-in migration)", () => {
     await repo.createTask(task({ id: "b", deleted: true }));
     await repo.setPreferences({ lastSelectedTaskId: "a" });
 
-    const local = await findLocalData(store, join(dir, "none.json"), () => "x");
+    const local = await findLocalData(store);
     expect(local?.tasks.map((t) => t.id)).toEqual(["a"]);
     expect(local?.lastSelectedTaskId).toBe("a");
     local?.markMigrated();
@@ -216,16 +216,7 @@ describe("findLocalData (first sign-in migration)", () => {
     expect(existsSync(`${store}.migrated`)).toBe(true);
   });
 
-  test("falls back to the v1 tasks.json and leaves it untouched", async () => {
-    const legacy = join(dir, "tasks.json");
-    writeFileSync(legacy, JSON.stringify([{ id: "v1", name: "Old", priority: "NOW", last_selected: true }]));
-    const local = await findLocalData(join(dir, "store.json"), legacy, () => "x");
-    expect(local?.tasks.map((t) => t.id)).toEqual(["v1"]);
-    local?.markMigrated();
-    expect(existsSync(legacy)).toBe(true);
-  });
-
   test("nothing to migrate", async () => {
-    expect(await findLocalData(join(dir, "a.json"), join(dir, "b.json"), () => "x")).toBeNull();
+    expect(await findLocalData(join(dir, "a.json"))).toBeNull();
   });
 });

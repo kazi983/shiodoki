@@ -100,36 +100,6 @@ describe("TaskService with JSON file", () => {
     await service.markLastSelected(t.id);
     expect((await service.getPreferences()).lastSelectedTaskId).toBe(t.id);
   });
-
-  test("legacy import seeds a new store", async () => {
-    const file = join(dir, "store.json");
-    const repo = new JsonFileTaskRepository(file);
-    expect(repo.exists).toBe(false);
-    repo.importLegacy(
-      [
-        {
-          id: "a",
-          name: "Old",
-          memo: "",
-          priority: "NOW",
-          completed: false,
-          completedAt: null,
-          deleted: false,
-          totalMinutes: 10,
-          sessionCount: 1,
-          createdAt: "2026-01-01T00:00:00.000Z",
-          updatedAt: "2026-10-06T00:00:00.000Z",
-          updatedBy: "migration",
-        },
-      ],
-      "a",
-      new Date(),
-    );
-    expect(repo.exists).toBe(true);
-    const service = new TaskService(new JsonFileTaskRepository(file));
-    expect((await service.listAll())[0].name).toBe("Old");
-    expect((await service.getPreferences()).lastSelectedTaskId).toBe("a");
-  });
 });
 
 describe("LeaveScheduleService", () => {

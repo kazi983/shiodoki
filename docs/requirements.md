@@ -1,6 +1,6 @@
 # Shiodoki 要件定義書
 
-- ステータス: 確定 v0.9
+- ステータス: 確定 v0.10
 - 更新日: 2026-10-06
 - 対象: 現行アプリ v1（[kazi983/30min-task-timer-python](https://github.com/kazi983/30min-task-timer-python) の `main.pyw` / `app/`）の作り替え
 - 本文中の `app/...` などのパスは v1 リポジトリのファイルを指す
@@ -10,6 +10,7 @@
 | 版 | 日付 | 内容 |
 |----|------|------|
 | v0.1 | 2026-10-06 | 初版（Supabase + PWA 案） |
+| v0.10 | 2026-10-06 | v1 の `tasks.json` の読み込み（ローカルモードでの取り込み、初回ログイン時の移行）を廃止。初回移行の対象はローカルモードのデータだけにする（D-07、§5） |
 | v0.9 | 2026-10-06 | アプリ名の変更に合わせ、リポジトリを kazi983/shiodoki、Firebase プロジェクトを `shiodoki-e4e8f`、PC 内のデータの保存先を `shiodoki` に変更（§1.3、§6.5） |
 | v0.8 | 2026-10-06 | アプリ名を「Shiodoki（潮時）」に決定（§1.3）。「退勤スケジュール」を「離席スケジュール」に改称し、意味（次の予定のために席を立つ時刻）を明記（F-09） |
 | v0.7 | 2026-10-06 | Android のロック解除時タスク選択（フォーカス画面、§3.4）を追加。スマホでの作業時間も sessions に記録する（`endReason: screen_off`）。開発ステップに P5 を追加 |
@@ -42,7 +43,7 @@
 ### 1.3 アプリ名
 
 v2 のアプリ名は **Shiodoki（潮時）** とする。「潮時」は本来「物事を始めたり、やめたり、切り替えたりするのにちょうどよい時」という意味で、30 分ごとにタスクを選び直すことと、離席スケジュールで作業を切り上げることの両方を表す。
-リポジトリ名（`shiodoki`）、Firebase のプロジェクト ID（`shiodoki-e4e8f`）、PC 内のデータの保存先（`shiodoki`）もこの名前に合わせる。v1 のデータ（`30min-task-timer` 配下の `tasks.json`）を読み込む初回移行だけは、v1 の保存先を参照するため旧名のまま。
+リポジトリ名（`shiodoki`）、Firebase のプロジェクト ID（`shiodoki-e4e8f`）、PC 内のデータの保存先（`shiodoki`）もこの名前に合わせる。v1 のデータ（`30min-task-timer` 配下の `tasks.json`）は読み込まない。
 
 ### 1.4 スコープ外（v2 では行わない）
 
@@ -96,7 +97,7 @@ v2 のアプリ名は **Shiodoki（潮時）** とする。「潮時」は本来
 | D-04 | **オフラインでも全機能が使える**。書き込みは端末内に保存され、オンライン復帰時に自動送信される。アプリを再起動しても未送信データは失われない | Must |
 | D-05 | Android での変更を、開いている画面に数秒以内で反映する（リアルタイム購読） | Must |
 | D-06 | 同期状態（同期済み / 未送信あり / オフライン）を画面またはトレイに表示する | Should |
-| D-07 | 初回ログイン時に既存の `tasks.json` を Firestore へ移行する（1回だけ、重複しない） | Must |
+| D-07 | 初回ログイン時に、この PC のローカルモードのデータ（`shiodoki` 配下の `store.json`）を Firestore へ移行する（1回だけ、重複しない）。v1 の `tasks.json` は読み込まない | Must |
 
 ### 3.3 Android アプリ
 
@@ -177,7 +178,7 @@ users/{uid}
 | sessionCount | number | セッション回数（`increment()` でのみ更新） |
 | createdAt | timestamp | 作成日時 |
 | updatedAt | timestamp | 最終更新日時（サーバー時刻） |
-| updatedBy | string | 更新元（`desktop` / `android`） |
+| updatedBy | string | 更新元（`desktop` / `android` / `migration`（初回移行）） |
 
 - `taskId` は現行の `Task.id`（UUID）をそのまま使う（移行時の重複防止）。
 
@@ -218,7 +219,7 @@ users/{uid}
 - Android のフォーカス画面（§3.4）のセッションも同じ方式（sessions の追加＋ `increment()` のバッチ、`updatedBy: android`）で書き込む。
 - `increment()` は同時に・オフラインで書き込んでも加算が失われない（上書きではなく加算として合成される）ため、PC と Android の操作が競合しない（N-05）。
 - sessions が正（記録の元データ）なので、万一ずれても sessions から再計算できる。
-- 既存 `tasks.json` の `total_minutes` / `completed_sessions` は、移行時にそのまま `totalMinutes` / `sessionCount` に入れる。
+- ローカルモードのデータの `totalMinutes` / `sessionCount` は、移行時にそのまま引き継ぐ。
 
 ### 5.3 同期・競合解決ルール
 
@@ -251,7 +252,6 @@ match /users/{uid}/{document=**} {
 
 - 新規作成時の初期値は `NOW`（タスク選択画面のクイック追加・タスク管理画面とも現行どおり）。
 - 一覧は「優先度の並び順 → 作成日時の古い順」で表示する。
-- 移行時、`tasks.json` の priority が上記 4 つ以外（`なし`、空文字など）の場合は `SOMEDAY` にする。
 
 ### 5.6 無料枠（Spark プラン）の目安
 
@@ -392,7 +392,7 @@ shiodoki/
 
 | 画面 | 変更内容 |
 |------|---------|
-| 初回セットアップ画面（新規） | 「Google でログイン」ボタン。既存 `tasks.json` があれば移行確認 |
+| 初回セットアップ画面（新規） | 「Google でログイン」ボタン。ローカルモードのデータがあれば移行確認 |
 | タスク選択画面 | 同期状態の小さな表示。Android から予約された次タスクを初期選択（M-08） |
 | タスク管理画面 | 同期状態表示、完了済みの表示切替と「未完了に戻す」 |
 | トレイメニュー | 「ログアウト」を追加 |
@@ -443,7 +443,7 @@ shiodoki/
 | P0 | 要件定義（本書）の確定 | 完了（v0.3） |
 | P1 | Firebase プロジェクト作成、Google ログイン有効化、セキュリティルールと Emulator 環境を `firebase/` に用意 | ルールのテストが Emulator で通る（ルール・テストは作成済み。プロジェクト作成は `firebase/README.md` の手順で手作業） |
 | P2 | デスクトップ：ローカル動作のみで現行機能を作り直す（タイマー、選択・管理画面、オーバーレイ、離席スケジュール、トレイ、多重起動防止） | 完了（`desktop/`）。ユニットテスト・E2E テストで確認済み |
-| P3 | デスクトップ：Google ログイン、Firestore 連携、`state/desktop` の書き込み、`tasks.json` 移行 | 実装済み（Emulator で E2E 確認）。本番の Firebase / Google ログインでの動作確認待ち |
+| P3 | デスクトップ：Google ログイン、Firestore 連携、`state/desktop` の書き込み、ローカルデータの移行 | 実装済み（Emulator で E2E 確認）。本番の Firebase / Google ログインでの動作確認待ち |
 | P4 | Android：ログイン、タスク一覧・追加・編集・完了・削除、PC の状況表示 | Android で追加したタスクが PC のタスク選択画面にすぐ出る |
 | P5 | Android：フォーカス画面（§3.4 の M-11〜M-16） | ロック解除でフォーカス画面が出て、選んだタスクのセッションが画面オフ時に記録され、PC のタスク管理画面の累計時間に反映される |
 | P6 | Should / Could 項目（完了済み表示、次タスク予約、集計、ウィジェットなど） | — |

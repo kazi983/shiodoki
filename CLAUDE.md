@@ -10,8 +10,8 @@ when the user has to get up from the desk for their next plan, not the end of a 
 warns and then blocks work shortly before it. Tasks sync through Firebase (Cloud Firestore) so an Android app (planned, `android/`) can
 read and edit them. v1 (Python/Tkinter) lives in kazi983/30min-task-timer-python and is still in
 daily use until v2 replaces it. The repository is kazi983/shiodoki, the Firebase project is
-`shiodoki-e4e8f` and the local data directory is `shiodoki`. Only the v1 import
-(`src/shared/legacy.ts`) still uses the old name, because it reads v1's `30min-task-timer` files.
+`shiodoki-e4e8f` and the local data directory is `shiodoki`. v2 does not read v1 data; only the
+local-mode store is offered for upload on first sign-in.
 
 `docs/requirements.md` is the source of truth for scope, the Firestore data model (§5) and the
 phase plan (§9). Update it when decisions change. User-facing docs (READMEs, requirements) are

@@ -1,14 +1,14 @@
 // End-to-end test of the Firebase mode against the local emulators
 // (TIMER_FIREBASE_EMULATOR=1 signs in with a fake Google account):
 //
-//   1. first launch shows the sign-in window; signing in copies the v1 tasks
+//   1. first launch shows the sign-in window; signing in copies the local-mode tasks
 //   2. tasks added on the PC reach Firestore; an "Android" edit reaches the PC
 //   3. a session is recorded and users/{uid}/state/desktop follows the PC
 //   4. after a restart the PC is still signed in (IndexedDB persistence)
 //
 // Run with `npm run e2e:firebase` (starts the emulators).
 
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -59,15 +59,33 @@ async function poll(read, ok, what) {
 const remoteTasks = async () => (await getDocs(collection(phoneDb, `${base}/tasks`))).docs.map((d) => ({ id: d.id, ...d.data() }));
 const desktopState = async () => (await getDoc(doc(phoneDb, `${base}/state/desktop`))).data();
 
-// ---- v1 data on this "PC" ----
+// ---- local-mode data on this "PC" (userData is shiodoki-emulator/ with TIMER_FIREBASE_EMULATOR=1) ----
 const configHome = mkdtempSync(join(tmpdir(), "timer-e2e-fb-"));
-mkdirSync(join(configHome, "30min-task-timer"), { recursive: true });
+const dataDir = join(configHome, "shiodoki-emulator");
+mkdirSync(dataDir, { recursive: true });
+const seedTask = (fields) => ({
+  memo: "",
+  completed: false,
+  completedAt: null,
+  deleted: false,
+  totalMinutes: 0,
+  sessionCount: 0,
+  createdAt: "2026-09-01T10:00:00.000Z",
+  updatedAt: "2026-09-01T10:00:00.000Z",
+  updatedBy: "desktop",
+  ...fields,
+});
 writeFileSync(
-  join(configHome, "30min-task-timer", "tasks_test.json"),
-  JSON.stringify([
-    { id: "legacy-1", name: "v1のタスク", priority: "SOONER", total_minutes: 95, completed_sessions: 3, last_selected: true },
-    { id: "legacy-2", name: "v1の優先度なし", priority: "なし" },
-  ]),
+  join(dataDir, "store_test.json"),
+  JSON.stringify({
+    version: 1,
+    tasks: [
+      seedTask({ id: "local-1", name: "ローカルのタスク", priority: "SOONER", totalMinutes: 95, sessionCount: 3 }),
+      seedTask({ id: "local-2", name: "ローカルのいつか", priority: "SOMEDAY" }),
+    ],
+    sessions: [],
+    preferences: { lastSelectedTaskId: "local-1", nextTaskId: null },
+  }),
 );
 
 async function launch() {
@@ -108,13 +126,14 @@ try {
   await login.click("text=Google でログイン");
 
   const picker = await windowFor(app, "picker");
-  await picker.waitForSelector('.task-list .task-name:has-text("v1のタスク")');
-  assert.match(await picker.locator(".picker-header .sub").textContent(), /前回の続き: v1のタスク/);
+  await picker.waitForSelector('.task-list .task-name:has-text("ローカルのタスク")');
+  assert.match(await picker.locator(".picker-header .sub").textContent(), /前回の続き: ローカルのタスク/);
   const migrated = await poll(remoteTasks, (t) => t.length === 2, "migrated tasks");
-  const v1 = migrated.find((t) => t.id === "legacy-1");
-  assert.equal(v1.totalMinutes, 95);
-  assert.equal(v1.updatedBy, "migration");
-  assert.equal(migrated.find((t) => t.id === "legacy-2").priority, "SOMEDAY");
+  const first = migrated.find((t) => t.id === "local-1");
+  assert.equal(first.totalMinutes, 95);
+  assert.equal(first.updatedBy, "migration");
+  assert.equal(migrated.find((t) => t.id === "local-2").priority, "SOMEDAY");
+  assert.ok(existsSync(join(dataDir, "store_test.json.migrated")), "local store is renamed after the copy");
 
   // ---- 2. PC -> Firestore ----
   await picker.fill('input[aria-label="新しいタスク"]', "PCで追加");
@@ -130,7 +149,7 @@ try {
   );
 
   // ---- 2b. "Android" -> PC (realtime) ----
-  await updateDoc(doc(phoneDb, `${base}/tasks/legacy-2`), {
+  await updateDoc(doc(phoneDb, `${base}/tasks/local-2`), {
     name: "スマホで名前を変更",
     updatedAt: serverTimestamp(),
     updatedBy: "android",
