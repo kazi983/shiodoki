@@ -93,13 +93,13 @@ fun PcStatusCard(status: PcStatus, modifier: Modifier = Modifier) {
     )
     is PcStatus.Stopped -> StatusCard(
       icon = Icons.Power,
-      title = "PC のアプリは終了しています",
+      title = "アプリ終了",
       detail = {
-        if (status.stoppedAt == null) {
-          append("終了済み")
-        } else {
+        if (status.stoppedAt != null) {
+          append("終了時刻 ")
           time(status.stoppedAt)
-          append(" に終了")
+        } else {
+          append("PC のアプリは終了しています")
         }
       },
       modifier = modifier,
@@ -107,7 +107,7 @@ fun PcStatusCard(status: PcStatus, modifier: Modifier = Modifier) {
     )
     PcStatus.NoData -> StatusCard(
       icon = Icons.Power,
-      title = "PC の情報がありません",
+      title = "情報がありません",
       detail = { append("PC のアプリで同じアカウントにログインすると表示されます") },
       modifier = modifier,
       inactive = true,
