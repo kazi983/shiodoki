@@ -13,6 +13,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import dev.kaorukajihara.shiodoki.AppContainer
+import dev.kaorukajihara.shiodoki.ui.components.MainTab
 import dev.kaorukajihara.shiodoki.ui.edit.EditTaskScreen
 import dev.kaorukajihara.shiodoki.ui.edit.EditTaskViewModel
 import dev.kaorukajihara.shiodoki.ui.home.HomeScreen
@@ -50,6 +51,18 @@ fun ShiodokiNavHost(container: AppContainer) {
     }
   }
 
+  // Bottom tabs (design canvas). Home stays at the bottom of the stack, so Back on another tab
+  // returns to it, like a standard Android bottom navigation.
+  val selectTab: (MainTab) -> Unit = { tab ->
+    when (tab) {
+      MainTab.TASKS -> navController.popBackStack<HomeRoute>(inclusive = false)
+      MainTab.SETTINGS -> navController.navigate(SettingsRoute) {
+        popUpTo<HomeRoute>()
+        launchSingleTop = true
+      }
+    }
+  }
+
   NavHost(navController, startDestination) {
     composable<LoginRoute> {
       LoginScreen(viewModel { LoginViewModel(authManager) })
@@ -59,7 +72,7 @@ fun ShiodokiNavHost(container: AppContainer) {
         viewModel = viewModel { HomeViewModel(taskRepository) },
         onAddTask = { navController.navigate(EditTaskRoute()) },
         onEditTask = { navController.navigate(EditTaskRoute(it)) },
-        onOpenSettings = { navController.navigate(SettingsRoute) },
+        onSelectTab = selectTab,
       )
     }
     composable<EditTaskRoute> { entry ->
@@ -74,8 +87,8 @@ fun ShiodokiNavHost(container: AppContainer) {
     }
     composable<SettingsRoute> {
       SettingsScreen(
-        viewModel = viewModel { SettingsViewModel(authManager) },
-        onBack = { navController.popBackStack() },
+        viewModel = viewModel { SettingsViewModel(authManager, taskRepository) },
+        onSelectTab = selectTab,
       )
     }
   }

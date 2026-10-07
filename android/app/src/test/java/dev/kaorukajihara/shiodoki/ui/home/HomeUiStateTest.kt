@@ -12,23 +12,28 @@ class HomeUiStateTest {
   @Test
   fun `not loaded yet`() {
     val state = toHomeUiState(null)
-    assertNull(state.tasks)
+    assertNull(state.groups)
     assertNull(state.syncStatus)
   }
 
   @Test
-  fun `shows incomplete, not deleted tasks in order`() {
+  fun `groups incomplete, not deleted tasks by priority in order`() {
     val snapshot = TasksSnapshot(
       listOf(
         task("someday", priority = Priority.SOMEDAY),
         task("done", completed = true),
         task("deleted", deleted = true),
-        task("now"),
+        task("now-new", createdAt = "2026-01-02T00:00:00Z"),
+        task("now-old", createdAt = "2026-01-01T00:00:00Z"),
       ),
       SyncStatus.PENDING,
     )
     val state = toHomeUiState(snapshot)
-    assertEquals(listOf("now", "someday"), state.tasks?.map { it.id })
+    // SOONER and ANYTIME have no tasks, so they have no group.
+    assertEquals(
+      listOf(Priority.NOW to listOf("now-old", "now-new"), Priority.SOMEDAY to listOf("someday")),
+      state.groups?.map { g -> g.priority to g.tasks.map { it.id } },
+    )
     assertEquals(SyncStatus.PENDING, state.syncStatus)
   }
 }

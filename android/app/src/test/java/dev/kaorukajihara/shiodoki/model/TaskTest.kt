@@ -6,7 +6,7 @@ import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Same cases as the desktop tests/shared.test.ts. */
+/** Same cases as the desktop tests/shared.test.ts (except the Android duration format). */
 class TaskTest {
   @Test
   fun `tasks sort by priority, then oldest first`() {
@@ -58,9 +58,10 @@ class TaskTest {
 
   @Test
   fun formatMinutes() {
-    assertEquals("0分", formatMinutes(0))
-    assertEquals("45分", formatMinutes(45))
-    assertEquals("2時間5分", formatMinutes(125))
+    assertEquals("—", formatMinutes(0))
+    assertEquals("45m", formatMinutes(45))
+    assertEquals("1h 00m", formatMinutes(60))
+    assertEquals("2h 05m", formatMinutes(125))
   }
 
   @Test

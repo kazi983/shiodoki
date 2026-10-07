@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import dev.kaorukajihara.shiodoki.data.TaskRepository
 import dev.kaorukajihara.shiodoki.model.Priority
+import dev.kaorukajihara.shiodoki.model.Task
 import dev.kaorukajihara.shiodoki.model.TaskInput
 import dev.kaorukajihara.shiodoki.model.TaskPatch
 import dev.kaorukajihara.shiodoki.model.diffTaskInput
@@ -22,12 +23,15 @@ class EditTaskViewModel(
   private val repository: TaskRepository,
   private val taskId: String?,
 ) : ViewModel() {
+  /** The task being edited, as it was when the screen opened. */
+  val original: Task? = taskId?.let { id ->
+    repository.snapshot.value?.tasks?.find { it.id == id && !it.deleted }
+  }
+
   private val initial: TaskInput? = if (taskId == null) {
     TaskInput(name = "", priority = Priority.DEFAULT, memo = "")
   } else {
-    repository.snapshot.value?.tasks
-      ?.find { it.id == taskId && !it.deleted }
-      ?.let { TaskInput(name = it.name, priority = it.priority, memo = it.memo) }
+    original?.let { TaskInput(name = it.name, priority = it.priority, memo = it.memo) }
   }
 
   val isNew: Boolean = taskId == null

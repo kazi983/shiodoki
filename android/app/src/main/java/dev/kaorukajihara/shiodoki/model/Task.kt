@@ -3,14 +3,14 @@ package dev.kaorukajihara.shiodoki.model
 import java.time.Instant
 
 /**
- * Fixed priorities (requirements §5.5). Labels and colors match the desktop `PRIORITY_META`
- * (`desktop/src/shared/task.ts`); declaration order is the sort order.
+ * Fixed priorities (requirements §5.5). Labels match the desktop `PRIORITY_META`
+ * (`desktop/src/shared/task.ts`); colors live in the UI theme. Declaration order is the sort order.
  */
-enum class Priority(val icon: String, val label: String, val color: Long) {
-  NOW("🔥", "今すぐ", 0xFFFEE2E2),
-  SOONER("⭐", "近いうち", 0xFFFEF3C7),
-  ANYTIME("📝", "いつでも", 0xFFDCFCE7),
-  SOMEDAY("💤", "いつか", 0xFFF3F4F6),
+enum class Priority(val label: String) {
+  NOW("今すぐ"),
+  SOONER("近いうち"),
+  ANYTIME("いつでも"),
+  SOMEDAY("いつか"),
   ;
 
   companion object {
@@ -78,9 +78,16 @@ fun diffTaskInput(before: TaskInput, after: TaskInput): TaskPatch = TaskPatch(
 /** Priority order (NOW first), then oldest first — the desktop `compareTasks`. */
 val taskOrder: Comparator<Task> = compareBy<Task> { it.priority.ordinal }.thenBy { it.createdAt }
 
-/** "45分" / "2時間5分", like the desktop `formatMinutes`. */
+/**
+ * "—" / "45m" / "2h 05m", the compact form of the Android design (the desktop shows "2時間5分").
+ * Minutes are zero-padded after hours so the numbers line up in a monospace font.
+ */
 fun formatMinutes(totalMinutes: Long): String {
   val h = totalMinutes / 60
   val m = totalMinutes % 60
-  return if (h == 0L) "${m}分" else "${h}時間${m}分"
+  return when {
+    totalMinutes <= 0L -> "—"
+    h == 0L -> "${m}m"
+    else -> "${h}h ${m.toString().padStart(2, '0')}m"
+  }
 }
