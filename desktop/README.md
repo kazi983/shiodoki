@@ -16,7 +16,7 @@ Electron ＋ TypeScript ＋ React で作り直したデスクトップアプリ�
 デスクトップアプリは、システムのブラウザで Google にログインします（Electron の画面内でのログインは Google が禁止しているため）。
 そのための「OAuth クライアント」を Google Cloud コンソールで作ります。
 
-1. [Google Cloud コンソール](https://console.cloud.google.com/) を開き、上部のプロジェクト選択で **min-task-timer** を選ぶ（Firebase プロジェクトと同じもの）。
+1. [Google Cloud コンソール](https://console.cloud.google.com/) を開き、上部のプロジェクト選択で **shiodoki-e4e8f** を選ぶ（Firebase プロジェクトと同じもの）。
 2. 「API とサービス」→「認証情報」→「認証情報を作成」→「OAuth クライアント ID」。
    - 「OAuth 同意画面を構成してください」と出た場合は、先に同意画面を作る（ユーザーの種類は「外部」、アプリ名とメールアドレスだけ入力すればよい。テストユーザーに自分の Gmail を追加する）。
 3. アプリケーションの種類で **「デスクトップ アプリ」** を選び、名前は例として `desktop` で作成。
@@ -37,8 +37,8 @@ cd desktop
 npm run setup:linux-sandbox
 ```
 
-このプロジェクトの Electron だけに、サンドボックスの作成を許可する AppArmor の設定（`/etc/apparmor.d/electron-30min-task-timer-dev`）を追加します。
-プロジェクトのフォルダを移動した場合は、もう一度実行してください。不要になったら `sudo rm /etc/apparmor.d/electron-30min-task-timer-dev` で削除できます。
+このプロジェクトの Electron だけに、サンドボックスの作成を許可する AppArmor の設定（`/etc/apparmor.d/electron-shiodoki-dev`）を追加します。
+プロジェクトのフォルダを移動した場合は、もう一度実行してください。不要になったら `sudo rm /etc/apparmor.d/electron-shiodoki-dev` で削除できます。
 `.deb` でインストールした配布版では不要です（インストール時に設定されます）。
 
 ## 起動
@@ -75,7 +75,7 @@ npm run dev:local   # Firebase を使わず、PC 内の JSON ファイルだけ�
 | モード | 保存先 |
 |--------|--------|
 | 通常（Firebase） | Cloud Firestore の `users/{uid}/...`。PC 内にもキャッシュ（オフライン用）を持つ |
-| ローカル（`TIMER_LOCAL=1`） | Ubuntu: `~/.config/30min-task-timer-v2/store.json`、Windows: `%APPDATA%\30min-task-timer-v2\store.json` |
+| ローカル（`TIMER_LOCAL=1`） | Ubuntu: `~/.config/shiodoki/store.json`、Windows: `%APPDATA%\shiodoki\store.json` |
 
 テストモード（`TASK_MODE=test`）は v1 と同じく、時間を短縮するだけです。Firebase のデータは本番と同じアカウントに入るので、試すときは `npm run dev:local` も使ってください。
 

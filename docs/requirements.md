@@ -1,6 +1,6 @@
-# Shiodoki（30min-task-timer v2）要件定義書
+# Shiodoki 要件定義書
 
-- ステータス: 確定 v0.8
+- ステータス: 確定 v0.9
 - 更新日: 2026-10-06
 - 対象: 現行アプリ v1（[kazi983/30min-task-timer-python](https://github.com/kazi983/30min-task-timer-python) の `main.pyw` / `app/`）の作り替え
 - 本文中の `app/...` などのパスは v1 リポジトリのファイルを指す
@@ -10,6 +10,7 @@
 | 版 | 日付 | 内容 |
 |----|------|------|
 | v0.1 | 2026-10-06 | 初版（Supabase + PWA 案） |
+| v0.9 | 2026-10-06 | アプリ名の変更に合わせ、リポジトリを kazi983/shiodoki、Firebase プロジェクトを `shiodoki-e4e8f`、PC 内のデータの保存先を `shiodoki` に変更（§1.3、§6.5） |
 | v0.8 | 2026-10-06 | アプリ名を「Shiodoki（潮時）」に決定（§1.3）。「退勤スケジュール」を「離席スケジュール」に改称し、意味（次の予定のために席を立つ時刻）を明記（F-09） |
 | v0.7 | 2026-10-06 | Android のロック解除時タスク選択（フォーカス画面、§3.4）を追加。スマホでの作業時間も sessions に記録する（`endReason: screen_off`）。開発ステップに P5 を追加 |
 | v0.6 | 2026-10-06 | 新リポジトリ kazi983/30min-task-timer に移動（`v2/` の中身をリポジトリ直下へ）。リポジトリ構成（§6.5）を更新 |
@@ -41,7 +42,7 @@
 ### 1.3 アプリ名
 
 v2 のアプリ名は **Shiodoki（潮時）** とする。「潮時」は本来「物事を始めたり、やめたり、切り替えたりするのにちょうどよい時」という意味で、30 分ごとにタスクを選び直すことと、離席スケジュールで作業を切り上げることの両方を表す。
-リポジトリ名（`30min-task-timer`）、Firebase のプロジェクト ID（`min-task-timer`）、PC 内のデータの保存先（`30min-task-timer-v2`）は変えない。
+リポジトリ名（`shiodoki`）、Firebase のプロジェクト ID（`shiodoki-e4e8f`）、PC 内のデータの保存先（`shiodoki`）もこの名前に合わせる。v1 のデータ（`30min-task-timer` 配下の `tasks.json`）を読み込む初回移行だけは、v1 の保存先を参照するため旧名のまま。
 
 ### 1.4 スコープ外（v2 では行わない）
 
@@ -371,10 +372,10 @@ Android をネイティブアプリにすることで、Firebase のほうが有
 
 ### 6.5 リポジトリ構成
 
-v2 は新しいリポジトリ [kazi983/30min-task-timer](https://github.com/kazi983/30min-task-timer) で開発する。
+v2 は新しいリポジトリ [kazi983/shiodoki](https://github.com/kazi983/shiodoki) で開発する。
 
 ```
-30min-task-timer/
+shiodoki/
 ├─ docs/          要件定義書・設計書
 ├─ desktop/       デスクトップアプリ（Electron + TypeScript + React）
 ├─ android/       Android アプリ（Kotlin、P4 で追加）
@@ -418,7 +419,7 @@ v2 は新しいリポジトリ [kazi983/30min-task-timer](https://github.com/kaz
 | Q-01 | データベース | Firebase（Cloud Firestore） |
 | Q-02 | モバイル | Android ネイティブアプリ。ストア公開はしない |
 | Q-03 | ログイン方式 | Google ログイン |
-| Q-05 | 新しいコードの置き場所 | 新リポジトリ kazi983/30min-task-timer で開発し、完成後に v1 から乗り換える |
+| Q-05 | 新しいコードの置き場所 | 新リポジトリ kazi983/shiodoki で開発し、完成後に v1 から乗り換える |
 | — | デスクトップのネットワーク | 普段はオンラインで動かし、タスクの状況を書き込む。オフラインでも使える |
 | Q-04 | 優先度の選択肢 | `NOW` / `SOONER` / `ANYTIME` / `SOMEDAY` に固定（§5.5） |
 | Q-06 | 離席スケジュールの Android 表示 | 表示しない（設定・確認ともデスクトップのみ） |

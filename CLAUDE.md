@@ -9,8 +9,9 @@ Shiodoki (潮時, "the right moment to switch") is v2 of a desktop app that asks
 when the user has to get up from the desk for their next plan, not the end of a workday) that
 warns and then blocks work shortly before it. Tasks sync through Firebase (Cloud Firestore) so an Android app (planned, `android/`) can
 read and edit them. v1 (Python/Tkinter) lives in kazi983/30min-task-timer-python and is still in
-daily use until v2 replaces it. The repository, the Firebase project ID and the local data
-directory (`30min-task-timer-v2`) keep their old names.
+daily use until v2 replaces it. The repository is kazi983/shiodoki, the Firebase project is
+`shiodoki-e4e8f` and the local data directory is `shiodoki`. Only the v1 import
+(`src/shared/legacy.ts`) still uses the old name, because it reads v1's `30min-task-timer` files.
 
 `docs/requirements.md` is the source of truth for scope, the Firestore data model (§5) and the
 phase plan (§9). Update it when decisions change. User-facing docs (READMEs, requirements) are
@@ -27,7 +28,7 @@ written in Japanese.
 
 - `firebase/` — `firestore.rules`, emulator config, rules tests. `npm test` runs the rules tests
   on the Firestore emulator (Java 21+). `npm run deploy:rules` deploys to project
-  `min-task-timer` (`.firebaserc`).
+  `shiodoki-e4e8f` (`.firebaserc`).
 - `desktop/` — Electron + TypeScript + React (electron-vite). Before committing, run in
   `desktop/`: `npm run typecheck`, `npm test`, `npm run test:integration`, `npm run e2e:headless`.
   Integration and Firebase E2E tests start the emulators via `../firebase/node_modules/.bin/firebase`,

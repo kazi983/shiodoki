@@ -105,7 +105,7 @@ try {
   await picker3.screenshot({ path: join(shots, "4-picker-after-session.png") });
 
   const store = JSON.parse(
-    readFileSync(join(configHome, "30min-task-timer-v2", "store_test.json"), "utf8"),
+    readFileSync(join(configHome, "shiodoki", "store_test.json"), "utf8"),
   );
   assert.equal(store.sessions.length, 1);
   assert.equal(store.sessions[0].endReason, "interval");
