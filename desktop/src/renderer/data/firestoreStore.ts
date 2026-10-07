@@ -11,12 +11,16 @@ import {
   collection,
   doc,
   getCountFromServer,
+  getDocs,
   increment,
   onSnapshot,
+  query,
   serverTimestamp,
   setDoc,
+  Timestamp,
   updateDoc,
   waitForPendingWrites,
+  where,
   writeBatch,
   type Firestore,
 } from "firebase/firestore";
@@ -26,6 +30,7 @@ import type { Task, TaskPatch } from "@shared/task";
 import {
   desktopStateToDoc,
   docToPreferences,
+  docToSession,
   docToTask,
   patchToDoc,
   sessionToDoc,
@@ -93,6 +98,14 @@ export class FirestoreStore {
       updatedBy: "desktop",
     });
     this.fire(batch.commit());
+  }
+
+  /** Sessions that ended at or after `since`. Falls back to the local cache while offline. */
+  async listSessionsSince(since: Date): Promise<SessionRecord[]> {
+    const snap = await getDocs(
+      query(collection(this.db, `${this.base}/sessions`), where("endedAt", ">=", Timestamp.fromDate(since))),
+    );
+    return snap.docs.map((d) => docToSession(d.id, d.data()));
   }
 
   setPreferences(patch: Partial<PreferencesData>): void {

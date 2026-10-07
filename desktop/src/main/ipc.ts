@@ -34,9 +34,11 @@ export function registerIpcHandlers(
   ipcMain.handle(IPC.navOpenManagement, () => controller.openManagement());
   ipcMain.handle(IPC.navExit, () => controller.exit());
 
+  ipcMain.handle(IPC.overlayGetState, () => controller.getRunningInfo());
   ipcMain.handle(IPC.overlayComplete, () => controller.completeFromOverlay());
   ipcMain.handle(IPC.overlaySetExpanded, (_e, expanded: boolean) => windows.setOverlayExpanded(expanded));
 
+  ipcMain.handle(IPC.leaveGetState, () => controller.getLeaveInfo());
   ipcMain.handle(IPC.leaveDismissWarning, () => controller.dismissWarning());
 
   ipcMain.handle(IPC.authSignIn, () => auth.signIn());

@@ -80,45 +80,52 @@ try {
 
   // ---- picker with the seeded tasks ----
   const picker = await windowFor("picker");
-  await picker.waitForSelector(".task-list li[role=option]");
+  await picker.waitForSelector(".task-list [role=option]");
   const names = await picker.locator(".task-list .task-name").allTextContents();
   assert.deepEqual(names, ["既存タスク", "いつかのタスク"]);
-  assert.match(await picker.locator(".picker-header .sub").textContent(), /前回の続き: 既存タスク/);
+  assert.match(await picker.locator(".resume-card").textContent(), /前回の続き既存タスク累計 1h 35m · 3 セッション/);
+  assert.deepEqual(await picker.locator(".group-label").allTextContents(), ["SOONER近いうち", "SOMEDAYいつか"]);
   await picker.screenshot({ path: join(shots, "1-picker.png") });
 
   // ---- add from the picker ----
   await picker.fill('input[aria-label="新しいタスク"]', "E2Eで追加したタスク");
   await picker.press('input[aria-label="新しいタスク"]', "Enter");
-  await picker.waitForSelector('.task-list li[aria-selected=true]:has-text("E2Eで追加したタスク")');
+  await picker.waitForSelector('.task-list [aria-selected=true]:has-text("E2Eで追加したタスク")');
 
   // ---- management ----
-  await picker.click("text=編集");
+  await picker.click("text=タスク管理");
   const management = await windowFor("management");
   await waitClosed("picker");
   await management.waitForSelector(".task-table tbody tr");
   const rows = await management.locator(".task-table tbody tr").count();
-  assert.equal(rows, 4, "3 imported (1 completed) + 1 added; deleted one is skipped");
-  await management.click('tr:has-text("優先度なしのタスク")');
-  assert.equal(await management.inputValue('select[aria-label="優先度"]'), "SOMEDAY");
-  await management.fill('input[aria-label="メモ"]', "メモも保存される");
-  await management.click("text=更新");
-  await management.waitForSelector('td:has-text("メモも保存される")');
+  assert.equal(rows, 4, "3 seeded (1 completed) + 1 added; deleted one is skipped");
+  await management.click('tr:has-text("いつかのタスク")');
+  assert.equal(await management.getAttribute(".prio-option[aria-pressed=true]", "title"), "SOMEDAY");
+  await management.click('.prio-option[title="ANYTIME"]');
+  await management.fill('textarea[aria-label="メモ"]', "メモも保存される");
+  await management.click("text=変更を保存");
+  await management.waitForSelector('.cell-memo:has-text("メモも保存される")');
+  await management.waitForSelector('tr:has-text("いつかのタスク") .prio-chip:has-text("いつでも")');
+  await management.fill('input[aria-label="タスクを検索"]', "メモも");
+  assert.equal(await management.locator(".task-table tbody tr").count(), 1, "search matches the memo");
+  await management.fill('input[aria-label="タスクを検索"]', "");
   await management.screenshot({ path: join(shots, "2-management.png") });
 
   // ---- back to picker, start a session (TASK_MODE=test: 5 second interval) ----
-  await management.click("text=戻る");
+  await management.click('button[aria-label="Quick Start に戻る"]');
   const picker2 = await windowFor("picker");
-  await picker2.waitForSelector('.task-list li:has-text("E2Eで追加したタスク")');
-  await picker2.click('.task-list li:has-text("E2Eで追加したタスク")');
-  await picker2.fill('input[aria-label="離席時刻"]', "2359");
-  await picker2.click("text=▶ はじめる");
+  await picker2.waitForSelector('.task-list [role=option]:has-text("E2Eで追加したタスク")');
+  await picker2.click('.task-list [role=option]:has-text("E2Eで追加したタスク")');
+  await picker2.fill('input[aria-label="次の予定の時刻"]', "2359");
+  await picker2.click(".start-btn");
   const overlay = await windowFor("overlay");
   await waitClosed("picker");
+  await overlay.waitForSelector(".overlay-tab");
   await overlay.screenshot({ path: join(shots, "3-overlay.png") });
 
   // ---- after the interval the picker returns ----
   const picker3 = await windowFor("picker");
-  await picker3.waitForSelector(".leave-row");
+  await picker3.waitForSelector('.leave-row:has-text("23:59")');
   await picker3.screenshot({ path: join(shots, "4-picker-after-session.png") });
 
   const store = JSON.parse(

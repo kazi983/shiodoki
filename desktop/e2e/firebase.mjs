@@ -127,7 +127,7 @@ try {
 
   const picker = await windowFor(app, "picker");
   await picker.waitForSelector('.task-list .task-name:has-text("ローカルのタスク")');
-  assert.match(await picker.locator(".picker-header .sub").textContent(), /前回の続き: ローカルのタスク/);
+  assert.match(await picker.locator(".resume-card").textContent(), /前回の続きローカルのタスク/);
   const migrated = await poll(remoteTasks, (t) => t.length === 2, "migrated tasks");
   const first = migrated.find((t) => t.id === "local-1");
   assert.equal(first.totalMinutes, 95);
@@ -158,9 +158,9 @@ try {
   await picker.screenshot({ path: join(shots, "fb-2-picker-synced.png") });
 
   // ---- 3. session + PC status ----
-  await picker.click('.task-list li:has-text("PCで追加")');
-  await picker.fill('input[aria-label="離席時刻"]', "2359");
-  await picker.click("text=▶ はじめる");
+  await picker.click('.task-list [role=option]:has-text("PCで追加")');
+  await picker.fill('input[aria-label="次の予定の時刻"]', "2359");
+  await picker.click(".start-btn");
   await windowFor(app, "overlay");
   const running = await poll(desktopState, (s) => s?.status === "running", "running state");
   assert.equal(running.currentTaskName, "PCで追加");

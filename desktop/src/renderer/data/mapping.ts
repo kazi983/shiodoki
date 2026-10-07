@@ -82,6 +82,20 @@ export function sessionToDoc(s: SessionRecord): Record<string, unknown> {
   };
 }
 
+export function docToSession(id: string, d: DocumentData): SessionRecord {
+  const epoch = new Date(0).toISOString();
+  return {
+    id,
+    taskId: typeof d.taskId === "string" ? d.taskId : "",
+    taskName: typeof d.taskName === "string" ? d.taskName : "",
+    startedAt: iso(d.startedAt, epoch),
+    endedAt: iso(d.endedAt, epoch),
+    elapsedMinutes: typeof d.elapsedMinutes === "number" ? d.elapsedMinutes : 0,
+    endReason: d.endReason as SessionRecord["endReason"],
+    device: typeof d.device === "string" ? d.device : "",
+  };
+}
+
 export function desktopStateToDoc(s: DesktopStateData): Record<string, unknown | FieldValue> {
   return {
     status: s.status,

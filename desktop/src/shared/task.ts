@@ -9,11 +9,12 @@ export type Priority = (typeof PRIORITIES)[number];
 
 export const DEFAULT_PRIORITY: Priority = "NOW";
 
-export const PRIORITY_META: Record<Priority, { icon: string; label: string; color: string }> = {
-  NOW: { icon: "🔥", label: "今すぐ", color: "#fee2e2" },
-  SOONER: { icon: "⭐", label: "近いうち", color: "#fef3c7" },
-  ANYTIME: { icon: "📝", label: "いつでも", color: "#dcfce7" },
-  SOMEDAY: { icon: "💤", label: "いつか", color: "#f3f4f6" },
+/** dot: group marker in the picker; chip: label colors in the management table. */
+export const PRIORITY_META: Record<Priority, { label: string; dot: string; chipFg: string; chipBg: string }> = {
+  NOW: { label: "今すぐ", dot: "#ff8a4c", chipFg: "#ffd2b8", chipBg: "#3a2418" },
+  SOONER: { label: "近いうち", dot: "#f5c451", chipFg: "#fbe3a0", chipBg: "#3a3118" },
+  ANYTIME: { label: "いつでも", dot: "#4fd1a5", chipFg: "#b6f0db", chipBg: "#16342b" },
+  SOMEDAY: { label: "いつか", dot: "#8b93a7", chipFg: "#c9d1e6", chipBg: "#262e42" },
 };
 
 export type UpdatedBy = "desktop" | "android" | "migration";
@@ -86,4 +87,13 @@ export function formatMinutes(totalMinutes: number): string {
   const m = totalMinutes % 60;
   if (h === 0) return `${m}分`;
   return `${h}時間${m}分`;
+}
+
+/** Compact form for lists: "2h 30m", "45m", `zero` ("—") for no time yet. */
+export function formatDuration(totalMinutes: number, zero = "—"): string {
+  if (totalMinutes <= 0) return zero;
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  if (h === 0) return `${m}m`;
+  return `${h}h ${String(m).padStart(2, "0")}m`;
 }

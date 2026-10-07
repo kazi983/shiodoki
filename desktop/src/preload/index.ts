@@ -36,10 +36,13 @@ const api: DesktopApi = {
     exit: () => ipcRenderer.invoke(IPC.navExit),
   },
   overlay: {
+    getState: () => ipcRenderer.invoke(IPC.overlayGetState),
+    onRefresh: (listener) => subscribe(IPC.overlayRefresh, listener),
     complete: () => ipcRenderer.invoke(IPC.overlayComplete),
     setExpanded: (expanded) => ipcRenderer.invoke(IPC.overlaySetExpanded, expanded),
   },
   leave: {
+    getState: () => ipcRenderer.invoke(IPC.leaveGetState),
     dismissWarning: () => ipcRenderer.invoke(IPC.leaveDismissWarning),
   },
   dialog: {

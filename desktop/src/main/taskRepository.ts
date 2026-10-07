@@ -24,6 +24,8 @@ export interface TaskRepository {
   updateTask(id: string, patch: TaskPatch): Promise<void>;
   /** Append a session and add its minutes to the task in one write. */
   recordSession(session: SessionRecord): Promise<void>;
+  /** Sessions that ended at or after `since` (this device's and others'). */
+  listSessionsSince(since: Date): Promise<SessionRecord[]>;
   getPreferences(): Promise<Preferences>;
   setPreferences(patch: Partial<Preferences>): Promise<void>;
 }
@@ -96,6 +98,10 @@ export class JsonFileTaskRepository implements TaskRepository {
 
   async listSessions(): Promise<SessionRecord[]> {
     return this.data.sessions.map((s) => ({ ...s }));
+  }
+
+  async listSessionsSince(since: Date): Promise<SessionRecord[]> {
+    return this.data.sessions.filter((s) => new Date(s.endedAt) >= since).map((s) => ({ ...s }));
   }
 
   async getPreferences(): Promise<Preferences> {

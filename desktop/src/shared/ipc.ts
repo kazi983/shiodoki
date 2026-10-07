@@ -3,6 +3,7 @@
  */
 
 import type { LeaveScheduleInput, LeaveScheduleStatus } from "./leave";
+import type { DaySummary } from "./session";
 import type { SyncInfo } from "./sync";
 import type { Task, TaskInput } from "./task";
 
@@ -11,7 +12,31 @@ export interface PickerState {
   lastSelectedTaskId: string | null;
   leave: LeaveScheduleStatus | null;
   testMode: boolean;
+  /** Length of one session (30 minutes; 5 seconds in TASK_MODE=test). */
+  intervalMs: number;
+  /** Delay of "remind me later" (5 minutes; 10 seconds in TASK_MODE=test). */
+  snoozeMs: number;
   sync: SyncInfo;
+}
+
+/** The running session, for the overlay. */
+export interface RunningInfo {
+  taskName: string;
+  /** ISO 8601 */
+  startedAt: string;
+  /** ISO 8601: when the picker comes back. */
+  endsAt: string;
+  /** ISO 8601: work stop time of the leave schedule. */
+  stopAt: string | null;
+}
+
+/** Data for the leave warning / block windows. */
+export interface LeaveInfo {
+  schedule: LeaveScheduleStatus | null;
+  /** Task of the running session (warning: to leave a note for next time). */
+  task: Task | null;
+  /** Work done since the start of the work day (block). */
+  today: DaySummary;
 }
 
 export interface StartSessionRequest {
@@ -52,10 +77,14 @@ export interface DesktopApi {
     exit(): Promise<void>;
   };
   overlay: {
+    getState(): Promise<RunningInfo | null>;
+    /** Fired when the overlay is shown for a new session. Returns an unsubscribe function. */
+    onRefresh(listener: () => void): () => void;
     complete(): Promise<void>;
     setExpanded(expanded: boolean): Promise<void>;
   };
   leave: {
+    getState(): Promise<LeaveInfo>;
     dismissWarning(): Promise<void>;
   };
   dialog: {
@@ -80,8 +109,11 @@ export const IPC = {
   navOpenPicker: "nav:openPicker",
   navOpenManagement: "nav:openManagement",
   navExit: "nav:exit",
+  overlayGetState: "overlay:getState",
+  overlayRefresh: "overlay:refresh",
   overlayComplete: "overlay:complete",
   overlaySetExpanded: "overlay:setExpanded",
+  leaveGetState: "leave:getState",
   leaveDismissWarning: "leave:dismissWarning",
   dialogConfirm: "dialog:confirm",
   dialogAlert: "dialog:alert",
