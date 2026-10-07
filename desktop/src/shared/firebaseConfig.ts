@@ -4,12 +4,12 @@
  * app; they are not secrets. Data is protected by firebase/firestore.rules.
  */
 export const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyDWM67-8DtMbIejYISC2gJEYnhSS6eV8-k",
-  authDomain: "min-task-timer.firebaseapp.com",
-  projectId: "min-task-timer",
-  storageBucket: "min-task-timer.firebasestorage.app",
-  messagingSenderId: "816429211579",
-  appId: "1:816429211579:web:651a4f74c69a57f050ae9e",
+  apiKey: "AIzaSyCAic22UZaDvISEfXKQfBfXzxZEZO24BpY",
+  authDomain: "shiodoki-e4e8f.firebaseapp.com",
+  projectId: "shiodoki-e4e8f",
+  storageBucket: "shiodoki-e4e8f.firebasestorage.app",
+  messagingSenderId: "536655814128",
+  appId: "1:536655814128:web:682efc2ce4ea7037815135",
 } as const;
 
 /** Project ID used with the local Firebase emulators (tests, E2E). */
