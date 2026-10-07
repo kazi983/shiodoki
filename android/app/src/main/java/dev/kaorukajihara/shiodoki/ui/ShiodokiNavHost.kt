@@ -4,14 +4,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import dev.kaorukajihara.shiodoki.AppContainer
+import dev.kaorukajihara.shiodoki.ui.edit.EditTaskScreen
+import dev.kaorukajihara.shiodoki.ui.edit.EditTaskViewModel
 import dev.kaorukajihara.shiodoki.ui.home.HomeScreen
+import dev.kaorukajihara.shiodoki.ui.home.HomeViewModel
 import dev.kaorukajihara.shiodoki.ui.login.LoginScreen
 import dev.kaorukajihara.shiodoki.ui.login.LoginViewModel
 import dev.kaorukajihara.shiodoki.ui.settings.SettingsScreen
@@ -22,10 +27,14 @@ import kotlinx.serialization.Serializable
 @Serializable object HomeRoute
 @Serializable object SettingsRoute
 
+/** taskId == null adds a new task. */
+@Serializable data class EditTaskRoute(val taskId: String? = null)
+
 /** Screens inside MainActivity (design §5.1). The auth state decides Login vs. the rest. */
 @Composable
 fun ShiodokiNavHost(container: AppContainer) {
   val authManager = container.authManager
+  val taskRepository = container.taskRepository
   val account by authManager.account.collectAsStateWithLifecycle()
   val signedIn = account != null
   val navController = rememberNavController()
@@ -47,8 +56,20 @@ fun ShiodokiNavHost(container: AppContainer) {
     }
     composable<HomeRoute> {
       HomeScreen(
-        account = account,
+        viewModel = viewModel { HomeViewModel(taskRepository) },
+        onAddTask = { navController.navigate(EditTaskRoute()) },
+        onEditTask = { navController.navigate(EditTaskRoute(it)) },
         onOpenSettings = { navController.navigate(SettingsRoute) },
+      )
+    }
+    composable<EditTaskRoute> { entry ->
+      val route = entry.toRoute<EditTaskRoute>()
+      EditTaskScreen(
+        viewModel = viewModel { EditTaskViewModel(taskRepository, route.taskId) },
+        // Ignore a second tap while the pop animation runs; it would pop Home as well.
+        onClose = {
+          if (entry.lifecycle.currentState == Lifecycle.State.RESUMED) navController.popBackStack()
+        },
       )
     }
     composable<SettingsRoute> {

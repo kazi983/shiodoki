@@ -11,8 +11,9 @@ class SettingsViewModel(private val authManager: AuthManager) : ViewModel() {
   val account: StateFlow<Account?> = authManager.account
 
   /**
-   * A-04 (design §7.2). Steps that do not exist yet (ending a focus session, stopping the
-   * service, unsubscribing snapshots, clearing DataStore) are added with those features.
+   * A-04 (design §7.2). The task snapshot listener stops by itself when the uid becomes null.
+   * Steps that do not exist yet (ending a focus session, stopping the service, clearing
+   * DataStore) are added with those features.
    */
   fun signOut() {
     viewModelScope.launch { authManager.signOut() }
