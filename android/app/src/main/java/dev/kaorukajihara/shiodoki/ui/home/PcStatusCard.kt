@@ -161,7 +161,7 @@ private fun TaskCard(
   }
 }
 
-/** "終了時間 HH:mm" (the design's wording). */
+/** "HH:mm 終了" (the design's wording). */
 private fun AnnotatedString.Builder.endTime(stoppedAt: Instant?) {
   if (stoppedAt == null) {
     append("PC のアプリは終了しています")
