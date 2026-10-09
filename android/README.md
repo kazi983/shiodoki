@@ -45,6 +45,39 @@ cd android
 ./gradlew testDebugUnitTest      # JVM のユニットテスト
 ```
 
+`JAVA_HOME` を指定しないと、`PATH` 上の `java` が使われます。それが JRE（`javac` を含まない）だと、`compileDebugJavaWithJavac` が `does not provide the required capabilities: [JAVA_COMPILER]` で失敗します。
+
+### 実装後に Android Emulator で最新版を確かめる
+
+1. ターミナルごとに 1 回、JDK と SDK のツールを使えるようにする（`~/.zshrc` などに書いておいてもよい）。
+
+   ```bash
+   cd android
+   export JAVA_HOME=/snap/android-studio/current/jbr
+   export PATH="$HOME/Android/Sdk/platform-tools:$HOME/Android/Sdk/emulator:$PATH"   # adb と emulator
+   ```
+
+2. Android Emulator を起動する（別のターミナルで。起動済みなら不要）。AVD の名前は `emulator -list-avds` で確認できる。
+
+   ```bash
+   emulator -avd <AVD 名>
+   adb devices                      # emulator-5554  device と出れば準備完了
+   ```
+
+3. ビルドとテストをして、インストールし、起動する。
+
+   ```bash
+   ./gradlew assembleDebug testDebugUnitTest \
+     && adb install -r -g app/build/outputs/apk/debug/app-debug.apk \
+     && adb shell monkey -p dev.kaorukajihara.shiodoki -c android.intent.category.LAUNCHER 1
+   ```
+
+   - `&&` でつないでいるので、ビルドかテストが失敗すると、そこで止まります（古い APK はインストールされません）。
+   - `adb install -r` は、アプリのデータを残したまま上書きします。`-g` は、マニフェストにある実行時の権限をすべて許可します。`./gradlew installDebug` では権限が許可されないため、Firebase Emulator につなぐときは `adb install -g` を使います（次の節を参照）。
+   - `monkey ... 1` はアプリのランチャーを 1 回起動するだけです。アイコンをタップしても同じです。
+
+Firebase Emulator につなぐときは、手順 3 の前に次の節の 1 と 2 をやっておきます。`local.properties` の値はビルド時に `BuildConfig` に入るので、値を変えたら必ずビルドし直してください。
+
 ## Firebase Emulator につなぐ（debug ビルドのみ）
 
 本物の Firebase プロジェクトを使わずに、PC の Emulator で動かします。Google ログインの代わりに、デスクトップの E2E と同じ偽の Google アカウント（`e2e@example.com`）でログインします。
