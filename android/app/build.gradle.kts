@@ -69,5 +69,6 @@ dependencies {
   implementation(libs.kotlinx.coroutines.play.services)
   implementation(libs.kotlinx.serialization.core)
   testImplementation(libs.junit)
+  testImplementation(libs.kotlinx.coroutines.test)
   debugImplementation(libs.androidx.compose.ui.tooling)
 }
