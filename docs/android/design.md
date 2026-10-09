@@ -1,6 +1,6 @@
 # Shiodoki Android アプリ 設計書
 
-- ステータス: ドラフト v0.4（レビュー待ち）
+- ステータス: ドラフト v0.5（レビュー待ち）
 - 作成日: 2026-10-06
 - 対象フェーズ: P4（タスク管理・PC の状況表示）、P5（フォーカス画面）、P6 の一部
 - 前提: [要件定義書](../requirements.md) v0.7。要件・データモデルは要件定義書が正で、本書は「どう作るか」を決める
@@ -12,6 +12,7 @@
 | v0.1 | 2026-10-06 | 初版 |
 | v0.2 | 2026-10-06 | パッケージ名を `dev.kaorukajihara.shiodoki` に決定（Q-A1）。SDK と Kotlin のバージョン、Emulator 接続時のログイン方法とローカルネットワーク権限を、実装（手順 1）に合わせて更新 |
 | v0.3 | 2026-10-06 | 画面の見た目をデザインキャンバス「Shiodoki UI/UX改善案」（Android ページ）に合わせる（§5）。優先度の色と累計時間の表記をデスクトップと分ける（§4.1） |
+| v0.5 | 2026-10-09 | `FocusController`（手順 5）の実装に合わせて §6.1・§6.2 を更新：通話中に 30 分経ったときの動き、タイマーを動かすスコープ、端末への保存を 1 本のキューで順に行うこと、`TaskRepository` に依存しないこと |
 | v0.4 | 2026-10-07 | PC の状況カード（手順 4）の表示文言を、デザインキャンバスの「PC の状況カード」「ホーム（PC で途中終了）」に合わせて確定（§5.3） |
 
 ---
@@ -356,7 +357,7 @@ flowchart LR
 | 部品 | 役割 |
 |------|------|
 | `FocusService` | フォアグラウンドサービス。`ACTION_USER_PRESENT`（ロック解除）と `ACTION_SCREEN_OFF` を **動的に登録した BroadcastReceiver** で受け、`FocusController` に渡す。この 2 つはマニフェストに書いても届かない（要件 §6.4） |
-| `FocusController` | 状態遷移と時間計測。Android のクラスに依存しない（時計、リポジトリ、`SessionRecorder`、`LocalStore`、画面を出す処理をコンストラクタで受け取る） |
+| `FocusController` | 状態遷移と時間計測。Android のクラスに依存しない（時計、`SessionRecorder`、`FocusStore`（`LocalStore` のうちフォーカス機能の部分）、画面を出す処理（`FocusScreen`）、表示してよいかの判定をコンストラクタで受け取る）。タスク一覧とクイック追加はフォーカス画面が `TaskRepository` を直接使うので、`FocusController` は `TaskRepository` に依存しない |
 | `FocusActivity` | フォーカス画面。選択・スキップ・クイック追加を `FocusController` に伝えて閉じる |
 | `DeviceGuards` | 通話中・着信中・アラーム鳴動中かどうか（M-15） |
 | `BootReceiver` | `BOOT_COMPLETED` / `MY_PACKAGE_REPLACED` でサービスを起動（機能がオンでログイン済みのときだけ） |
@@ -391,14 +392,16 @@ stateDiagram-v2
 | ロック解除 | 上記以外 | 何もしない |
 | タスク選択 | `Prompting` | 新しい `sessionId` で `Running` にし、30 分タイマーを開始。§6.6 の保存データを書く。スマホの前回選択を DataStore に保存（`state/preferences` は更新しない） |
 | スキップ / 戻る | `Prompting` | `Idle`。記録しない |
-| 30 分経過 | `Running` | `finishSession(interval)` → `Prompting` にして `FocusActivity` を起動 |
+| 30 分経過 | `Running` | `finishSession(interval)` → `Prompting` にして `FocusActivity` を起動。ただし通話中・アラーム鳴動中・ログアウト状態なら起動せず `Idle`（記録はする） |
 | 画面オフ | `Running` | `finishSession(screen_off)` → `Idle` |
 | 画面オフ | `Prompting` | `FocusActivity` を閉じて `Idle`（次のロック解除でまた出る） |
 | サービス開始 | 保存データあり | `finishSession(app_exit, endedAt = lastSeenAt)`（§6.6） |
 | ログアウト / 機能オフ | `Running` | `finishSession(app_exit)` → `Idle` |
 
 - **セッションを終える処理は `finishSession(reason, endedAt)` の 1 か所だけ** にする。中で「状態を `Idle` に戻す → 保存データを消す → 1 分以上なら `SessionRecorder.record()`」を行い、2 回呼ばれても 2 回目は何もしない（デスクトップの `SessionService.finish()` と同じ考え方）。
-- 30 分タイマーはサービスの `CoroutineScope` で `delay()` する。セッションは画面オフで終わるので、Doze 中に動かす必要はなく、`AlarmManager` は使わない（要件 §6.4）。
+- 30 分タイマーと `lastSeenAt` の更新（§6.6）は、`AppContainer` が持つ **プロセス全体のメインスレッドのスコープ** で `delay()` する（`FocusController` はサービスと Activity で共有するため、サービスのスコープにしない）。イベントもタイマーも同じスレッドで動くので、状態の読み書きが競合しない。
+- DataStore への書き込みは `suspend` なので、**1 本のキュー（`Channel`）に入れて呼んだ順に 1 つずつ** 実行する。「保存データを消す → 記録する」（§6.6）や「前のセッションを消す → 次のセッションを保存する」の順番が入れ替わらないようにするため。1 回失敗してもキューは止めない。
+- 30 分タイマーはサービスの寿命ではなくセッションの寿命で動く。セッションは画面オフで終わるので、Doze 中に動かす必要はなく、`AlarmManager` は使わない（要件 §6.4）。
 - スキップ後、画面をつけたまま 30 分経っても再表示しない（要件に記載がないため。Q-A2）。
 
 ### 6.3 通話・アラームの判定（M-15）
@@ -616,7 +619,7 @@ sequenceDiagram
 | [x] | 2 | モデル・`Mapping`・`TaskRepository`、ホーム（一覧のみ） | デスクトップで追加したタスクが数秒で出る |
 | [x] | 3 | 追加・編集・完了・削除 | Android で追加したタスクが PC のタスク選択画面に出る（**P4 完了条件**） |
 | [x] | 4 | PC の状況カード | PC でセッション開始・スヌーズ・終了したときに表示が変わる |
-| [ ] | 5 | `FocusController`（ユニットテスト込み） | テストが通る |
+| [x] | 5 | `FocusController`（ユニットテスト込み） | テストが通る |
 | [ ] | 6 | `FocusService`・`FocusActivity`・権限の案内・設定画面 | §11 のチェックリスト（**P5 完了条件**） |
 | [ ] | 7 | 復旧（M-17）、テストモード（M-18） | §11 の強制停止の項目 |
 | [ ] | 8 | P6 の項目 | — |
