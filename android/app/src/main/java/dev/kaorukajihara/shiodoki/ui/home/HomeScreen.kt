@@ -18,19 +18,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -58,7 +52,9 @@ import dev.kaorukajihara.shiodoki.model.formatMinutes
 import dev.kaorukajihara.shiodoki.ui.components.MainBottomBar
 import dev.kaorukajihara.shiodoki.ui.components.MainTab
 import dev.kaorukajihara.shiodoki.ui.components.ScreenHeader
+import dev.kaorukajihara.shiodoki.ui.components.SwipeToComplete
 import dev.kaorukajihara.shiodoki.ui.components.SyncIndicator
+import dev.kaorukajihara.shiodoki.ui.components.showCompletedWithUndo
 import dev.kaorukajihara.shiodoki.ui.theme.MonoFamily
 import dev.kaorukajihara.shiodoki.ui.theme.ShiodokiColors
 import dev.kaorukajihara.shiodoki.ui.theme.color
@@ -107,14 +103,7 @@ fun HomeScreen(
         onComplete = { taskId ->
           viewModel.complete(taskId)
           scope.launch {
-            // A new swipe replaces the previous snackbar instead of waiting behind it.
-            snackbarHostState.currentSnackbarData?.dismiss()
-            val result = snackbarHostState.showSnackbar(
-              message = "完了しました",
-              actionLabel = "元に戻す",
-              duration = SnackbarDuration.Long,
-            )
-            if (result == SnackbarResult.ActionPerformed) viewModel.undoComplete(taskId)
+            if (snackbarHostState.showCompletedWithUndo()) viewModel.undoComplete(taskId)
           }
         },
       )
@@ -174,42 +163,6 @@ private fun GroupHeader(priority: Priority, modifier: Modifier = Modifier) {
       letterSpacing = 0.08.em,
       color = ShiodokiColors.TextMuted,
     )
-  }
-}
-
-/**
- * A swipe in either direction completes the task (design §5.3). Half the row width is needed, so
- * a scroll that drifts sideways does not complete anything; the snackbar offers undo.
- */
-@Composable
-private fun SwipeToComplete(onComplete: () -> Unit, modifier: Modifier, content: @Composable () -> Unit) {
-  val state = rememberSwipeToDismissBoxState(positionalThreshold = { totalDistance -> totalDistance * 0.5f })
-  SwipeToDismissBox(
-    state = state,
-    modifier = modifier,
-    onDismiss = { onComplete() },
-    backgroundContent = {
-      val direction = state.dismissDirection
-      // Nothing behind a settled row, so its rounded corners stay clean.
-      if (direction != SwipeToDismissBoxValue.Settled) {
-        Box(
-          Modifier
-            .fillMaxSize()
-            .clip(RoundedCornerShape(12.dp))
-            .background(ShiodokiColors.Accent)
-            .padding(horizontal = 20.dp),
-          contentAlignment = if (direction == SwipeToDismissBoxValue.StartToEnd) {
-            Alignment.CenterStart
-          } else {
-            Alignment.CenterEnd
-          },
-        ) {
-          Icon(Icons.Filled.Check, contentDescription = "完了", tint = ShiodokiColors.OnAccent)
-        }
-      }
-    },
-  ) {
-    content()
   }
 }
 
