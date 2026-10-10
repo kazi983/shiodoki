@@ -6,11 +6,11 @@ import dev.kaorukajihara.shiodoki.model.TaskPatch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
-/** Same three states as the desktop sync indicator (requirements D-06). */
-enum class SyncStatus(val label: String) {
-  SYNCED("同期済み"),
-  PENDING("未送信あり"),
-  OFFLINE("オフライン"),
+/** Same three states as the desktop sync indicator (requirements D-06). Labels: `ui/Labels.kt`. */
+enum class SyncStatus {
+  SYNCED,
+  PENDING,
+  OFFLINE,
 }
 
 /** The latest task snapshot of the signed-in user, including completed and deleted tasks. */

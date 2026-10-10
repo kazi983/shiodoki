@@ -43,12 +43,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.kaorukajihara.shiodoki.R
 import dev.kaorukajihara.shiodoki.focus.FocusPermission
 import dev.kaorukajihara.shiodoki.ui.components.MainBottomBar
 import dev.kaorukajihara.shiodoki.ui.components.MainTab
@@ -91,7 +93,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, onSelectTab: (MainTab) -> Unit)
   }
 
   Scaffold(
-    topBar = { ScreenHeader("設定") },
+    topBar = { ScreenHeader(stringResource(R.string.tab_settings)) },
     bottomBar = { MainBottomBar(MainTab.SETTINGS, onSelectTab) },
   ) { padding ->
     Column(
@@ -102,15 +104,15 @@ fun SettingsScreen(viewModel: SettingsViewModel, onSelectTab: (MainTab) -> Unit)
         .padding(start = 24.dp, end = 24.dp, bottom = 28.dp),
       verticalArrangement = Arrangement.spacedBy(28.dp),
     ) {
-      Section("フォーカス画面") {
+      Section(stringResource(R.string.focus_screen)) {
         Row(
           modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
           verticalAlignment = Alignment.CenterVertically,
           horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
           Column(Modifier.weight(1f)) {
-            Text("ロック解除のたびに表示", fontSize = 15.sp, color = ShiodokiColors.TextStrong)
-            Text("「今から何をやる？」を全画面で聞きます", fontSize = 12.sp, color = ShiodokiColors.TextMuted)
+            Text(stringResource(R.string.settings_focus_toggle), fontSize = 15.sp, color = ShiodokiColors.TextStrong)
+            Text(stringResource(R.string.settings_focus_toggle_detail), fontSize = 12.sp, color = ShiodokiColors.TextMuted)
           }
           Switch(
             checked = focusEnabled == true,
@@ -131,14 +133,14 @@ fun SettingsScreen(viewModel: SettingsViewModel, onSelectTab: (MainTab) -> Unit)
         }
       }
 
-      Section("必要な権限") {
+      Section(stringResource(R.string.settings_permissions)) {
         FocusPermission.entries.forEachIndexed { index, permission ->
           if (index > 0) HorizontalDivider(color = ShiodokiColors.Divider)
           PermissionRow(permission, permission in granted, onRequest = { request(permission) })
         }
       }
 
-      Section("アカウント") {
+      Section(stringResource(R.string.settings_account)) {
         Row(
           modifier = Modifier.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
           verticalAlignment = Alignment.CenterVertically,
@@ -160,7 +162,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, onSelectTab: (MainTab) -> Unit)
             colors = ButtonDefaults.textButtonColors(contentColor = ShiodokiColors.Danger),
             modifier = Modifier.height(48.dp),
           ) {
-            Text("ログアウト", fontSize = 14.sp)
+            Text(stringResource(R.string.logout), fontSize = 14.sp)
           }
         }
       }
@@ -170,15 +172,15 @@ fun SettingsScreen(viewModel: SettingsViewModel, onSelectTab: (MainTab) -> Unit)
   if (confirmSignOut) {
     AlertDialog(
       onDismissRequest = { confirmSignOut = false },
-      title = { Text("ログアウトしますか？") },
+      title = { Text(stringResource(R.string.settings_logout_confirm)) },
       confirmButton = {
         TextButton(onClick = {
           confirmSignOut = false
           viewModel.signOut()
-        }) { Text("ログアウト") }
+        }) { Text(stringResource(R.string.logout)) }
       },
       dismissButton = {
-        TextButton(onClick = { confirmSignOut = false }) { Text("キャンセル") }
+        TextButton(onClick = { confirmSignOut = false }) { Text(stringResource(R.string.cancel)) }
       },
     )
   }
@@ -212,13 +214,13 @@ private fun PermissionRow(permission: FocusPermission, granted: Boolean, onReque
     horizontalArrangement = Arrangement.spacedBy(12.dp),
   ) {
     Column(Modifier.weight(1f)) {
-      Text(permission.title, fontSize = 15.sp, color = ShiodokiColors.TextStrong)
-      Text(permission.reason, fontSize = 12.sp, color = ShiodokiColors.TextMuted)
+      Text(stringResource(permission.title), fontSize = 15.sp, color = ShiodokiColors.TextStrong)
+      Text(stringResource(permission.reason), fontSize = 12.sp, color = ShiodokiColors.TextMuted)
     }
     if (granted) {
       Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Icon(Icons.Filled.Check, contentDescription = null, tint = GrantedText, modifier = Modifier.size(14.dp))
-        Text("許可済み", fontSize = 12.sp, color = GrantedText)
+        Text(stringResource(R.string.settings_granted), fontSize = 12.sp, color = GrantedText)
       }
     } else {
       OutlinedButton(
@@ -229,7 +231,7 @@ private fun PermissionRow(permission: FocusPermission, granted: Boolean, onReque
         modifier = Modifier.height(40.dp),
       ) {
         Icon(Icons.Filled.Warning, contentDescription = null, modifier = Modifier.size(14.dp))
-        Text("設定する", fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp))
+        Text(stringResource(R.string.settings_grant), fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp))
       }
     }
   }

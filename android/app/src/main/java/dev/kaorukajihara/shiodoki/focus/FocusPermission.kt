@@ -8,12 +8,14 @@ import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
+import androidx.annotation.StringRes
+import dev.kaorukajihara.shiodoki.R
 
 /** The permissions the focus screen needs, in the order they are explained (design §6.7). */
-enum class FocusPermission(val title: String, val reason: String) {
-  OVERLAY("他のアプリの上に重ねて表示", "ロック解除時にフォーカス画面を出すため"),
-  NOTIFICATIONS("通知", "常駐していることを知らせるため"),
-  BATTERY("電池の最適化の対象外", "OS に止められないようにするため"),
+enum class FocusPermission(@StringRes val title: Int, @StringRes val reason: Int) {
+  OVERLAY(R.string.permission_overlay, R.string.permission_overlay_reason),
+  NOTIFICATIONS(R.string.permission_notifications, R.string.permission_notifications_reason),
+  BATTERY(R.string.permission_battery, R.string.permission_battery_reason),
   ;
 
   fun isGranted(context: Context): Boolean = when (this) {

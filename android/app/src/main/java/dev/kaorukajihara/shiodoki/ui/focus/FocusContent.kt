@@ -15,8 +15,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -49,14 +49,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -65,6 +66,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.kaorukajihara.shiodoki.R
 import dev.kaorukajihara.shiodoki.model.Priority
 import dev.kaorukajihara.shiodoki.model.Task
 import dev.kaorukajihara.shiodoki.model.formatMinutes
@@ -72,6 +74,8 @@ import dev.kaorukajihara.shiodoki.ui.components.SwipeToComplete
 import dev.kaorukajihara.shiodoki.ui.components.showCompletedWithUndo
 import dev.kaorukajihara.shiodoki.ui.components.strokeIcon
 import dev.kaorukajihara.shiodoki.ui.home.PriorityGroup
+import dev.kaorukajihara.shiodoki.ui.labelRes
+import dev.kaorukajihara.shiodoki.ui.message
 import dev.kaorukajihara.shiodoki.ui.theme.MonoFamily
 import dev.kaorukajihara.shiodoki.ui.theme.ShiodokiColors
 import dev.kaorukajihara.shiodoki.ui.theme.color
@@ -83,6 +87,8 @@ fun FocusContent(viewModel: FocusViewModel) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   val snackbarHostState = remember { SnackbarHostState() }
   val scope = rememberCoroutineScope()
+  val completed = stringResource(R.string.task_completed)
+  val undo = stringResource(R.string.undo)
   // Back does nothing: it would bypass the long press. Leaving with Home is still a skip
   // (FocusActivity.onStop).
   BackHandler {}
@@ -99,21 +105,21 @@ fun FocusContent(viewModel: FocusViewModel) {
     verticalArrangement = Arrangement.spacedBy(16.dp),
   ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-      Text("今から何をやる？", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = ShiodokiColors.TextStrong)
-      Text("選んだタスクで、画面を消すまで記録します", fontSize = 13.sp, color = ShiodokiColors.TextMuted)
+      Text(stringResource(R.string.what_now), fontSize = 26.sp, fontWeight = FontWeight.Bold, color = ShiodokiColors.TextStrong)
+      Text(stringResource(R.string.focus_subtitle), fontSize = 13.sp, color = ShiodokiColors.TextMuted)
     }
 
     state.pcTask?.let { pc ->
-      val elapsed = pc.elapsedMinutes?.let { " · ${it}分経過" }.orEmpty()
+      val elapsed = pc.elapsedMinutes?.let { " · " + stringResource(R.string.elapsed_minutes, it) }.orEmpty()
       ShortcutCard(
         icon = FocusIcons.Monitor,
-        caption = "PC で実行中$elapsed",
+        caption = stringResource(R.string.pc_running) + elapsed,
         name = pc.taskName,
         highlighted = true,
         onClick = { viewModel.select(pc.taskId, pc.taskName) },
       ) {
         Text(
-          "PC と同じ",
+          stringResource(R.string.focus_same_as_pc),
           fontSize = 13.sp,
           fontWeight = FontWeight.Bold,
           color = ShiodokiColors.OnAccent,
@@ -127,7 +133,7 @@ fun FocusContent(viewModel: FocusViewModel) {
     state.previous?.let { task ->
       ShortcutCard(
         icon = FocusIcons.History,
-        caption = "スマホで前回",
+        caption = stringResource(R.string.focus_last_on_phone),
         name = task.name,
         highlighted = false,
         onClick = { viewModel.select(task.id, task.name) },
@@ -147,7 +153,7 @@ fun FocusContent(viewModel: FocusViewModel) {
         onComplete = { taskId ->
           viewModel.complete(taskId)
           scope.launch {
-            if (snackbarHostState.showCompletedWithUndo()) viewModel.undoComplete(taskId)
+            if (snackbarHostState.showCompletedWithUndo(completed, undo)) viewModel.undoComplete(taskId)
           }
         },
         modifier = Modifier.fillMaxSize(),
@@ -166,6 +172,7 @@ fun FocusContent(viewModel: FocusViewModel) {
  */
 @Composable
 private fun HoldToSkipButton(onSkip: () -> Unit) {
+  val skipLabel = stringResource(R.string.focus_skip)
   val progress = remember { Animatable(0f) }
   val scope = rememberCoroutineScope()
   val haptic = LocalHapticFeedback.current
@@ -198,7 +205,7 @@ private fun HoldToSkipButton(onSkip: () -> Unit) {
       }
       .semantics(mergeDescendants = true) {
         role = Role.Button
-        onLongClick(label = "スキップ") {
+        onLongClick(label = skipLabel) {
           currentOnSkip()
           true
         }
@@ -206,9 +213,9 @@ private fun HoldToSkipButton(onSkip: () -> Unit) {
     horizontalArrangement = Arrangement.Center,
     verticalAlignment = Alignment.CenterVertically,
   ) {
-    Text("スキップ", fontSize = 15.sp, color = ShiodokiColors.Text)
+    Text(skipLabel, fontSize = 15.sp, color = ShiodokiColors.Text)
     Text(
-      "5秒長押しで記録せずに閉じる",
+      stringResource(R.string.focus_skip_hint),
       fontSize = 12.sp,
       color = ShiodokiColors.TextMuted,
       modifier = Modifier.padding(start = 8.dp),
@@ -271,10 +278,10 @@ private fun QuickAdd(viewModel: FocusViewModel) {
     OutlinedTextField(
       value = viewModel.newTaskName,
       onValueChange = viewModel::onNewTaskNameChange,
-      placeholder = { Text("新しいタスク（今すぐ）", color = ShiodokiColors.TextMuted) },
+      placeholder = { Text(stringResource(R.string.focus_new_task_placeholder), color = ShiodokiColors.TextMuted) },
       singleLine = true,
       isError = viewModel.error != null,
-      supportingText = viewModel.error?.let { { Text(it) } },
+      supportingText = viewModel.error?.let { { Text(it.message()) } },
       keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
       keyboardActions = KeyboardActions(onDone = { viewModel.quickAdd() }),
       textStyle = TextStyle(fontSize = 15.sp),
@@ -300,7 +307,7 @@ private fun QuickAdd(viewModel: FocusViewModel) {
       ),
       modifier = Modifier.padding(top = 4.dp).size(52.dp),
     ) {
-      Icon(Icons.Filled.Add, contentDescription = "タスクを追加")
+      Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.add_task))
     }
   }
 }
@@ -318,7 +325,7 @@ private fun TaskList(
       CircularProgressIndicator(color = ShiodokiColors.Accent)
     }
     groups.isEmpty() -> Box(modifier.fillMaxWidth(), Alignment.Center) {
-      Text("未完了のタスクはありません", color = ShiodokiColors.TextMuted)
+      Text(stringResource(R.string.no_open_tasks), color = ShiodokiColors.TextMuted)
     }
     else -> LazyColumn(
       modifier = modifier.fillMaxWidth(),
@@ -348,7 +355,7 @@ private fun GroupHeader(priority: Priority, modifier: Modifier = Modifier) {
   ) {
     Box(Modifier.size(8.dp).background(priority.color, RoundedCornerShape(2.dp)))
     Text(
-      "${priority.name}  ${priority.label}",
+      "${priority.name}  ${stringResource(priority.labelRes)}",
       fontSize = 11.sp,
       fontWeight = FontWeight.Bold,
       letterSpacing = 0.08.em,

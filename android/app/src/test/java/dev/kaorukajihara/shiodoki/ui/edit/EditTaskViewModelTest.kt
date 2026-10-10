@@ -3,6 +3,7 @@ package dev.kaorukajihara.shiodoki.ui.edit
 import dev.kaorukajihara.shiodoki.data.FakeTaskRepository
 import dev.kaorukajihara.shiodoki.model.Priority
 import dev.kaorukajihara.shiodoki.model.TaskInput
+import dev.kaorukajihara.shiodoki.model.TaskInputError
 import dev.kaorukajihara.shiodoki.model.TaskPatch
 import dev.kaorukajihara.shiodoki.task
 import org.junit.Assert.assertEquals
@@ -30,7 +31,7 @@ class EditTaskViewModelTest {
   fun `invalid input shows the error and stays open`() {
     val vm = EditTaskViewModel(repo, taskId = null)
     assertFalse(vm.save())
-    assertEquals("タスク名を入力してください", vm.error)
+    assertEquals(TaskInputError.NAME_EMPTY, vm.error)
     assertTrue(repo.added.isEmpty())
 
     vm.onNameChange("b")

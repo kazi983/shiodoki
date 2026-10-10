@@ -25,11 +25,13 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.kaorukajihara.shiodoki.R
 import dev.kaorukajihara.shiodoki.ui.theme.ShiodokiColors
 
 /** M-01 (design §5.2) and the "ログイン" artboard. */
@@ -63,7 +65,7 @@ fun LoginScreen(viewModel: LoginViewModel) {
             color = ShiodokiColors.TextStrong,
           )
           Text(
-            "PC と同じタスクを、スマホからも\n確認・追加・編集できます。",
+            stringResource(R.string.login_description),
             fontSize = 15.sp,
             lineHeight = 24.sp,
             color = ShiodokiColors.TextMuted,
@@ -75,8 +77,12 @@ fun LoginScreen(viewModel: LoginViewModel) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
       ) {
-        state.error?.let {
-          Text(it, fontSize = 13.sp, color = ShiodokiColors.Danger, textAlign = TextAlign.Center)
+        state.error?.let { error ->
+          val message = when (error) {
+            LoginError.NoAccount -> stringResource(R.string.login_no_account)
+            is LoginError.Failed -> stringResource(R.string.login_failed, error.detail)
+          }
+          Text(message, fontSize = 13.sp, color = ShiodokiColors.Danger, textAlign = TextAlign.Center)
         }
         Button(
           onClick = { viewModel.signIn(context) },
@@ -97,7 +103,7 @@ fun LoginScreen(viewModel: LoginViewModel) {
               modifier = Modifier.size(22.dp),
             )
           } else {
-            Text("Google でログイン", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.sign_in_with_google), fontSize = 16.sp, fontWeight = FontWeight.Bold)
           }
         }
       }

@@ -48,7 +48,9 @@ Firestore には表示文言を保存していない（優先度はキー、`sta
 - `values/strings.xml` に英語（default かつ fallback）、`values-ja/strings.xml` に日本語を置く。
 - `generateLocaleConfig = true` と `res/resources.properties`（`unqualifiedResLocale=en`）を設定し、Android 13 以降の OS の設定画面にアプリごとの言語選択（per-app language）を出す。
 - アプリ内の設定画面に「言語」行を追加する。API 33 以降は `LocaleManager.setApplicationLocales` を使う。minSdk 29〜32 への対応（AppCompat の導入、または OS の言語に従うだけにする）は Android の着手時に決める。
-- `Priority` / `SyncStatus` などの enum は `@StringRes` を持つ。ViewModel のエラーは `UiText` として UI state に載せ、Composable で解決する。`Task.kt` の `require { "…" }` は、enum でバリデーション結果を返す形にする。
+- model と data は Android のリソースに依存させない。`Priority` / `SyncStatus` の表示ラベルは `ui/Labels.kt` の拡張プロパティ（`labelRes`）で `@StringRes` に対応させる。`FocusPermission` や UI 専用の enum は `@StringRes` を直接持つ。
+- ViewModel のエラーは、汎用の `UiText` ではなく場面ごとの型で UI state に載せる（必要なのは 2 か所だけだったため）。バリデーションは `TaskInputException(TaskInputError)`、ログインは `LoginError`。Composable で文字列にする。
+- 文の途中に装飾付きの時刻が入る文言（PC の状況カード）は、`%1$s` を含むテンプレートを `appendTemplate` で分割して時刻を差し込む。
 
 ## 4. 作業の分け方（PR 単位）
 

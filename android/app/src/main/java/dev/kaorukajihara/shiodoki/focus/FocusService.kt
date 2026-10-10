@@ -93,12 +93,15 @@ class FocusService : LifecycleService() {
 
   private fun buildNotification(): Notification {
     val text = when {
-      container.authManager.account.value == null -> "ログインしてください"
-      !FocusPermission.OVERLAY.isGranted(this) -> "権限が不足しています"
+      container.authManager.account.value == null -> getString(R.string.notification_sign_in)
+      !FocusPermission.OVERLAY.isGranted(this) -> getString(R.string.notification_missing_permission)
       else -> when (val s = controller.state.value) {
-        is FocusState.Running ->
-          "${s.taskName} 実行中（${s.startedAt.atZone(ZoneId.systemDefault()).format(TIME)}〜）"
-        else -> "待機中"
+        is FocusState.Running -> getString(
+          R.string.notification_running,
+          s.taskName,
+          s.startedAt.atZone(ZoneId.systemDefault()).format(TIME),
+        )
+        else -> getString(R.string.notification_idle)
       }
     }
     val openApp = PendingIntent.getActivity(
@@ -109,7 +112,7 @@ class FocusService : LifecycleService() {
     )
     return NotificationCompat.Builder(this, CHANNEL_ID)
       .setSmallIcon(R.drawable.ic_notification)
-      .setContentTitle("フォーカス画面")
+      .setContentTitle(getString(R.string.focus_screen))
       .setContentText(text)
       .setContentIntent(openApp)
       .setOngoing(true)
@@ -120,7 +123,8 @@ class FocusService : LifecycleService() {
 
   private fun createChannel() {
     getSystemService(NotificationManager::class.java).createNotificationChannel(
-      NotificationChannel(CHANNEL_ID, "フォーカス画面の待機", NotificationManager.IMPORTANCE_LOW),
+      // Called on every start, so the channel name follows a language change.
+      NotificationChannel(CHANNEL_ID, getString(R.string.notification_channel), NotificationManager.IMPORTANCE_LOW),
     )
   }
 

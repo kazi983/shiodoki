@@ -8,6 +8,8 @@ import dev.kaorukajihara.shiodoki.data.TaskRepository
 import dev.kaorukajihara.shiodoki.model.Priority
 import dev.kaorukajihara.shiodoki.model.Task
 import dev.kaorukajihara.shiodoki.model.TaskInput
+import dev.kaorukajihara.shiodoki.model.TaskInputError
+import dev.kaorukajihara.shiodoki.model.TaskInputException
 import dev.kaorukajihara.shiodoki.model.TaskPatch
 import dev.kaorukajihara.shiodoki.model.diffTaskInput
 import dev.kaorukajihara.shiodoki.model.normalizeTaskInput
@@ -44,8 +46,8 @@ class EditTaskViewModel(
   var priority by mutableStateOf(initial?.priority ?: Priority.DEFAULT)
   var memo by mutableStateOf(initial?.memo.orEmpty())
 
-  /** Validation message to show, or null. */
-  var error by mutableStateOf<String?>(null)
+  /** Validation error to show, or null. The screen turns it into a message. */
+  var error by mutableStateOf<TaskInputError?>(null)
     private set
 
   fun onNameChange(value: String) {
@@ -58,8 +60,8 @@ class EditTaskViewModel(
     val start = initial ?: return true
     val input = try {
       normalizeTaskInput(TaskInput(name = name, priority = priority, memo = memo))
-    } catch (e: IllegalArgumentException) {
-      error = e.message
+    } catch (e: TaskInputException) {
+      error = e.error
       return false
     }
     if (taskId == null) {

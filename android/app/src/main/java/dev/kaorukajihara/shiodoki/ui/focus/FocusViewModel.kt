@@ -13,6 +13,8 @@ import dev.kaorukajihara.shiodoki.model.DesktopState
 import dev.kaorukajihara.shiodoki.model.Priority
 import dev.kaorukajihara.shiodoki.model.Task
 import dev.kaorukajihara.shiodoki.model.TaskInput
+import dev.kaorukajihara.shiodoki.model.TaskInputError
+import dev.kaorukajihara.shiodoki.model.TaskInputException
 import dev.kaorukajihara.shiodoki.model.TaskPatch
 import dev.kaorukajihara.shiodoki.model.normalizeTaskInput
 import dev.kaorukajihara.shiodoki.ui.home.PcStatus
@@ -74,8 +76,8 @@ class FocusViewModel(
   var newTaskName by mutableStateOf("")
     private set
 
-  /** Validation message of the quick add, or null. */
-  var error by mutableStateOf<String?>(null)
+  /** Validation error of the quick add, or null. The screen turns it into a message. */
+  var error by mutableStateOf<TaskInputError?>(null)
     private set
 
   /** The task just added with quick add, highlighted in the list (Q-A3: not started). */
@@ -90,8 +92,8 @@ class FocusViewModel(
   fun quickAdd() {
     val input = try {
       normalizeTaskInput(TaskInput(name = newTaskName, priority = Priority.NOW, memo = ""))
-    } catch (e: IllegalArgumentException) {
-      error = e.message
+    } catch (e: TaskInputException) {
+      error = e.error
       return
     }
     addedTaskId = repository.add(input)
