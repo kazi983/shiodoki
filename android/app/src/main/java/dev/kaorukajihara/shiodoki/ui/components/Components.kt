@@ -1,5 +1,6 @@
 package dev.kaorukajihara.shiodoki.ui.components
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,10 +35,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.kaorukajihara.shiodoki.R
 import dev.kaorukajihara.shiodoki.data.SyncStatus
+import dev.kaorukajihara.shiodoki.ui.labelRes
 import dev.kaorukajihara.shiodoki.ui.theme.ShiodokiColors
 
 /** Large screen title of a tab ("タスク", "設定") with optional content on the right. */
@@ -78,7 +82,7 @@ fun SyncIndicator(status: SyncStatus?, dotSize: Int = 8) {
   }
   Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
     Dot(color, dotSize)
-    Text(status?.label ?: "読み込み中", fontSize = 12.sp, color = ShiodokiColors.TextMuted)
+    Text(stringResource(status?.labelRes ?: R.string.loading), fontSize = 12.sp, color = ShiodokiColors.TextMuted)
   }
 }
 
@@ -87,9 +91,9 @@ fun Dot(color: Color, size: Int) {
   Box(Modifier.size(size.dp).background(color, CircleShape))
 }
 
-enum class MainTab(val label: String, val icon: ImageVector) {
-  TASKS("タスク", Icons.AutoMirrored.Filled.List),
-  SETTINGS("設定", Icons.Filled.Settings),
+enum class MainTab(@StringRes val label: Int, val icon: ImageVector) {
+  TASKS(R.string.tab_tasks, Icons.AutoMirrored.Filled.List),
+  SETTINGS(R.string.tab_settings, Icons.Filled.Settings),
 }
 
 /**
@@ -108,7 +112,7 @@ fun MainBottomBar(current: MainTab, onSelect: (MainTab) -> Unit) {
           onClick = { if (!selected) onSelect(tab) },
           icon = { Icon(tab.icon, contentDescription = null, modifier = Modifier.size(20.dp)) },
           label = {
-            Text(tab.label, fontSize = 12.sp, fontWeight = if (selected) FontWeight.Bold else null)
+            Text(stringResource(tab.label), fontSize = 12.sp, fontWeight = if (selected) FontWeight.Bold else null)
           },
           colors = NavigationBarItemDefaults.colors(
             selectedIconColor = ShiodokiColors.Accent,
@@ -151,7 +155,7 @@ fun SwipeToComplete(onComplete: () -> Unit, modifier: Modifier, content: @Compos
             Alignment.CenterEnd
           },
         ) {
-          Icon(Icons.Filled.Check, contentDescription = "完了", tint = ShiodokiColors.OnAccent)
+          Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.complete), tint = ShiodokiColors.OnAccent)
         }
       }
     },
@@ -161,11 +165,12 @@ fun SwipeToComplete(onComplete: () -> Unit, modifier: Modifier, content: @Compos
 }
 
 /**
- * Shows "完了しました" with "元に戻す" and returns true when undo was pressed. A visible snackbar
+ * Shows [message] ("完了しました") with [actionLabel] ("元に戻す") and returns true when undo was pressed.
+ * Both come from the caller, which reads them with stringResource (this is not a composable). A visible snackbar
  * is dismissed first, so a new swipe does not wait behind it.
  */
-suspend fun SnackbarHostState.showCompletedWithUndo(): Boolean {
+suspend fun SnackbarHostState.showCompletedWithUndo(message: String, actionLabel: String): Boolean {
   currentSnackbarData?.dismiss()
-  val result = showSnackbar(message = "完了しました", actionLabel = "元に戻す", duration = SnackbarDuration.Long)
+  val result = showSnackbar(message = message, actionLabel = actionLabel, duration = SnackbarDuration.Long)
   return result == SnackbarResult.ActionPerformed
 }

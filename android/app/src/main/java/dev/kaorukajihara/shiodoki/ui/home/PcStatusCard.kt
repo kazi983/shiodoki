@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.addPathNodes
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -39,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.kaorukajihara.shiodoki.R
 import dev.kaorukajihara.shiodoki.ui.components.Dot
 import dev.kaorukajihara.shiodoki.ui.theme.MonoFamily
 import dev.kaorukajihara.shiodoki.ui.theme.ShiodokiColors
@@ -50,89 +52,98 @@ import java.time.format.DateTimeFormatter
 /** The PC status card of the home screen (design §5.3, the "PC の状況カード" artboard). */
 @Composable
 fun PcStatusCard(status: PcStatus, modifier: Modifier = Modifier) {
+  // Strings are read here: the detail builders below are not composables.
+  val endedAt = stringResource(R.string.pc_ended_at)
+  val notRunning = stringResource(R.string.pc_app_not_running)
   when (status) {
     is PcStatus.Running -> RunningCard(status, modifier)
-    PcStatus.Choosing -> StatusCard(
-      icon = Icons.List,
-      title = "タスクを選んでいます",
-      detail = { append("選択画面を表示中") },
-      modifier = modifier,
-    )
-    is PcStatus.Snoozed -> StatusCard(
-      icon = Icons.Snooze,
-      title = "スヌーズ中",
-      detail = {
-        if (status.nextPromptAt == null) {
-          append("もうすぐタスク選択")
-        } else {
-          time(status.nextPromptAt)
-          append(" にもう一度タスク選択")
-        }
-      },
-      modifier = modifier,
-    )
-    PcStatus.LeaveBlocked -> StatusCard(
-      icon = Icons.Stop,
-      title = "停止中",
-      detail = { append("離席時刻が近いため作業を止めています") },
-      modifier = modifier,
-    )
-    is PcStatus.Offline -> StatusCard(
-      icon = Icons.Offline,
-      title = "PC オフライン",
-      detail = {
-        if (status.lastSeen != null) {
-          append("最終確認 ")
-          time(status.lastSeen)
-          append(" · ")
-        }
-        append("スリープ・通信断・異常終了")
-      },
-      modifier = modifier,
-      inactive = true,
-    )
+    PcStatus.Choosing -> {
+      val detail = stringResource(R.string.pc_choosing_detail)
+      StatusCard(
+        icon = Icons.List,
+        title = stringResource(R.string.pc_choosing),
+        detail = { append(detail) },
+        modifier = modifier,
+      )
+    }
+    is PcStatus.Snoozed -> {
+      val soon = stringResource(R.string.pc_snoozed_soon)
+      val until = stringResource(R.string.pc_snoozed_until)
+      StatusCard(
+        icon = Icons.Snooze,
+        title = stringResource(R.string.pc_snoozed),
+        detail = {
+          if (status.nextPromptAt == null) append(soon) else appendTemplate(until) { time(status.nextPromptAt) }
+        },
+        modifier = modifier,
+      )
+    }
+    PcStatus.LeaveBlocked -> {
+      val detail = stringResource(R.string.pc_blocked_detail)
+      StatusCard(
+        icon = Icons.Stop,
+        title = stringResource(R.string.pc_blocked),
+        detail = { append(detail) },
+        modifier = modifier,
+      )
+    }
+    is PcStatus.Offline -> {
+      val lastSeen = stringResource(R.string.pc_offline_last_seen)
+      val detail = stringResource(R.string.pc_offline_detail)
+      StatusCard(
+        icon = Icons.Offline,
+        title = stringResource(R.string.pc_offline),
+        detail = {
+          if (status.lastSeen != null) appendTemplate(lastSeen) { time(status.lastSeen) } else append(detail)
+        },
+        modifier = modifier,
+        inactive = true,
+      )
+    }
     is PcStatus.Stopped -> if (status.interruptedTaskName != null) {
       // "ホーム（PC で途中終了）" artboard: the app quit while a session was running.
       TaskCard(
-        label = "PC で途中終了",
+        label = stringResource(R.string.pc_interrupted),
         dotColor = ShiodokiColors.Ended,
         ring = { IconRing(Icons.Stop) },
         taskName = status.interruptedTaskName,
-        detail = { endTime(status.stoppedAt) },
+        detail = { endTime(status.stoppedAt, endedAt, notRunning) },
         modifier = modifier,
       )
     } else {
       StatusCard(
         icon = Icons.Power,
-        title = "アプリ終了",
-        detail = { endTime(status.stoppedAt) },
+        title = stringResource(R.string.pc_app_closed),
+        detail = { endTime(status.stoppedAt, endedAt, notRunning) },
         modifier = modifier,
         inactive = true,
       )
     }
-    PcStatus.NoData -> StatusCard(
-      icon = Icons.Power,
-      title = "情報がありません",
-      detail = { append("PC のアプリで同じアカウントにログインすると表示されます") },
-      modifier = modifier,
-      inactive = true,
-    )
+    PcStatus.NoData -> {
+      val detail = stringResource(R.string.pc_no_data_detail)
+      StatusCard(
+        icon = Icons.Power,
+        title = stringResource(R.string.pc_no_data),
+        detail = { append(detail) },
+        modifier = modifier,
+        inactive = true,
+      )
+    }
   }
 }
 
 @Composable
 private fun RunningCard(status: PcStatus.Running, modifier: Modifier) {
+  val startedAt = stringResource(R.string.pc_started_at)
+  val elapsed = status.elapsedMinutes?.let { stringResource(R.string.elapsed_minutes, it) }
   TaskCard(
-    label = "PC で実行中",
+    label = stringResource(R.string.pc_running),
     dotColor = ShiodokiColors.Accent,
     ring = { ProgressRing(status.remainingMinutes, status.totalMinutes) },
     taskName = status.taskName,
     detail = {
-      if (status.startedAt != null) {
-        time(status.startedAt)
-        append(" 開始")
-      }
-      if (status.elapsedMinutes != null) append(" · ${status.elapsedMinutes}分経過")
+      if (status.startedAt != null) appendTemplate(startedAt) { time(status.startedAt) }
+      if (elapsed != null) append(" · $elapsed")
     },
     modifier = modifier,
   )
@@ -161,14 +172,20 @@ private fun TaskCard(
   }
 }
 
-/** "HH:mm 終了" (the design's wording). */
-private fun AnnotatedString.Builder.endTime(stoppedAt: Instant?) {
-  if (stoppedAt == null) {
-    append("PC のアプリは終了しています")
-  } else {
-    time(stoppedAt)
-    append(" 終了")
-  }
+/** "HH:mm 終了" (the design's wording), from [endedAt] ("%1$s 終了"). */
+private fun AnnotatedString.Builder.endTime(stoppedAt: Instant?, endedAt: String, notRunning: String) {
+  if (stoppedAt == null) append(notRunning) else appendTemplate(endedAt) { time(stoppedAt) }
+}
+
+/**
+ * Appends [template] with its "%1$s" replaced by [insert], so a styled part (a time) can sit
+ * wherever the translation puts it.
+ */
+private fun AnnotatedString.Builder.appendTemplate(template: String, insert: AnnotatedString.Builder.() -> Unit) {
+  val parts = template.split("%1\$s", limit = 2)
+  append(parts[0])
+  insert()
+  if (parts.size > 1) append(parts[1])
 }
 
 /** Every state but running: an icon in an empty ring, "PC", a title and a detail line. */

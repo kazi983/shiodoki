@@ -1,5 +1,6 @@
 package dev.kaorukajihara.shiodoki.ui.edit
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -40,6 +41,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
@@ -48,9 +50,12 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.kaorukajihara.shiodoki.R
 import dev.kaorukajihara.shiodoki.model.Priority
 import dev.kaorukajihara.shiodoki.model.Task
 import dev.kaorukajihara.shiodoki.model.formatMinutes
+import dev.kaorukajihara.shiodoki.ui.labelRes
+import dev.kaorukajihara.shiodoki.ui.message
 import dev.kaorukajihara.shiodoki.ui.theme.MonoFamily
 import dev.kaorukajihara.shiodoki.ui.theme.ShiodokiColors
 import dev.kaorukajihara.shiodoki.ui.theme.color
@@ -59,9 +64,9 @@ import dev.kaorukajihara.shiodoki.ui.theme.selectedText
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-private enum class Confirm(val title: String, val action: String) {
-  COMPLETE("完了にしますか？", "完了"),
-  DELETE("削除しますか？", "削除"),
+private enum class Confirm(@StringRes val title: Int, @StringRes val action: Int) {
+  COMPLETE(R.string.edit_confirm_complete, R.string.complete),
+  DELETE(R.string.edit_confirm_delete, R.string.delete),
 }
 
 /**
@@ -85,12 +90,12 @@ fun EditTaskScreen(viewModel: EditTaskViewModel, onClose: () -> Unit) {
         IconButton(onClick = onClose) {
           Icon(
             Icons.AutoMirrored.Filled.ArrowBack,
-            contentDescription = "戻る",
+            contentDescription = stringResource(R.string.back),
             tint = ShiodokiColors.Text,
           )
         }
         Text(
-          if (viewModel.isNew) "タスクを追加" else "タスクを編集",
+          stringResource(if (viewModel.isNew) R.string.add_task else R.string.edit_title_edit),
           fontSize = 20.sp,
           fontWeight = FontWeight.Bold,
           color = ShiodokiColors.TextStrong,
@@ -110,7 +115,7 @@ fun EditTaskScreen(viewModel: EditTaskViewModel, onClose: () -> Unit) {
   ) { padding ->
     if (viewModel.notFound) {
       Text(
-        "タスクが見つかりません",
+        stringResource(R.string.edit_not_found),
         modifier = Modifier.padding(padding).padding(24.dp),
         color = ShiodokiColors.TextMuted,
       )
@@ -124,23 +129,23 @@ fun EditTaskScreen(viewModel: EditTaskViewModel, onClose: () -> Unit) {
         .padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 32.dp),
       verticalArrangement = Arrangement.spacedBy(28.dp),
     ) {
-      Field("タスク名") {
+      Field(stringResource(R.string.edit_name)) {
         OutlinedTextField(
           value = viewModel.name,
           onValueChange = viewModel::onNameChange,
           singleLine = true,
           isError = viewModel.error != null,
-          supportingText = viewModel.error?.let { { Text(it) } },
+          supportingText = viewModel.error?.let { { Text(it.message()) } },
           textStyle = TextStyle(fontSize = 16.sp),
           shape = InputShape,
           colors = inputColors(),
           modifier = Modifier.fillMaxWidth(),
         )
       }
-      Field("優先度") {
+      Field(stringResource(R.string.edit_priority)) {
         PrioritySelector(viewModel.priority, onSelect = { viewModel.priority = it })
       }
-      Field("メモ") {
+      Field(stringResource(R.string.edit_memo)) {
         OutlinedTextField(
           value = viewModel.memo,
           onValueChange = { viewModel.memo = it },
@@ -158,7 +163,7 @@ fun EditTaskScreen(viewModel: EditTaskViewModel, onClose: () -> Unit) {
   confirm?.let { c ->
     AlertDialog(
       onDismissRequest = { confirm = null },
-      title = { Text(c.title) },
+      title = { Text(stringResource(c.title)) },
       text = { Text(viewModel.name) },
       confirmButton = {
         TextButton(onClick = {
@@ -168,10 +173,10 @@ fun EditTaskScreen(viewModel: EditTaskViewModel, onClose: () -> Unit) {
             Confirm.DELETE -> viewModel.delete()
           }
           onClose()
-        }) { Text(c.action) }
+        }) { Text(stringResource(c.action)) }
       },
       dismissButton = {
-        TextButton(onClick = { confirm = null }) { Text("キャンセル") }
+        TextButton(onClick = { confirm = null }) { Text(stringResource(R.string.cancel)) }
       },
     )
   }
@@ -224,7 +229,7 @@ private fun PrioritySelector(selected: Priority, onSelect: (Priority) -> Unit) {
           },
       ) {
         Text(
-          p.label,
+          stringResource(p.labelRes),
           fontSize = 13.sp,
           fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
           maxLines = 1,
@@ -241,9 +246,9 @@ private val dateFormat = DateTimeFormatter.ofPattern("MM-dd")
 private fun Stats(task: Task) {
   val created = task.createdAt.atZone(ZoneId.systemDefault()).format(dateFormat)
   Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-    Stat("累計", formatMinutes(task.totalMinutes), Modifier.weight(1f))
-    Stat("セッション", task.sessionCount.toString(), Modifier.weight(1f))
-    Stat("作成日", created, Modifier.weight(1f))
+    Stat(stringResource(R.string.edit_total), formatMinutes(task.totalMinutes), Modifier.weight(1f))
+    Stat(stringResource(R.string.edit_sessions), task.sessionCount.toString(), Modifier.weight(1f))
+    Stat(stringResource(R.string.edit_created), created, Modifier.weight(1f))
   }
 }
 
@@ -288,7 +293,7 @@ private fun Footer(
         ),
         modifier = Modifier.fillMaxWidth().height(52.dp),
       ) {
-        Text(if (isNew) "追加" else "変更を保存", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Text(stringResource(if (isNew) R.string.edit_add else R.string.edit_save), fontSize = 16.sp, fontWeight = FontWeight.Bold)
       }
       if (!isNew) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -300,7 +305,7 @@ private fun Footer(
             modifier = Modifier.weight(1f).height(48.dp),
           ) {
             Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp))
-            Text("完了にする", fontSize = 14.sp, modifier = Modifier.padding(start = 6.dp))
+            Text(stringResource(R.string.edit_mark_done), fontSize = 14.sp, modifier = Modifier.padding(start = 6.dp))
           }
           TextButton(
             onClick = onDelete,
@@ -309,7 +314,7 @@ private fun Footer(
             modifier = Modifier.weight(1f).height(48.dp),
           ) {
             Icon(Icons.Filled.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
-            Text("削除", fontSize = 14.sp, modifier = Modifier.padding(start = 6.dp))
+            Text(stringResource(R.string.delete), fontSize = 14.sp, modifier = Modifier.padding(start = 6.dp))
           }
         }
       }

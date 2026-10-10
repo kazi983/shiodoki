@@ -1,4 +1,110 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- UI text. Terms follow docs/i18n/glossary.md. -->
 <resources>
   <string name="app_name">Shiodoki</string>
+
+  <!-- Common -->
+  <string name="cancel">キャンセル</string>
+  <string name="back">戻る</string>
+  <string name="add_task">タスクを追加</string>
+  <string name="no_open_tasks">未完了のタスクはありません</string>
+  <string name="loading">読み込み中</string>
+  <string name="complete">完了</string>
+  <string name="delete">削除</string>
+  <string name="logout">ログアウト</string>
+  <string name="sign_in_with_google">Google でログイン</string>
+  <string name="elapsed_minutes">%1$d分経過</string>
+  <string name="task_completed">完了しました</string>
+  <string name="undo">元に戻す</string>
+  <string name="save_failed">保存できませんでした</string>
+  <string name="what_now">今から何をやる？</string>
+  <string name="focus_screen">フォーカス画面</string>
+
+  <!-- Tabs and headers -->
+  <string name="tab_tasks">タスク</string>
+  <string name="tab_settings">設定</string>
+
+  <!-- Priorities (requirements §5.5) -->
+  <string name="priority_now">今すぐ</string>
+  <string name="priority_sooner">近いうち</string>
+  <string name="priority_anytime">いつでも</string>
+  <string name="priority_someday">いつか</string>
+
+  <!-- Sync status -->
+  <string name="sync_synced">同期済み</string>
+  <string name="sync_pending">未送信あり</string>
+  <string name="sync_offline">オフライン</string>
+
+  <!-- Focus screen -->
+  <string name="focus_subtitle">選んだタスクで、画面を消すまで記録します</string>
+  <string name="focus_same_as_pc">PC と同じ</string>
+  <string name="focus_last_on_phone">スマホで前回</string>
+  <string name="focus_skip">スキップ</string>
+  <string name="focus_skip_hint">5秒長押しで記録せずに閉じる</string>
+  <string name="focus_new_task_placeholder">新しいタスク（今すぐ）</string>
+
+  <!-- Edit screen -->
+  <string name="edit_title_edit">タスクを編集</string>
+  <string name="edit_not_found">タスクが見つかりません</string>
+  <string name="edit_name">タスク名</string>
+  <string name="edit_priority">優先度</string>
+  <string name="edit_memo">メモ</string>
+  <string name="edit_total">累計</string>
+  <string name="edit_sessions">セッション</string>
+  <string name="edit_created">作成日</string>
+  <string name="edit_add">追加</string>
+  <string name="edit_save">変更を保存</string>
+  <string name="edit_mark_done">完了にする</string>
+  <string name="edit_confirm_complete">完了にしますか？</string>
+  <string name="edit_confirm_delete">削除しますか？</string>
+  <string name="validation_name_empty">タスク名を入力してください</string>
+  <string name="validation_name_too_long">タスク名は%1$d文字以内にしてください</string>
+  <string name="validation_memo_too_long">メモは%1$d文字以内にしてください</string>
+
+  <!-- Settings -->
+  <string name="settings_focus_toggle">ロック解除のたびに表示</string>
+  <string name="settings_focus_toggle_detail">「今から何をやる？」を全画面で聞きます</string>
+  <string name="settings_permissions">必要な権限</string>
+  <string name="settings_account">アカウント</string>
+  <string name="settings_logout_confirm">ログアウトしますか？</string>
+  <string name="settings_granted">許可済み</string>
+  <string name="settings_grant">設定する</string>
+  <string name="permission_overlay">他のアプリの上に重ねて表示</string>
+  <string name="permission_overlay_reason">ロック解除時にフォーカス画面を出すため</string>
+  <string name="permission_notifications">通知</string>
+  <string name="permission_notifications_reason">常駐していることを知らせるため</string>
+  <string name="permission_battery">電池の最適化の対象外</string>
+  <string name="permission_battery_reason">OS に止められないようにするため</string>
+
+  <!-- Login -->
+  <string name="login_description">PC と同じタスクを、スマホからも\n確認・追加・編集できます。</string>
+  <string name="login_no_account">この端末に Google アカウントがありません</string>
+  <string name="login_failed">ログインできませんでした: %1$s</string>
+
+  <!-- PC status card. %1$s is a styled time inserted by the code. -->
+  <string name="pc_running">PC で実行中</string>
+  <string name="pc_started_at">%1$s 開始</string>
+  <string name="pc_choosing">タスクを選んでいます</string>
+  <string name="pc_choosing_detail">選択画面を表示中</string>
+  <string name="pc_snoozed">スヌーズ中</string>
+  <string name="pc_snoozed_soon">もうすぐタスク選択</string>
+  <string name="pc_snoozed_until">%1$s にもう一度タスク選択</string>
+  <string name="pc_blocked">停止中</string>
+  <string name="pc_blocked_detail">離席時刻が近いため作業を止めています</string>
+  <string name="pc_offline">PC オフライン</string>
+  <string name="pc_offline_detail">スリープ・通信断・異常終了</string>
+  <string name="pc_offline_last_seen">最終確認 %1$s · スリープ・通信断・異常終了</string>
+  <string name="pc_interrupted">PC で途中終了</string>
+  <string name="pc_app_closed">アプリ終了</string>
+  <string name="pc_app_not_running">PC のアプリは終了しています</string>
+  <string name="pc_ended_at">%1$s 終了</string>
+  <string name="pc_no_data">情報がありません</string>
+  <string name="pc_no_data_detail">PC のアプリで同じアカウントにログインすると表示されます</string>
+
+  <!-- Focus service notification -->
+  <string name="notification_channel">フォーカス画面の待機</string>
+  <string name="notification_sign_in">ログインしてください</string>
+  <string name="notification_missing_permission">権限が不足しています</string>
+  <string name="notification_running">%1$s 実行中（%2$s〜）</string>
+  <string name="notification_idle">待機中</string>
 </resources>

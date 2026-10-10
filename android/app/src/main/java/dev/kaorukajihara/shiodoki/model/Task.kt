@@ -3,14 +3,14 @@ package dev.kaorukajihara.shiodoki.model
 import java.time.Instant
 
 /**
- * Fixed priorities (requirements §5.5). Labels match the desktop `PRIORITY_META`
- * (`desktop/src/shared/task.ts`); colors live in the UI theme. Declaration order is the sort order.
+ * Fixed priorities (requirements §5.5). Labels are string resources (`ui/Labels.kt`) and colors
+ * live in the UI theme. Declaration order is the sort order.
  */
-enum class Priority(val label: String) {
-  NOW("今すぐ"),
-  SOONER("近いうち"),
-  ANYTIME("いつでも"),
-  SOMEDAY("いつか"),
+enum class Priority {
+  NOW,
+  SOONER,
+  ANYTIME,
+  SOMEDAY,
   ;
 
   companion object {
@@ -55,16 +55,25 @@ data class TaskPatch(
 const val MAX_NAME_LENGTH = 200
 const val MAX_MEMO_LENGTH = 5000
 
+/** Why [normalizeTaskInput] rejected the input. The UI turns it into a message. */
+enum class TaskInputError { NAME_EMPTY, NAME_TOO_LONG, MEMO_TOO_LONG }
+
+class TaskInputException(val error: TaskInputError) : IllegalArgumentException(error.name)
+
 /**
  * Trims and validates user input, like the desktop `normalizeTaskInput`.
- * Throws [IllegalArgumentException] with the same user-facing (Japanese) message.
+ * Throws [TaskInputException] when it is invalid.
  */
 fun normalizeTaskInput(input: TaskInput): TaskInput {
   val name = input.name.trim()
   val memo = input.memo.trim()
-  require(name.isNotEmpty()) { "タスク名を入力してください" }
-  require(name.length <= MAX_NAME_LENGTH) { "タスク名は${MAX_NAME_LENGTH}文字以内にしてください" }
-  require(memo.length <= MAX_MEMO_LENGTH) { "メモは${MAX_MEMO_LENGTH}文字以内にしてください" }
+  val error = when {
+    name.isEmpty() -> TaskInputError.NAME_EMPTY
+    name.length > MAX_NAME_LENGTH -> TaskInputError.NAME_TOO_LONG
+    memo.length > MAX_MEMO_LENGTH -> TaskInputError.MEMO_TOO_LONG
+    else -> null
+  }
+  if (error != null) throw TaskInputException(error)
   return TaskInput(name = name, priority = input.priority, memo = memo)
 }
 

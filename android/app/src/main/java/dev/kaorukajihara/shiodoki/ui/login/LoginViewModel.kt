@@ -14,7 +14,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-data class LoginUiState(val busy: Boolean = false, val error: String? = null)
+/** Why sign-in failed. The screen turns it into a message. */
+sealed interface LoginError {
+  data object NoAccount : LoginError
+
+  data class Failed(val detail: String) : LoginError
+}
+
+data class LoginUiState(val busy: Boolean = false, val error: LoginError? = null)
 
 class LoginViewModel(private val authManager: AuthManager) : ViewModel() {
   private val _state = MutableStateFlow(LoginUiState())
@@ -33,10 +40,10 @@ class LoginViewModel(private val authManager: AuthManager) : ViewModel() {
       } catch (_: GetCredentialCancellationException) {
         null // The user closed the picker: show nothing (design §5.2).
       } catch (_: NoCredentialException) {
-        "この端末に Google アカウントがありません"
+        LoginError.NoAccount
       } catch (e: Exception) {
         Log.w(TAG, "Sign-in failed", e)
-        "ログインできませんでした: ${e.localizedMessage ?: e.javaClass.simpleName}"
+        LoginError.Failed(e.localizedMessage ?: e.javaClass.simpleName)
       }
       _state.update { it.copy(busy = false, error = error) }
     }

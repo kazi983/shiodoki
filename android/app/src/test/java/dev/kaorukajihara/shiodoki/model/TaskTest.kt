@@ -29,17 +29,17 @@ class TaskTest {
       TaskInput(name = "a", priority = Priority.SOONER, memo = "m"),
       normalizeTaskInput(TaskInput(name = "  a ", priority = Priority.SOONER, memo = " m ")),
     )
-    val empty = assertThrows(IllegalArgumentException::class.java) {
-      normalizeTaskInput(TaskInput(name = "  ", priority = Priority.NOW, memo = ""))
-    }
-    assertEquals("タスク名を入力してください", empty.message)
+    fun errorOf(input: TaskInput) = assertThrows(TaskInputException::class.java) { normalizeTaskInput(input) }.error
+    assertEquals(TaskInputError.NAME_EMPTY, errorOf(TaskInput(name = "  ", priority = Priority.NOW, memo = "")))
     normalizeTaskInput(TaskInput(name = "a".repeat(200), priority = Priority.NOW, memo = ""))
-    assertThrows(IllegalArgumentException::class.java) {
-      normalizeTaskInput(TaskInput(name = "a".repeat(201), priority = Priority.NOW, memo = ""))
-    }
-    assertThrows(IllegalArgumentException::class.java) {
-      normalizeTaskInput(TaskInput(name = "a", priority = Priority.NOW, memo = "m".repeat(5001)))
-    }
+    assertEquals(
+      TaskInputError.NAME_TOO_LONG,
+      errorOf(TaskInput(name = "a".repeat(201), priority = Priority.NOW, memo = "")),
+    )
+    assertEquals(
+      TaskInputError.MEMO_TOO_LONG,
+      errorOf(TaskInput(name = "a", priority = Priority.NOW, memo = "m".repeat(5001))),
+    )
   }
 
   @Test

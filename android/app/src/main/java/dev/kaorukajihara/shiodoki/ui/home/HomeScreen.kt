@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -46,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.kaorukajihara.shiodoki.R
 import dev.kaorukajihara.shiodoki.model.Priority
 import dev.kaorukajihara.shiodoki.model.Task
 import dev.kaorukajihara.shiodoki.model.formatMinutes
@@ -55,6 +57,7 @@ import dev.kaorukajihara.shiodoki.ui.components.ScreenHeader
 import dev.kaorukajihara.shiodoki.ui.components.SwipeToComplete
 import dev.kaorukajihara.shiodoki.ui.components.SyncIndicator
 import dev.kaorukajihara.shiodoki.ui.components.showCompletedWithUndo
+import dev.kaorukajihara.shiodoki.ui.labelRes
 import dev.kaorukajihara.shiodoki.ui.theme.MonoFamily
 import dev.kaorukajihara.shiodoki.ui.theme.ShiodokiColors
 import dev.kaorukajihara.shiodoki.ui.theme.color
@@ -71,14 +74,17 @@ fun HomeScreen(
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   val pcStatus by viewModel.pcStatus.collectAsStateWithLifecycle()
   val snackbarHostState = remember { SnackbarHostState() }
+  val saveFailed = stringResource(R.string.save_failed)
+  val completed = stringResource(R.string.task_completed)
+  val undo = stringResource(R.string.undo)
   val scope = rememberCoroutineScope()
 
   LaunchedEffect(Unit) {
-    viewModel.writeFailures.collect { snackbarHostState.showSnackbar("保存できませんでした") }
+    viewModel.writeFailures.collect { snackbarHostState.showSnackbar(saveFailed) }
   }
 
   Scaffold(
-    topBar = { ScreenHeader("タスク") { SyncIndicator(state.syncStatus) } },
+    topBar = { ScreenHeader(stringResource(R.string.tab_tasks)) { SyncIndicator(state.syncStatus) } },
     bottomBar = { MainBottomBar(MainTab.TASKS, onSelectTab) },
     floatingActionButton = {
       FloatingActionButton(
@@ -88,7 +94,7 @@ fun HomeScreen(
         contentColor = ShiodokiColors.OnAccent,
         modifier = Modifier.padding(end = 8.dp),
       ) {
-        Icon(Icons.Filled.Add, contentDescription = "タスクを追加")
+        Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.add_task))
       }
     },
     snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -103,7 +109,7 @@ fun HomeScreen(
         onComplete = { taskId ->
           viewModel.complete(taskId)
           scope.launch {
-            if (snackbarHostState.showCompletedWithUndo()) viewModel.undoComplete(taskId)
+            if (snackbarHostState.showCompletedWithUndo(completed, undo)) viewModel.undoComplete(taskId)
           }
         },
       )
@@ -124,7 +130,7 @@ private fun ColumnScope.TaskList(
       CircularProgressIndicator(color = ShiodokiColors.Accent)
     }
     groups.isEmpty() -> Box(fill, Alignment.Center) {
-      Text("未完了のタスクはありません", color = ShiodokiColors.TextMuted)
+      Text(stringResource(R.string.no_open_tasks), color = ShiodokiColors.TextMuted)
     }
     else -> LazyColumn(
       modifier = fill.bottomFade(),
@@ -157,7 +163,7 @@ private fun GroupHeader(priority: Priority, modifier: Modifier = Modifier) {
   ) {
     Box(Modifier.size(8.dp).background(priority.color, RoundedCornerShape(2.dp)))
     Text(
-      "${priority.name}  ${priority.label}",
+      "${priority.name}  ${stringResource(priority.labelRes)}",
       fontSize = 11.sp,
       fontWeight = FontWeight.Bold,
       letterSpacing = 0.08.em,
