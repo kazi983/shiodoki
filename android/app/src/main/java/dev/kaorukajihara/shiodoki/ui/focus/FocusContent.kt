@@ -74,8 +74,8 @@ import dev.kaorukajihara.shiodoki.ui.components.SwipeToComplete
 import dev.kaorukajihara.shiodoki.ui.components.showCompletedWithUndo
 import dev.kaorukajihara.shiodoki.ui.components.strokeIcon
 import dev.kaorukajihara.shiodoki.ui.home.PriorityGroup
-import dev.kaorukajihara.shiodoki.ui.labelRes
 import dev.kaorukajihara.shiodoki.ui.message
+import dev.kaorukajihara.shiodoki.ui.priorityHeading
 import dev.kaorukajihara.shiodoki.ui.theme.MonoFamily
 import dev.kaorukajihara.shiodoki.ui.theme.ShiodokiColors
 import dev.kaorukajihara.shiodoki.ui.theme.color
@@ -355,7 +355,7 @@ private fun GroupHeader(priority: Priority, modifier: Modifier = Modifier) {
   ) {
     Box(Modifier.size(8.dp).background(priority.color, RoundedCornerShape(2.dp)))
     Text(
-      "${priority.name}  ${stringResource(priority.labelRes)}",
+      priorityHeading(priority),
       fontSize = 11.sp,
       fontWeight = FontWeight.Bold,
       letterSpacing = 0.08.em,
