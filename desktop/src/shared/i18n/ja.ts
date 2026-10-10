@@ -175,15 +175,6 @@ export const ja = {
   },
   tray: {
     pickTask: "タスクを選ぶ",
-    /** Both languages, so the menu can be found whichever language is shown. */
-    language: "言語 / Language",
-  },
-  language: {
-    system: "OS の設定に従う",
-    restartTitle: "言語の変更",
-    restartMessage: "新しい言語は再起動すると反映されます。今すぐ再起動しますか？",
-    restartNow: "今すぐ再起動",
-    later: "あとで",
   },
   dialogs: {
     logoutConfirm: (email: string) => `${email} からログアウトしますか？\nこの PC に保存されたデータも削除されます。`,

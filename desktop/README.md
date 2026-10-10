@@ -80,7 +80,7 @@ npm run dev:local   # Firebase を使わず、PC 内の JSON ファイルだけ�
 
 テストモード（`TASK_MODE=test`）は v1 と同じく、時間を短縮するだけです。Firebase のデータは本番と同じアカウントに入るので、試すときは `npm run dev:local` も使ってください。
 
-表示言語は、トレイメニューの「言語 / Language」で「OS の設定に従う / 日本語 / English」から選べます（初期値は OS の設定に従う。OS が日本語なら日本語、それ以外は英語）。選んだ言語は再起動すると反映されます。設定は PC ごとに `~/.config/shiodoki/settings.json`（Windows: `%APPDATA%\shiodoki\settings.json`）に保存され、ログアウトしても消えません。開発・テスト用に、環境変数 `SHIODOKI_LOCALE=en`（または `ja`）で設定より優先して上書きできます（例: `SHIODOKI_LOCALE=en npm run dev:local`）。
+表示言語は OS の言語に従います（日本語なら日本語、それ以外は英語）。`SHIODOKI_LOCALE=en`（または `ja`）で上書きできます（例: `SHIODOKI_LOCALE=en npm run dev:local`）。
 
 **PC が Firebase に書き込む内容**
 - タスクの追加・編集・完了・削除（変更した項目だけを送信）

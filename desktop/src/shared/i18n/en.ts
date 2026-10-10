@@ -170,14 +170,6 @@ export const en: Messages = {
   },
   tray: {
     pickTask: "Pick a task",
-    language: "Language / 言語",
-  },
-  language: {
-    system: "System default",
-    restartTitle: "Change language",
-    restartMessage: "The new language applies after a restart. Restart now?",
-    restartNow: "Restart now",
-    later: "Later",
   },
   dialogs: {
     logoutConfirm: (email) => `Sign out of ${email}?\nData saved on this PC will also be deleted.`,

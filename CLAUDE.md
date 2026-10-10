@@ -38,8 +38,8 @@ written in Japanese.
   - `TIMER_FIREBASE_EMULATOR=1` points the app at the emulators with a fake Google account (E2E).
   - UI text lives in `src/shared/i18n/` (`ja.ts` defines the keys, `en.ts` is typed by it; terms in
     `docs/i18n/glossary.md`). Never hardcode UI text: `tests/i18n.test.ts` fails on Japanese outside
-    the dictionary. Language: `SHIODOKI_LOCALE=en|ja` > the tray setting (`userData/settings.json`,
-    applied on restart) > the OS (`ja*` → Japanese, else English).
+    the dictionary. The language follows the OS (`ja*` → Japanese, else English);
+    `SHIODOKI_LOCALE=en|ja` overrides it.
 - `android/` — Kotlin + Jetpack Compose, package `dev.kaorukajihara.shiodoki`. Design:
   `docs/android/design.md`. Build with Android Studio's JDK (`JAVA_HOME=/snap/android-studio/current/jbr`):
   `./gradlew assembleDebug testDebugUnitTest`. `app/google-services.json` is public and committed.

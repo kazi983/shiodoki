@@ -1,7 +1,6 @@
 import { join } from "node:path";
 import { app, Menu, nativeImage, Tray } from "electron";
-import { LANGUAGE_NAMES, t } from "@shared/i18n";
-import { LANGUAGE_SETTINGS, type LanguageSetting } from "./settings";
+import { t } from "@shared/i18n";
 
 export interface TrayActions {
   openPicker(): void;
@@ -10,7 +9,6 @@ export interface TrayActions {
   exit(): void;
   /** Omitted in local mode. */
   logout?: () => void;
-  language: { current: LanguageSetting; change(value: LanguageSetting): void };
 }
 
 /**
@@ -27,15 +25,6 @@ export function createTray(actions: TrayActions, testMode: boolean): Tray | null
       Menu.buildFromTemplate([
         { label: text.pickTask, click: actions.openPicker },
         { label: common.manageTasks, click: actions.openManagement },
-        {
-          label: text.language,
-          submenu: LANGUAGE_SETTINGS.map((value) => ({
-            label: value === "system" ? t().language.system : LANGUAGE_NAMES[value],
-            type: "radio" as const,
-            checked: value === actions.language.current,
-            click: () => actions.language.change(value),
-          })),
-        },
         { type: "separator" },
         { label: common.restart, click: actions.restart },
         ...(actions.logout ? [{ label: common.logout, click: actions.logout }] : []),
