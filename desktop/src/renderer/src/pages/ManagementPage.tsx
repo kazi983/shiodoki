@@ -288,7 +288,7 @@ export function ManagementPage() {
                         type="button"
                         className="prio-option"
                         aria-pressed={on}
-                        title={p}
+                        title={meta.shortName}
                         style={on ? { borderColor: meta.dot, background: meta.chipBg, color: meta.chipFg } : undefined}
                         onClick={() => setForm({ ...form, priority: p })}
                       >

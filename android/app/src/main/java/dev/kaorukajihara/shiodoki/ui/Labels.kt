@@ -52,6 +52,10 @@ fun rememberDateFormatter(suffix: String = ""): DateTimeFormatter {
   return remember(pattern) { DateTimeFormatter.ofPattern(pattern, Locale.US) }
 }
 
+/** The key as shown in the UI, the same in every language: SOONER shows as SOON (stored as SOONER). */
+val Priority.shortName: String
+  get() = if (this == Priority.SOONER) "SOON" else name
+
 /**
  * Group heading "NOW  今すぐ". English shows only the key ("NOW"), since "NOW  Now" repeats it
  * (glossary Q-2).
@@ -59,7 +63,7 @@ fun rememberDateFormatter(suffix: String = ""): DateTimeFormatter {
 @Composable
 fun priorityHeading(priority: Priority): String =
   if (booleanResource(R.bool.show_priority_label)) {
-    "${priority.name}  ${stringResource(priority.labelRes)}"
+    "${priority.shortName}  ${stringResource(priority.labelRes)}"
   } else {
-    priority.name
+    priority.shortName
   }

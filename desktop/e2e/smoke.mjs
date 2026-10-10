@@ -100,7 +100,7 @@ try {
   const names = await picker.locator(".task-list .task-name").allTextContents();
   assert.deepEqual(names, ["既存タスク", "いつかのタスク"]);
   assert.match(await picker.locator(".resume-card").textContent(), /前回の続き既存タスク累計 1h 35m · 3 セッション/);
-  assert.deepEqual(await picker.locator(".group-label").allTextContents(), ["SOONER近いうち", "SOMEDAYいつか"]);
+  assert.deepEqual(await picker.locator(".group-label").allTextContents(), ["SOON近いうち", "SOMEDAYいつか"]);
   await picker.screenshot({ path: join(shots, "1-picker.png") });
 
   // ---- add from the picker ----
@@ -164,7 +164,7 @@ try {
   assert.equal(await pickerEn.evaluate(() => document.documentElement.lang), "en");
   assert.match(await pickerEn.locator(".resume-card").textContent(), /Continue last task.* · 1 session(?!s)/);
   // English shows only the priority key in group headings.
-  assert.deepEqual(await pickerEn.locator(".group-label").allTextContents(), ["NOW", "SOONER", "ANYTIME"]);
+  assert.deepEqual(await pickerEn.locator(".group-label").allTextContents(), ["NOW", "SOON", "ANYTIME"]);
   await pickerEn.screenshot({ path: join(shots, "5-picker-en.png") });
 
   await pickerEn.click("text=Manage tasks");
