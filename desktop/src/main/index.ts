@@ -154,7 +154,7 @@ function startFirebase(): void {
       },
       logout: async () => {
         const { common, dialogs } = t();
-        const ok = await dialog.showMessageBox({
+        const ok = await showMessageBox(wired.windows, {
           type: "question",
           buttons: [common.logout, common.cancel],
           defaultId: 0,
@@ -249,12 +249,18 @@ async function offerMigration(bridge: DataBridge): Promise<void> {
   }
 }
 
+/** A native dialog above the app's always-on-top windows: parented to a visible one if any. */
+function showMessageBox(windows: WindowManager, options: Electron.MessageBoxOptions) {
+  const parent = windows.dialogParent();
+  return parent ? dialog.showMessageBox(parent, options) : dialog.showMessageBox(options);
+}
+
 /** Save the tray choice; the new language applies after a restart (now or later). */
-async function changeLanguage(value: LanguageSetting, controller: AppController): Promise<void> {
+async function changeLanguage(value: LanguageSetting, controller: AppController, windows: WindowManager): Promise<void> {
   saveLanguageSetting(settingsFile(), value);
   if (chooseLocale(value, app.getLocale(), process.env.SHIODOKI_LOCALE) === getLocale()) return;
   const text = t().language;
-  const { response } = await dialog.showMessageBox({
+  const { response } = await showMessageBox(windows, {
     type: "question",
     buttons: [text.restartNow, text.later],
     defaultId: 0,
@@ -334,7 +340,7 @@ function wire(repo: TaskRepository, syncInfo: () => SyncInfo, firebase?: Firebas
       logout: firebase ? () => void firebase.logout() : undefined,
       language: {
         current: loadLanguageSetting(settingsFile()),
-        change: (value) => void changeLanguage(value, controller),
+        change: (value) => void changeLanguage(value, controller, wm),
       },
     },
     TEST_MODE,
@@ -342,7 +348,7 @@ function wire(repo: TaskRepository, syncInfo: () => SyncInfo, firebase?: Firebas
 
   // A second launch: ask whether to bring this instance to front or restart it.
   app.on("second-instance", async () => {
-    const { response } = await dialog.showMessageBox({
+    const { response } = await showMessageBox(wm, {
       type: "question",
       buttons: [t().dialogs.bringToFront, t().common.restart, t().common.cancel],
       defaultId: 0,

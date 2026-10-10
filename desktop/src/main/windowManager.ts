@@ -206,6 +206,14 @@ export class WindowManager implements WindowPort {
   // helpers
   // -------------------------
 
+  /**
+   * A visible window to parent a native dialog opened from the tray or a second launch.
+   * These windows are always on top, so a dialog without a parent would open behind them.
+   */
+  dialogParent(): BrowserWindow | null {
+    return [this.leave, this.login, this.picker, this.management].find((w) => w && !w.isDestroyed() && w.isVisible()) ?? null;
+  }
+
   /** Window that should parent native dialogs for a given sender. */
   fromWebContentsId(id: number): BrowserWindow | null {
     return BrowserWindow.getAllWindows().find((w) => !w.isDestroyed() && w.webContents.id === id) ?? null;
