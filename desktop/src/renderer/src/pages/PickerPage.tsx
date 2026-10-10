@@ -289,7 +289,7 @@ export function PickerPage() {
             <div className="group-label" aria-hidden>
               <span className="group-dot" style={{ background: PRIORITY_META[group.priority].dot }} />
               {group.priority}
-              <span className="jp">{priority[group.priority]}</span>
+              {text.showPriorityLabel && <span className="jp">{priority[group.priority]}</span>}
             </div>
             {group.tasks.map((task) => (
               <div
