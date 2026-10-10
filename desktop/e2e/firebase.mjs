@@ -96,6 +96,8 @@ async function launch() {
       ...process.env,
       TASK_MODE: "test",
       TIMER_FIREBASE_EMULATOR: "1",
+      // The assertions use the Japanese UI text, whatever the OS language.
+      SHIODOKI_LOCALE: "ja",
       XDG_CONFIG_HOME: configHome,
       ELECTRON_RENDERER_URL: "",
     },
