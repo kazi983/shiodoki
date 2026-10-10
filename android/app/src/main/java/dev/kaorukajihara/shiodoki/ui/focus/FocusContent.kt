@@ -37,6 +37,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -66,6 +68,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.kaorukajihara.shiodoki.model.Priority
 import dev.kaorukajihara.shiodoki.model.Task
 import dev.kaorukajihara.shiodoki.model.formatMinutes
+import dev.kaorukajihara.shiodoki.ui.components.SwipeToComplete
+import dev.kaorukajihara.shiodoki.ui.components.showCompletedWithUndo
 import dev.kaorukajihara.shiodoki.ui.components.strokeIcon
 import dev.kaorukajihara.shiodoki.ui.home.PriorityGroup
 import dev.kaorukajihara.shiodoki.ui.theme.MonoFamily
@@ -77,6 +81,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun FocusContent(viewModel: FocusViewModel) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
+  val snackbarHostState = remember { SnackbarHostState() }
+  val scope = rememberCoroutineScope()
   // Back does nothing: it would bypass the long press. Leaving with Home is still a skip
   // (FocusActivity.onStop).
   BackHandler {}
@@ -132,12 +138,22 @@ fun FocusContent(viewModel: FocusViewModel) {
 
     QuickAdd(viewModel)
 
-    TaskList(
-      groups = state.groups,
-      highlightedId = viewModel.addedTaskId,
-      onSelect = { viewModel.select(it.id, it.name) },
-      modifier = Modifier.weight(1f),
-    )
+    // The snackbar covers the end of the list, not the skip button.
+    Box(Modifier.weight(1f)) {
+      TaskList(
+        groups = state.groups,
+        highlightedId = viewModel.addedTaskId,
+        onSelect = { viewModel.select(it.id, it.name) },
+        onComplete = { taskId ->
+          viewModel.complete(taskId)
+          scope.launch {
+            if (snackbarHostState.showCompletedWithUndo()) viewModel.undoComplete(taskId)
+          }
+        },
+        modifier = Modifier.fillMaxSize(),
+      )
+      SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
+    }
 
     HoldToSkipButton(onSkip = viewModel::skip)
   }
@@ -294,6 +310,7 @@ private fun TaskList(
   groups: List<PriorityGroup>?,
   highlightedId: String?,
   onSelect: (Task) -> Unit,
+  onComplete: (taskId: String) -> Unit,
   modifier: Modifier,
 ) {
   when {
@@ -313,7 +330,9 @@ private fun TaskList(
           GroupHeader(group.priority, Modifier.padding(top = if (index == 0) 0.dp else 12.dp))
         }
         items(group.tasks, key = { it.id }) { task ->
-          TaskRow(task, highlighted = task.id == highlightedId, onClick = { onSelect(task) })
+          SwipeToComplete(onComplete = { onComplete(task.id) }, modifier = Modifier.animateItem()) {
+            TaskRow(task, highlighted = task.id == highlightedId, onClick = { onSelect(task) })
+          }
         }
       }
     }

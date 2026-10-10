@@ -13,6 +13,7 @@ import dev.kaorukajihara.shiodoki.model.DesktopState
 import dev.kaorukajihara.shiodoki.model.Priority
 import dev.kaorukajihara.shiodoki.model.Task
 import dev.kaorukajihara.shiodoki.model.TaskInput
+import dev.kaorukajihara.shiodoki.model.TaskPatch
 import dev.kaorukajihara.shiodoki.model.normalizeTaskInput
 import dev.kaorukajihara.shiodoki.ui.home.PcStatus
 import dev.kaorukajihara.shiodoki.ui.home.PriorityGroup
@@ -100,4 +101,10 @@ class FocusViewModel(
   fun select(taskId: String, taskName: String) = controller.onTaskSelected(taskId, taskName)
 
   fun skip() = controller.onSkip()
+
+  /** Swipe on a row (design §5.7): completes the task without closing the screen. */
+  fun complete(taskId: String) = repository.update(taskId, TaskPatch(completed = true))
+
+  /** "元に戻す" on the snackbar. Also clears `completedAt`. */
+  fun undoComplete(taskId: String) = repository.update(taskId, TaskPatch(completed = false))
 }
