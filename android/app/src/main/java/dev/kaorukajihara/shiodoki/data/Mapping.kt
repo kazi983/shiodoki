@@ -4,7 +4,6 @@ import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import dev.kaorukajihara.shiodoki.model.DesktopState
 import dev.kaorukajihara.shiodoki.model.DesktopStatus
-import dev.kaorukajihara.shiodoki.model.FinishedSession
 import dev.kaorukajihara.shiodoki.model.Priority
 import dev.kaorukajihara.shiodoki.model.Task
 import dev.kaorukajihara.shiodoki.model.TaskInput
@@ -46,30 +45,6 @@ fun patchToDoc(patch: TaskPatch, now: Timestamp): Map<String, Any?> = buildMap {
   put("updatedAt", FieldValue.serverTimestamp())
   put("updatedBy", UPDATED_BY)
 }
-
-/** `sessions/{id}` of a phone session (design §4.4); the rules cap the name and device lengths. */
-fun sessionToDoc(s: FinishedSession, device: String): Map<String, Any?> = mapOf(
-  "taskId" to s.taskId,
-  "taskName" to s.taskName.take(MAX_SESSION_TASK_NAME),
-  "startedAt" to s.startedAt.toTimestamp(),
-  "endedAt" to s.endedAt.toTimestamp(),
-  "elapsedMinutes" to s.elapsedMinutes,
-  "endReason" to s.endReason.value,
-  "device" to device.take(MAX_DEVICE_LENGTH),
-)
-
-/** Adds a session to its task's counters, in the same batch as [sessionToDoc]. */
-fun sessionCountersDoc(s: FinishedSession): Map<String, Any?> = mapOf(
-  "totalMinutes" to FieldValue.increment(s.elapsedMinutes),
-  "sessionCount" to FieldValue.increment(1),
-  "updatedAt" to FieldValue.serverTimestamp(),
-  "updatedBy" to UPDATED_BY,
-)
-
-private const val MAX_SESSION_TASK_NAME = 200
-private const val MAX_DEVICE_LENGTH = 100
-
-private fun Instant.toTimestamp() = Timestamp(epochSecond, nano)
 
 /**
  * Reads a task document. Unexpected types fall back to defaults (like the desktop `docToTask`).

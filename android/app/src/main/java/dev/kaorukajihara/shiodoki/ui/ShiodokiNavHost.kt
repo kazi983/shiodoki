@@ -88,7 +88,7 @@ fun ShiodokiNavHost(container: AppContainer) {
     }
     composable<SettingsRoute> {
       SettingsScreen(
-        viewModel = viewModel { SettingsViewModel(authManager, taskRepository, container.focusFeature) },
+        viewModel = viewModel { SettingsViewModel(authManager, taskRepository) },
         onSelectTab = selectTab,
       )
     }

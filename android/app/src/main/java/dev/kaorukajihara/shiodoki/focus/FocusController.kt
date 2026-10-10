@@ -6,7 +6,6 @@ import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -161,16 +160,6 @@ class FocusController(
         ),
       )
     }
-  }
-
-  /**
-   * Waits until every store write and recording queued so far has run. Sign-out calls it after
-   * [stop] so the last session is recorded while the user is still signed in (design §7.2).
-   */
-  suspend fun flush() {
-    val done = CompletableDeferred<Unit>()
-    enqueue { done.complete(Unit) }
-    done.await()
   }
 
   /** The only place a session ends. A second call for the same session does nothing. */
