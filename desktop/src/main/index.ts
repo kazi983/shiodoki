@@ -2,7 +2,7 @@ import { hostname } from "node:os";
 import { join } from "node:path";
 import { app, dialog, shell } from "electron";
 import { EMULATOR_PROJECT_ID, FIREBASE_CONFIG } from "@shared/firebaseConfig";
-import { resolveLocale, setLocale, t } from "@shared/i18n";
+import { getLocale, setLocale, t } from "@shared/i18n";
 import { IPC } from "@shared/ipc";
 import type { DataEvent, SyncInfo } from "@shared/sync";
 import { AppController } from "./appController";
@@ -14,6 +14,7 @@ import { loadOAuthClient, signInWithGoogle } from "./googleOAuth";
 import { registerIpcHandlers } from "./ipc";
 import { findLocalData } from "./localMigration";
 import { SessionService } from "./sessionService";
+import { chooseLocale, loadLanguageSetting, saveLanguageSetting, type LanguageSetting } from "./settings";
 import { JsonFileTaskRepository, type TaskRepository } from "./taskRepository";
 import { TaskService } from "./taskService";
 import { TimerService } from "./timerService";
@@ -67,6 +68,10 @@ function storeFile(): string {
   return join(app.getPath("userData"), STORE_FILE_NAME);
 }
 
+function settingsFile(): string {
+  return join(app.getPath("userData"), "settings.json");
+}
+
 function main(): void {
   if (!app.requestSingleInstanceLock()) {
     app.quit();
@@ -77,8 +82,8 @@ function main(): void {
   app.on("window-all-closed", () => {});
 
   app.whenReady().then(() => {
-    // app.getLocale() is only valid after "ready". SHIODOKI_LOCALE overrides it (tests).
-    setLocale(resolveLocale(process.env.SHIODOKI_LOCALE || app.getLocale()));
+    // app.getLocale() is only valid after "ready". SHIODOKI_LOCALE overrides everything (tests).
+    setLocale(chooseLocale(loadLanguageSetting(settingsFile()), app.getLocale(), process.env.SHIODOKI_LOCALE));
     if (LOCAL_MODE) startLocal();
     else startFirebase();
   });
@@ -244,6 +249,23 @@ async function offerMigration(bridge: DataBridge): Promise<void> {
   }
 }
 
+/** Save the tray choice; the new language applies after a restart (now or later). */
+async function changeLanguage(value: LanguageSetting, controller: AppController): Promise<void> {
+  saveLanguageSetting(settingsFile(), value);
+  if (chooseLocale(value, app.getLocale(), process.env.SHIODOKI_LOCALE) === getLocale()) return;
+  const text = t().language;
+  const { response } = await dialog.showMessageBox({
+    type: "question",
+    buttons: [text.restartNow, text.later],
+    defaultId: 0,
+    cancelId: 1,
+    noLink: true,
+    title: text.restartTitle,
+    message: text.restartMessage,
+  });
+  if (response === 0) await controller.restart();
+}
+
 // ---------------------------------------------------------------------------
 // shared wiring
 // ---------------------------------------------------------------------------
@@ -310,6 +332,10 @@ function wire(repo: TaskRepository, syncInfo: () => SyncInfo, firebase?: Firebas
       restart: () => void controller.restart(),
       exit: () => void controller.exit(),
       logout: firebase ? () => void firebase.logout() : undefined,
+      language: {
+        current: loadLanguageSetting(settingsFile()),
+        change: (value) => void changeLanguage(value, controller),
+      },
     },
     TEST_MODE,
   );
