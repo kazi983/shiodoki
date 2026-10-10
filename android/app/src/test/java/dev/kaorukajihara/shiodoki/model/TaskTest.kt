@@ -60,8 +60,8 @@ class TaskTest {
   fun formatMinutes() {
     assertEquals("—", formatMinutes(0))
     assertEquals("45m", formatMinutes(45))
-    assertEquals("1h 00m", formatMinutes(60))
-    assertEquals("2h 05m", formatMinutes(125))
+    assertEquals("1h 0m", formatMinutes(60))
+    assertEquals("2h 5m", formatMinutes(125))
   }
 
   @Test

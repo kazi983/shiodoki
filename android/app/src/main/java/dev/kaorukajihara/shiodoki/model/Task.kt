@@ -88,8 +88,8 @@ fun diffTaskInput(before: TaskInput, after: TaskInput): TaskPatch = TaskPatch(
 val taskOrder: Comparator<Task> = compareBy<Task> { it.priority.ordinal }.thenBy { it.createdAt }
 
 /**
- * "—" / "45m" / "2h 05m", the compact form of the Android design (the desktop shows "2時間5分").
- * Minutes are zero-padded after hours so the numbers line up in a monospace font.
+ * "—" / "45m" / "2h 5m": the same compact form as the desktop `formatDuration`, in every
+ * language (docs/i18n/glossary.md Q-1).
  */
 fun formatMinutes(totalMinutes: Long): String {
   val h = totalMinutes / 60
@@ -97,6 +97,6 @@ fun formatMinutes(totalMinutes: Long): String {
   return when {
     totalMinutes <= 0L -> "—"
     h == 0L -> "${m}m"
-    else -> "${h}h ${m.toString().padStart(2, '0')}m"
+    else -> "${h}h ${m}m"
   }
 }
