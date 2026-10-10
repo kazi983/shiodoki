@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.kaorukajihara.shiodoki.R
 import dev.kaorukajihara.shiodoki.ui.components.Dot
+import dev.kaorukajihara.shiodoki.ui.rememberDateFormatter
 import dev.kaorukajihara.shiodoki.ui.theme.MonoFamily
 import dev.kaorukajihara.shiodoki.ui.theme.ShiodokiColors
 import java.time.Instant
@@ -55,6 +56,7 @@ fun PcStatusCard(status: PcStatus, modifier: Modifier = Modifier) {
   // Strings are read here: the detail builders below are not composables.
   val endedAt = stringResource(R.string.pc_ended_at)
   val notRunning = stringResource(R.string.pc_app_not_running)
+  val dateTime = rememberDateFormatter(" HH:mm")
   when (status) {
     is PcStatus.Running -> RunningCard(status, modifier)
     PcStatus.Choosing -> {
@@ -73,7 +75,7 @@ fun PcStatusCard(status: PcStatus, modifier: Modifier = Modifier) {
         icon = Icons.Snooze,
         title = stringResource(R.string.pc_snoozed),
         detail = {
-          if (status.nextPromptAt == null) append(soon) else appendTemplate(until) { time(status.nextPromptAt) }
+          if (status.nextPromptAt == null) append(soon) else appendTemplate(until) { time(status.nextPromptAt, dateTime) }
         },
         modifier = modifier,
       )
@@ -94,7 +96,7 @@ fun PcStatusCard(status: PcStatus, modifier: Modifier = Modifier) {
         icon = Icons.Offline,
         title = stringResource(R.string.pc_offline),
         detail = {
-          if (status.lastSeen != null) appendTemplate(lastSeen) { time(status.lastSeen) } else append(detail)
+          if (status.lastSeen != null) appendTemplate(lastSeen) { time(status.lastSeen, dateTime) } else append(detail)
         },
         modifier = modifier,
         inactive = true,
@@ -107,14 +109,14 @@ fun PcStatusCard(status: PcStatus, modifier: Modifier = Modifier) {
         dotColor = ShiodokiColors.Ended,
         ring = { IconRing(Icons.Stop) },
         taskName = status.interruptedTaskName,
-        detail = { endTime(status.stoppedAt, endedAt, notRunning) },
+        detail = { endTime(status.stoppedAt, endedAt, notRunning, dateTime) },
         modifier = modifier,
       )
     } else {
       StatusCard(
         icon = Icons.Power,
         title = stringResource(R.string.pc_app_closed),
-        detail = { endTime(status.stoppedAt, endedAt, notRunning) },
+        detail = { endTime(status.stoppedAt, endedAt, notRunning, dateTime) },
         modifier = modifier,
         inactive = true,
       )
@@ -135,6 +137,7 @@ fun PcStatusCard(status: PcStatus, modifier: Modifier = Modifier) {
 @Composable
 private fun RunningCard(status: PcStatus.Running, modifier: Modifier) {
   val startedAt = stringResource(R.string.pc_started_at)
+  val dateTime = rememberDateFormatter(" HH:mm")
   val elapsed = status.elapsedMinutes?.let { stringResource(R.string.elapsed_minutes, it) }
   TaskCard(
     label = stringResource(R.string.pc_running),
@@ -142,7 +145,7 @@ private fun RunningCard(status: PcStatus.Running, modifier: Modifier) {
     ring = { ProgressRing(status.remainingMinutes, status.totalMinutes) },
     taskName = status.taskName,
     detail = {
-      if (status.startedAt != null) appendTemplate(startedAt) { time(status.startedAt) }
+      if (status.startedAt != null) appendTemplate(startedAt) { time(status.startedAt, dateTime) }
       if (elapsed != null) append(" · $elapsed")
     },
     modifier = modifier,
@@ -173,8 +176,13 @@ private fun TaskCard(
 }
 
 /** "HH:mm 終了" (the design's wording), from [endedAt] ("%1$s 終了"). */
-private fun AnnotatedString.Builder.endTime(stoppedAt: Instant?, endedAt: String, notRunning: String) {
-  if (stoppedAt == null) append(notRunning) else appendTemplate(endedAt) { time(stoppedAt) }
+private fun AnnotatedString.Builder.endTime(
+  stoppedAt: Instant?,
+  endedAt: String,
+  notRunning: String,
+  dateTime: DateTimeFormatter,
+) {
+  if (stoppedAt == null) append(notRunning) else appendTemplate(endedAt) { time(stoppedAt, dateTime) }
 }
 
 /**
@@ -274,14 +282,14 @@ private fun Detail(build: AnnotatedBuilder) {
   Text(buildAnnotatedString(build), fontSize = 12.sp, color = ShiodokiColors.TextMuted)
 }
 
-/** "HH:mm" in the device time zone, with "MM-dd " in front when it is not today. */
-private fun AnnotatedString.Builder.time(instant: Instant) {
+/** "HH:mm" in the device time zone; [dateTime] ("Oct 9 HH:mm") when it is not today. */
+private fun AnnotatedString.Builder.time(instant: Instant, dateTime: DateTimeFormatter) {
   val zone = ZoneId.systemDefault()
   val local = instant.atZone(zone)
   val text = if (local.toLocalDate() == LocalDate.now(zone)) {
     TIME_FORMAT.format(local)
   } else {
-    DATE_TIME_FORMAT.format(local)
+    dateTime.format(local)
   }
   withStyle(SpanStyle(fontFamily = MonoFamily)) { append(text) }
 }
@@ -339,7 +347,6 @@ private val CARD_SHAPE = RoundedCornerShape(CARD_RADIUS)
 private val RING_SIZE = 56.dp
 private val RING_STROKE = 4.5.dp
 private val TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm")
-private val DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("MM-dd HH:mm")
 
 /** Stroke icons from the design canvas (24×24 viewBox, 2px stroke, round caps). */
 private object Icons {

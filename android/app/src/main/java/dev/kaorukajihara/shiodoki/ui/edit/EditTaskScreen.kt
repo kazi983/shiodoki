@@ -56,13 +56,13 @@ import dev.kaorukajihara.shiodoki.model.Task
 import dev.kaorukajihara.shiodoki.model.formatMinutes
 import dev.kaorukajihara.shiodoki.ui.labelRes
 import dev.kaorukajihara.shiodoki.ui.message
+import dev.kaorukajihara.shiodoki.ui.rememberDateFormatter
 import dev.kaorukajihara.shiodoki.ui.theme.MonoFamily
 import dev.kaorukajihara.shiodoki.ui.theme.ShiodokiColors
 import dev.kaorukajihara.shiodoki.ui.theme.color
 import dev.kaorukajihara.shiodoki.ui.theme.selectedFill
 import dev.kaorukajihara.shiodoki.ui.theme.selectedText
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 private enum class Confirm(@StringRes val title: Int, @StringRes val action: Int) {
   COMPLETE(R.string.edit_confirm_complete, R.string.complete),
@@ -239,12 +239,10 @@ private fun PrioritySelector(selected: Priority, onSelect: (Priority) -> Unit) {
   }
 }
 
-private val dateFormat = DateTimeFormatter.ofPattern("MM-dd")
-
 /** 累計 / セッション / 作成日 of an existing task. */
 @Composable
 private fun Stats(task: Task) {
-  val created = task.createdAt.atZone(ZoneId.systemDefault()).format(dateFormat)
+  val created = task.createdAt.atZone(ZoneId.systemDefault()).format(rememberDateFormatter())
   Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
     Stat(stringResource(R.string.edit_total), formatMinutes(task.totalMinutes), Modifier.weight(1f))
     Stat(stringResource(R.string.edit_sessions), task.sessionCount.toString(), Modifier.weight(1f))

@@ -38,6 +38,11 @@ android {
       }
     }
   }
+  androidResources {
+    // Lists English and Japanese for the per-app language setting (Android 13+), from the
+    // values-* folders; res/resources.properties names the language of the default folder.
+    generateLocaleConfig = true
+  }
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
