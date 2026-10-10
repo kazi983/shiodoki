@@ -49,8 +49,11 @@ written in Japanese.
   - `shiodoki.useFirebaseEmulator=true` in `local.properties` makes debug builds use the emulators
     at `10.0.2.2` with the desktop E2E fake Google account. API 37 needs `ACCESS_LOCAL_NETWORK`
     (debug manifest only), so install with `adb install -r -g`.
-  - UI text lives in `res/values/strings.xml` (terms in `docs/i18n/glossary.md`); `model` and `data`
-    stay free of `R` (labels via `ui/Labels.kt`). `NoHardcodedTextTest` fails on Japanese in Kotlin.
+  - UI text lives in `res/values/strings.xml` (English, the fallback) and `res/values-ja/strings.xml`
+    (terms in `docs/i18n/glossary.md`); `StringResourcesTest` checks both have the same keys and
+    placeholders. `model` and `data` stay free of `R` (labels via `ui/Labels.kt`).
+    `NoHardcodedTextTest` fails on Japanese in Kotlin. The language follows the OS or the system
+    per-app language setting (`generateLocaleConfig`).
 
 ## Desktop architecture
 
