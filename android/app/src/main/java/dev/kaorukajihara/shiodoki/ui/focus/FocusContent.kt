@@ -1,9 +1,13 @@
 package dev.kaorukajihara.shiodoki.ui.focus
 
-import androidx.compose.foundation.BorderStroke
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,15 +35,27 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -52,16 +68,24 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.kaorukajihara.shiodoki.model.Priority
 import dev.kaorukajihara.shiodoki.model.Task
 import dev.kaorukajihara.shiodoki.model.formatMinutes
+import dev.kaorukajihara.shiodoki.ui.components.SwipeToComplete
+import dev.kaorukajihara.shiodoki.ui.components.showCompletedWithUndo
 import dev.kaorukajihara.shiodoki.ui.components.strokeIcon
 import dev.kaorukajihara.shiodoki.ui.home.PriorityGroup
 import dev.kaorukajihara.shiodoki.ui.theme.MonoFamily
 import dev.kaorukajihara.shiodoki.ui.theme.ShiodokiColors
 import dev.kaorukajihara.shiodoki.ui.theme.color
+import kotlinx.coroutines.launch
 
 /** Design §5.7 and the "フォーカス画面" artboard. */
 @Composable
 fun FocusContent(viewModel: FocusViewModel) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
+  val snackbarHostState = remember { SnackbarHostState() }
+  val scope = rememberCoroutineScope()
+  // Back does nothing: it would bypass the long press. Leaving with Home is still a skip
+  // (FocusActivity.onStop).
+  BackHandler {}
 
   Column(
     modifier = Modifier
@@ -114,29 +138,85 @@ fun FocusContent(viewModel: FocusViewModel) {
 
     QuickAdd(viewModel)
 
-    TaskList(
-      groups = state.groups,
-      highlightedId = viewModel.addedTaskId,
-      onSelect = { viewModel.select(it.id, it.name) },
-      modifier = Modifier.weight(1f),
-    )
-
-    OutlinedButton(
-      onClick = viewModel::skip,
-      shape = RoundedCornerShape(14.dp),
-      border = BorderStroke(1.dp, ShiodokiColors.Outline),
-      modifier = Modifier.fillMaxWidth().height(52.dp),
-    ) {
-      Text("スキップ", fontSize = 15.sp, color = ShiodokiColors.Text)
-      Text(
-        "記録せずに閉じる",
-        fontSize = 12.sp,
-        color = ShiodokiColors.TextMuted,
-        modifier = Modifier.padding(start = 8.dp),
+    // The snackbar covers the end of the list, not the skip button.
+    Box(Modifier.weight(1f)) {
+      TaskList(
+        groups = state.groups,
+        highlightedId = viewModel.addedTaskId,
+        onSelect = { viewModel.select(it.id, it.name) },
+        onComplete = { taskId ->
+          viewModel.complete(taskId)
+          scope.launch {
+            if (snackbarHostState.showCompletedWithUndo()) viewModel.undoComplete(taskId)
+          }
+        },
+        modifier = Modifier.fillMaxSize(),
       )
+      SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
     }
+
+    HoldToSkipButton(onSkip = viewModel::skip)
   }
 }
+
+/**
+ * "スキップ" needs a [SKIP_HOLD_MS] hold, so the screen is not dismissed by reflex (M-14).
+ * Releasing early resets it; the fill from the left shows the progress. TalkBack users get an
+ * immediate long-click action instead, since holding is hard with a screen reader.
+ */
+@Composable
+private fun HoldToSkipButton(onSkip: () -> Unit) {
+  val progress = remember { Animatable(0f) }
+  val scope = rememberCoroutineScope()
+  val haptic = LocalHapticFeedback.current
+  val currentOnSkip by rememberUpdatedState(onSkip)
+  val shape = RoundedCornerShape(14.dp)
+  Row(
+    modifier = Modifier
+      .fillMaxWidth()
+      .height(52.dp)
+      .clip(shape)
+      .border(1.dp, ShiodokiColors.Outline, shape)
+      // Read in the draw phase, so the animation only redraws.
+      .drawBehind {
+        drawRect(ShiodokiColors.Outline, size = size.copy(width = size.width * progress.value))
+      }
+      .pointerInput(Unit) {
+        detectTapGestures(onPress = {
+          val hold = scope.launch {
+            // Throws when cancelled, so the skip runs only after the full hold.
+            progress.animateTo(1f, tween(SKIP_HOLD_MS, easing = LinearEasing))
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            currentOnSkip()
+          }
+          tryAwaitRelease()
+          if (hold.isActive) {
+            hold.cancel()
+            progress.snapTo(0f)
+          }
+        })
+      }
+      .semantics(mergeDescendants = true) {
+        role = Role.Button
+        onLongClick(label = "スキップ") {
+          currentOnSkip()
+          true
+        }
+      },
+    horizontalArrangement = Arrangement.Center,
+    verticalAlignment = Alignment.CenterVertically,
+  ) {
+    Text("スキップ", fontSize = 15.sp, color = ShiodokiColors.Text)
+    Text(
+      "5秒長押しで記録せずに閉じる",
+      fontSize = 12.sp,
+      color = ShiodokiColors.TextMuted,
+      modifier = Modifier.padding(start = 8.dp),
+    )
+  }
+}
+
+private const val SKIP_HOLD_MS = 5_000
 
 /** "PC と同じ" and "スマホで前回": one tap starts that task. */
 @Composable
@@ -230,6 +310,7 @@ private fun TaskList(
   groups: List<PriorityGroup>?,
   highlightedId: String?,
   onSelect: (Task) -> Unit,
+  onComplete: (taskId: String) -> Unit,
   modifier: Modifier,
 ) {
   when {
@@ -249,7 +330,9 @@ private fun TaskList(
           GroupHeader(group.priority, Modifier.padding(top = if (index == 0) 0.dp else 12.dp))
         }
         items(group.tasks, key = { it.id }) { task ->
-          TaskRow(task, highlighted = task.id == highlightedId, onClick = { onSelect(task) })
+          SwipeToComplete(onComplete = { onComplete(task.id) }, modifier = Modifier.animateItem()) {
+            TaskRow(task, highlighted = task.id == highlightedId, onClick = { onSelect(task) })
+          }
         }
       }
     }

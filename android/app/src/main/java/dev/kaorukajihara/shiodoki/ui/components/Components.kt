@@ -5,23 +5,33 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -111,4 +121,51 @@ fun MainBottomBar(current: MainTab, onSelect: (MainTab) -> Unit) {
       }
     }
   }
+}
+
+/**
+ * A swipe in either direction completes the task (design §5.3, §5.7). Half the row width is
+ * needed, so a scroll that drifts sideways does not complete anything; pair it with
+ * [showCompletedWithUndo].
+ */
+@Composable
+fun SwipeToComplete(onComplete: () -> Unit, modifier: Modifier, content: @Composable () -> Unit) {
+  val state = rememberSwipeToDismissBoxState(positionalThreshold = { totalDistance -> totalDistance * 0.5f })
+  SwipeToDismissBox(
+    state = state,
+    modifier = modifier,
+    onDismiss = { onComplete() },
+    backgroundContent = {
+      val direction = state.dismissDirection
+      // Nothing behind a settled row, so its rounded corners stay clean.
+      if (direction != SwipeToDismissBoxValue.Settled) {
+        Box(
+          Modifier
+            .fillMaxSize()
+            .clip(RoundedCornerShape(12.dp))
+            .background(ShiodokiColors.Accent)
+            .padding(horizontal = 20.dp),
+          contentAlignment = if (direction == SwipeToDismissBoxValue.StartToEnd) {
+            Alignment.CenterStart
+          } else {
+            Alignment.CenterEnd
+          },
+        ) {
+          Icon(Icons.Filled.Check, contentDescription = "完了", tint = ShiodokiColors.OnAccent)
+        }
+      }
+    },
+  ) {
+    content()
+  }
+}
+
+/**
+ * Shows "完了しました" with "元に戻す" and returns true when undo was pressed. A visible snackbar
+ * is dismissed first, so a new swipe does not wait behind it.
+ */
+suspend fun SnackbarHostState.showCompletedWithUndo(): Boolean {
+  currentSnackbarData?.dismiss()
+  val result = showSnackbar(message = "完了しました", actionLabel = "元に戻す", duration = SnackbarDuration.Long)
+  return result == SnackbarResult.ActionPerformed
 }
