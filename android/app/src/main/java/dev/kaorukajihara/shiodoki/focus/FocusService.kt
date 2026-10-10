@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.os.Build
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
@@ -33,6 +34,7 @@ class FocusService : LifecycleService() {
 
   private val screenReceiver = object : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+      Log.i(TAG, "${intent.action} in state ${controller.state.value}")
       when (intent.action) {
         Intent.ACTION_USER_PRESENT -> {
           controller.onUnlock()
@@ -61,8 +63,10 @@ class FocusService : LifecycleService() {
       addAction(Intent.ACTION_USER_PRESENT)
       addAction(Intent.ACTION_SCREEN_OFF)
     }
-    // System broadcasts still reach a not-exported receiver.
-    ContextCompat.registerReceiver(this, screenReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+    // Exported: USER_PRESENT comes from SystemUI, which runs under an app uid, so a not-exported
+    // receiver never gets it (only SCREEN_OFF, sent by the system uid, would arrive). Both are
+    // protected broadcasts, so other apps cannot send them.
+    ContextCompat.registerReceiver(this, screenReceiver, filter, ContextCompat.RECEIVER_EXPORTED)
     // A session left by a killed process (design §6.6).
     controller.recover()
     lifecycleScope.launch {
@@ -121,6 +125,7 @@ class FocusService : LifecycleService() {
   }
 
   companion object {
+    private const val TAG = "FocusService"
     private const val CHANNEL_ID = "focus_standby"
     private const val NOTIFICATION_ID = 1
     private val TIME = DateTimeFormatter.ofPattern("HH:mm")

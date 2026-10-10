@@ -69,9 +69,14 @@ class AppContainer(context: Context) {
       recorder = FirestoreSessionRecorder(firestore, uid),
       screen = ActivityFocusScreen(appContext),
       canPrompt = {
-        authManager.account.value != null &&
-          FocusPermission.OVERLAY.isGranted(appContext) &&
-          !deviceGuards.isBusy()
+        val signedIn = authManager.account.value != null
+        val overlay = FocusPermission.OVERLAY.isGranted(appContext)
+        val busy = deviceGuards.isBusy()
+        // Logged so "the screen did not appear" can be explained from logcat.
+        if (!signedIn || !overlay || busy) {
+          Log.i(TAG, "Focus screen not shown: signedIn=$signedIn overlay=$overlay busy=$busy")
+        }
+        signedIn && overlay && !busy
       },
       onStoreError = { Log.w(TAG, "Focus store write failed", it) },
     )
