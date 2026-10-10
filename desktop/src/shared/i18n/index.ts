@@ -3,14 +3,20 @@
  * (main, UI renderer) calls setLocale() once at startup, before building any text.
  */
 
+import { en } from "./en";
 import { ja, type Messages } from "./ja";
 
-export type Locale = "ja";
+export type Locale = "ja" | "en";
 export type { Messages };
 
-const MESSAGES: Record<Locale, Messages> = { ja };
+const MESSAGES: Record<Locale, Messages> = { ja, en };
 
 let current: Locale = "ja";
+
+/** Japanese for any Japanese language tag ("ja", "ja-JP"), English for everything else. */
+export function resolveLocale(languageTag: string): Locale {
+  return languageTag.toLowerCase().startsWith("ja") ? "ja" : "en";
+}
 
 export function setLocale(locale: Locale): void {
   current = locale;

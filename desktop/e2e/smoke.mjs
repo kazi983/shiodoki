@@ -1,7 +1,7 @@
 // End-to-end smoke test (local mode, TIMER_LOCAL=1): launches the built app with Playwright, loads a
 // seeded local store, adds a task, runs a (5 second) session and checks that the
-// picker comes back and the time was recorded. Saves screenshots to
-// e2e/screenshots/.
+// picker comes back and the time was recorded. Then relaunches in English and checks the
+// translated UI. Saves screenshots to e2e/screenshots/.
 //
 //   npm run build && node e2e/smoke.mjs          (on a desktop)
 //   npm run build && xvfb-run -a node e2e/smoke.mjs   (headless Linux)
@@ -49,11 +49,28 @@ writeFileSync(
   }),
 );
 
-const app = await electron.launch({
-  executablePath: require("electron"),
-  args: [join(root, "out/main/index.js"), "--ozone-platform=x11", ...(process.getuid?.() === 0 ? ["--no-sandbox"] : [])],
-  env: { ...process.env, TASK_MODE: "test", TIMER_LOCAL: "1", XDG_CONFIG_HOME: configHome, ELECTRON_RENDERER_URL: "" },
-});
+/** SHIODOKI_LOCALE fixes the UI language whatever the OS language is. */
+async function launch(locale) {
+  const launched = await electron.launch({
+    executablePath: require("electron"),
+    args: [join(root, "out/main/index.js"), "--ozone-platform=x11", ...(process.getuid?.() === 0 ? ["--no-sandbox"] : [])],
+    env: {
+      ...process.env,
+      TASK_MODE: "test",
+      TIMER_LOCAL: "1",
+      SHIODOKI_LOCALE: locale,
+      XDG_CONFIG_HOME: configHome,
+      ELECTRON_RENDERER_URL: "",
+    },
+  });
+  // Native confirm dialogs cannot be clicked by Playwright: always answer "OK".
+  await launched.evaluate(({ dialog }) => {
+    dialog.showMessageBox = async () => ({ response: 0, checkboxChecked: false });
+  });
+  return launched;
+}
+
+let app = await launch("ja");
 
 async function windowFor(route) {
   for (let i = 0; i < 100; i++) {
@@ -73,11 +90,6 @@ async function waitClosed(route) {
 }
 
 try {
-  // Native confirm dialogs cannot be clicked by Playwright: always answer "OK".
-  await app.evaluate(({ dialog }) => {
-    dialog.showMessageBox = async () => ({ response: 0, checkboxChecked: false });
-  });
-
   // ---- picker with the seeded tasks ----
   const picker = await windowFor("picker");
   await picker.waitForSelector(".task-list [role=option]");
@@ -135,6 +147,25 @@ try {
   assert.equal(store.sessions[0].endReason, "interval");
   assert.equal(store.sessions[0].taskName, "E2Eで追加したタスク");
   assert.equal(store.tasks.find((t) => t.name === "E2Eで追加したタスク").sessionCount, 1);
+
+  // ---- English UI: same data, translated text ----
+  await app.close();
+  app = await launch("en");
+  const pickerEn = await windowFor("picker");
+  await pickerEn.waitForSelector(".task-list [role=option]");
+  assert.equal(await pickerEn.locator("h1").textContent(), "What's your focus now?");
+  assert.equal(await pickerEn.evaluate(() => document.documentElement.lang), "en");
+  assert.match(await pickerEn.locator(".resume-card").textContent(), /Continue last task.* · 1 session(?!s)/);
+  // English shows only the priority key in group headings.
+  assert.deepEqual(await pickerEn.locator(".group-label").allTextContents(), ["NOW", "SOONER", "ANYTIME"]);
+  await pickerEn.screenshot({ path: join(shots, "5-picker-en.png") });
+
+  await pickerEn.click("text=Manage tasks");
+  const managementEn = await windowFor("management");
+  await managementEn.waitForSelector(".task-table tbody tr");
+  assert.equal(await managementEn.locator('tr:has-text("既存タスク") .cell-date').textContent(), "Sep 1");
+  assert.equal(await managementEn.locator('tr:has-text("既存タスク") .prio-chip').textContent(), "Soon");
+  await managementEn.screenshot({ path: join(shots, "6-management-en.png") });
 
   console.log("E2E smoke test passed. Screenshots:", shots);
 } finally {

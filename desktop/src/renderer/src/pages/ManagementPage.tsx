@@ -12,16 +12,6 @@ import { alertError } from "../errors";
 import { BackIcon, SearchIcon, TrashIcon } from "../icons";
 import { SyncBadge } from "../SyncBadge";
 
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function formatFullDate(iso: string): string {
-  const d = new Date(iso);
-  return `${d.getFullYear()}-${formatDate(iso)}`;
-}
-
 function matches(task: Task, query: string): boolean {
   const q = query.trim().toLowerCase();
   return !q || task.name.toLowerCase().includes(q) || task.memo.toLowerCase().includes(q);
@@ -259,7 +249,7 @@ export function ManagementPage() {
                         )}
                       </td>
                       <td className="right cell-time">{formatDuration(task.totalMinutes)}</td>
-                      <td className="right cell-date">{formatDate(task.createdAt)}</td>
+                      <td className="right cell-date">{t().dates.short(new Date(task.createdAt))}</td>
                     </tr>
                   );
                 })}
@@ -332,9 +322,9 @@ export function ManagementPage() {
                   <dt>{common.sessions}</dt>
                   <dd>{selected.sessionCount}</dd>
                 </div>
-                <div title={formatFullDate(selected.createdAt)}>
+                <div title={t().dates.full(new Date(selected.createdAt))}>
                   <dt>{text.created}</dt>
-                  <dd>{formatDate(selected.createdAt)}</dd>
+                  <dd>{t().dates.short(new Date(selected.createdAt))}</dd>
                 </div>
               </dl>
 

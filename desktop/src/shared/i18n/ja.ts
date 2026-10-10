@@ -5,6 +5,8 @@
  * a <br>), the function is generic: the caller passes the elements and renders the returned
  * array, so each language can put them in its own word order.
  */
+const pad = (n: number) => String(n).padStart(2, "0");
+
 export const ja = {
   common: {
     ok: "OK",
@@ -29,6 +31,12 @@ export const ja = {
   units: {
     minutes: (n: number) => `${n}分`,
     seconds: (n: number) => `${n}秒`,
+  },
+  dates: {
+    /** "10-09" */
+    short: (d: Date) => `${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+    /** "2026-10-09" */
+    full: (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
   },
   sync: {
     local: { text: "この PC のみ", title: "データはこの PC にだけ保存されています" },
@@ -56,6 +64,8 @@ export const ja = {
     resumeLabel: "前回の続き",
     resumeMeta: (total: string, sessions: number) => `累計 ${total} · ${sessions} セッション`,
     resumeKbdTitle: "入力欄が空のときに Enter で開始",
+    /** Show the label next to the priority key in group headings ("SOONER 近いうち"). */
+    showPriorityLabel: true,
     nextPlan: "次の予定",
     nextPlanSet: <T>(time: T, bufferMinutes: number): (string | T)[] => ["次の予定 ", time, ` の${bufferMinutes}分前`],
     change: "変更",

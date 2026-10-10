@@ -2,7 +2,7 @@ import { hostname } from "node:os";
 import { join } from "node:path";
 import { app, dialog, shell } from "electron";
 import { EMULATOR_PROJECT_ID, FIREBASE_CONFIG } from "@shared/firebaseConfig";
-import { t } from "@shared/i18n";
+import { resolveLocale, setLocale, t } from "@shared/i18n";
 import { IPC } from "@shared/ipc";
 import type { DataEvent, SyncInfo } from "@shared/sync";
 import { AppController } from "./appController";
@@ -76,7 +76,12 @@ function main(): void {
   // Keep running in the tray when every window is closed.
   app.on("window-all-closed", () => {});
 
-  app.whenReady().then(() => (LOCAL_MODE ? startLocal() : startFirebase()));
+  app.whenReady().then(() => {
+    // app.getLocale() is only valid after "ready". SHIODOKI_LOCALE overrides it (tests).
+    setLocale(resolveLocale(process.env.SHIODOKI_LOCALE || app.getLocale()));
+    if (LOCAL_MODE) startLocal();
+    else startFirebase();
+  });
 }
 
 // ---------------------------------------------------------------------------
