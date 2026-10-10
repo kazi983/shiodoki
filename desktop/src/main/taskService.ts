@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { t } from "@shared/i18n";
 import { startOfWorkDay, summarizeSessions, type DaySummary, type SessionRecord } from "@shared/session";
 import {
   compareTasks,
@@ -32,7 +33,7 @@ export class TaskService {
 
   async get(id: string): Promise<Task> {
     const task = await this.repo.getTask(id);
-    if (!task || task.deleted) throw new Error("タスクが見つかりません");
+    if (!task || task.deleted) throw new Error(t().errors.taskNotFound);
     return task;
   }
 
