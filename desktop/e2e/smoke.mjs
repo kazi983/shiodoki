@@ -1,7 +1,7 @@
 // End-to-end smoke test (local mode, TIMER_LOCAL=1): launches the built app with Playwright, loads a
 // seeded local store, adds a task, runs a (5 second) session and checks that the
-// picker comes back and the time was recorded. Then relaunches in English and checks the
-// translated UI. Saves screenshots to e2e/screenshots/.
+// picker comes back and the time was recorded. Then relaunches with the language setting
+// (settings.json) set to English and checks the translated UI. Saves screenshots to e2e/screenshots/.
 //
 //   npm run build && node e2e/smoke.mjs          (on a desktop)
 //   npm run build && xvfb-run -a node e2e/smoke.mjs   (headless Linux)
@@ -49,8 +49,11 @@ writeFileSync(
   }),
 );
 
-/** SHIODOKI_LOCALE fixes the UI language whatever the OS language is. */
-async function launch(locale) {
+/**
+ * SHIODOKI_LOCALE fixes the UI language whatever the OS language is; an empty value leaves it
+ * to settings.json.
+ */
+async function launch(locale, extraEnv = {}) {
   const launched = await electron.launch({
     executablePath: require("electron"),
     args: [join(root, "out/main/index.js"), "--ozone-platform=x11", ...(process.getuid?.() === 0 ? ["--no-sandbox"] : [])],
@@ -61,6 +64,7 @@ async function launch(locale) {
       SHIODOKI_LOCALE: locale,
       XDG_CONFIG_HOME: configHome,
       ELECTRON_RENDERER_URL: "",
+      ...extraEnv,
     },
   });
   // Native confirm dialogs cannot be clicked by Playwright: always answer "OK".
@@ -148,9 +152,12 @@ try {
   assert.equal(store.sessions[0].taskName, "E2Eで追加したタスク");
   assert.equal(store.tasks.find((t) => t.name === "E2Eで追加したタスク").sessionCount, 1);
 
-  // ---- English UI: same data, translated text ----
+  // ---- English UI from the language setting: same data, translated text ----
   await app.close();
-  app = await launch("en");
+  writeFileSync(join(dataDir, "settings.json"), JSON.stringify({ language: "en" }));
+  // The OS says Japanese, so English can only come from the setting.
+  app = await launch("", { LANG: "ja_JP.UTF-8", LANGUAGE: "ja" });
+  assert.match(await app.evaluate(({ app: electronApp }) => electronApp.getLocale()), /^ja/);
   const pickerEn = await windowFor("picker");
   await pickerEn.waitForSelector(".task-list [role=option]");
   assert.equal(await pickerEn.locator("h1").textContent(), "What's your focus now?");
