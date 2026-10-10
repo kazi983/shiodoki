@@ -1,6 +1,6 @@
 # Shiodoki Android アプリ 設計書
 
-- ステータス: ドラフト v0.5（レビュー待ち）
+- ステータス: ドラフト v0.6（レビュー待ち）
 - 作成日: 2026-10-06
 - 対象フェーズ: P4（タスク管理・PC の状況表示）、P5（フォーカス画面）、P6 の一部
 - 前提: [要件定義書](../requirements.md) v0.7。要件・データモデルは要件定義書が正で、本書は「どう作るか」を決める
@@ -12,6 +12,7 @@
 | v0.1 | 2026-10-06 | 初版 |
 | v0.2 | 2026-10-06 | パッケージ名を `dev.kaorukajihara.shiodoki` に決定（Q-A1）。SDK と Kotlin のバージョン、Emulator 接続時のログイン方法とローカルネットワーク権限を、実装（手順 1）に合わせて更新 |
 | v0.3 | 2026-10-06 | 画面の見た目をデザインキャンバス「Shiodoki UI/UX改善案」（Android ページ）に合わせる（§5）。優先度の色と累計時間の表記をデスクトップと分ける（§4.1） |
+| v0.6 | 2026-10-09 | 手順 6 の実装に合わせて更新：受信側を `RECEIVER_EXPORTED` で登録する理由（§6.1）、フォーカス画面は状態を見て自分で閉じ、離れたらスキップ扱い（§6.4）、機能をオンにしたときの権限の案内（§6.7）、ログアウト時に記録を待つ（§7.2）、フォーカス画面の PC カード（§5.7） |
 | v0.5 | 2026-10-09 | `FocusController`（手順 5）の実装に合わせて §6.1・§6.2 を更新：通話中に 30 分経ったときの動き、タイマーを動かすスコープ、端末への保存を 1 本のキューで順に行うこと、`TaskRepository` に依存しないこと |
 | v0.4 | 2026-10-07 | PC の状況カード（手順 4）の表示文言を、デザインキャンバスの「PC の状況カード」「ホーム（PC で途中終了）」に合わせて確定（§5.3） |
 
@@ -343,7 +344,7 @@ flowchart LR
 ```
 
 - 全画面・ダークでも読める配色。ステータスバーは表示したまま（時刻や通知を見られるように）。
-- 「PC と同じ」は `state/desktop` が `running` で、かつ heartbeat が新しい（§5.3 と同じ判定）ときだけ出す。
+- 「PC と同じ」は `state/desktop` が `running` で、かつ heartbeat が新しい（§5.3 と同じ判定）ときだけ出す。`currentTaskId` がない場合も出さない。カードの左はアイコンを丸で囲むだけにし、キャンバスにある残り時間のリングは付けない（すぐ閉じる画面なので）。
 - クイック追加は、タスクを追加して一覧の先頭付近（`NOW` の末尾）に強調表示するだけで、セッションは開始しない。開始はそのタスクをタップする（デスクトップのクイック追加も「追加して選択状態にする」だけで、開始は別操作。Q-A3）。
 - タスク一覧はホームと同じ `StateFlow` を使うので、開いた瞬間に表示される。
 - 「スキップ」と戻るボタンは同じ動き（M-14）。
@@ -356,7 +357,7 @@ flowchart LR
 
 | 部品 | 役割 |
 |------|------|
-| `FocusService` | フォアグラウンドサービス。`ACTION_USER_PRESENT`（ロック解除）と `ACTION_SCREEN_OFF` を **動的に登録した BroadcastReceiver** で受け、`FocusController` に渡す。この 2 つはマニフェストに書いても届かない（要件 §6.4） |
+| `FocusService` | フォアグラウンドサービス。`ACTION_USER_PRESENT`（ロック解除）と `ACTION_SCREEN_OFF` を **動的に登録した BroadcastReceiver** で受け、`FocusController` に渡す。この 2 つはマニフェストに書いても届かない（要件 §6.4）。登録は **`RECEIVER_EXPORTED`** にする。`USER_PRESENT` は SystemUI（アプリの uid で動く）が送るため、`RECEIVER_NOT_EXPORTED` では届かない（`SCREEN_OFF` はシステムの uid から送られるので届く）。どちらも protected broadcast なので、他のアプリから偽の通知は送れない |
 | `FocusController` | 状態遷移と時間計測。Android のクラスに依存しない（時計、`SessionRecorder`、`FocusStore`（`LocalStore` のうちフォーカス機能の部分）、画面を出す処理（`FocusScreen`）、表示してよいかの判定をコンストラクタで受け取る）。タスク一覧とクイック追加はフォーカス画面が `TaskRepository` を直接使うので、`FocusController` は `TaskRepository` に依存しない |
 | `FocusActivity` | フォーカス画面。選択・スキップ・クイック追加を `FocusController` に伝えて閉じる |
 | `DeviceGuards` | 通話中・着信中・アラーム鳴動中かどうか（M-15） |
@@ -429,13 +430,14 @@ stateDiagram-v2
       android:taskAffinity=".focus"
       android:launchMode="singleInstance"
       android:showWhenLocked="false"
-      android:theme="@style/Theme.Focus" />
+      android:theme="@style/Theme.Shiodoki" />
   ```
 
   - `excludeFromRecents` で「最近使ったアプリ」に残さない。
   - 別の `taskAffinity` ＋ `singleInstance` で、本体（`MainActivity`）のタスクと混ざらず、閉じると直前のアプリに戻る。
   - `showWhenLocked="false"` でロック画面の上には出さない（M-11）。
-- 閉じるときは `finishAndRemoveTask()`。
+- 閉じるときは `finishAndRemoveTask()`。**閉じるタイミングは `FocusController` の状態だけで決める**：Activity は状態を購読し、`Prompting` でなくなったら（選択・スキップ・画面オフ・ログアウト）自分で閉じる。そのため `FocusScreen.dismiss()` の Android 実装は何もしない。
+- 選ばずに画面を離れた（ホームボタン、他のアプリへの切り替えなど。`onStop`）ときはスキップとして扱う。`Prompting` のまま残ると、次のロック解除で表示されなくなるため。
 
 ### 6.5 フォアグラウンドサービス
 
@@ -470,7 +472,8 @@ stateDiagram-v2
 | 電池の最適化の対象外 | メーカー独自の省電力でサービスが止められるのを防ぐ | `Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`（`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` 権限を宣言） |
 | `FOREGROUND_SERVICE`、`FOREGROUND_SERVICE_SPECIAL_USE`、`RECEIVE_BOOT_COMPLETED` | サービスと再起動時の起動 | マニフェストに書くだけ（ユーザー操作不要） |
 
-- 機能をオンにしたとき、上の表の順に 1 つずつ案内する（説明文 → 「設定を開く」）。設定から戻ってきたら（`onResume`）状態を確認し直す。
+- 設定画面に 3 つの権限を「許可済み / 設定する」の行で並べ、それを案内とする。機能をオンにしたときは、未許可の最初の 1 つの設定画面（通知は実行時のダイアログ）をすぐ開く。設定から戻ってきたら（`onResume`）状態を確認し直す。
+- 通知のダイアログは 2 回拒否すると出なくなるので、拒否されたらアプリの通知設定画面を開く。
 - 3 つそろわなくてもオンにはできるが、設定画面に「未許可」を表示し続ける。
 
 ### 6.8 テストモード（M-18）
@@ -507,7 +510,7 @@ sequenceDiagram
 ### 7.2 ログアウト（A-04）
 
 1. 確認ダイアログ。
-2. フォーカス機能が `Running` なら `finishSession(app_exit)` で記録する。
+2. フォーカス機能が `Running` なら `finishSession(app_exit)` で記録する。記録は端末への保存のキューの中で行われるので、`FocusController.flush()` でキューが空になるのを待ってから次へ進む（待たないと、`signOut()` で `uid` が先に null になり、記録が捨てられる）。
 3. `FocusService` を止める。
 4. スナップショット購読を解除する。
 5. `FirebaseAuth.signOut()`、`CredentialManager.clearCredentialState()`（次回にアカウント選択を出すため）。
