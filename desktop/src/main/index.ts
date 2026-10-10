@@ -183,7 +183,7 @@ function startFirebase(): void {
         noLink: true,
         title: "Shiodoki",
         message: t().dialogs.slowStart,
-        detail: "Firebase の処理を開始できていません。ターミナルに [data] で始まるエラーが出ていないか確認してください。",
+        detail: "Firebase has not started. Check the terminal for errors starting with [data].",
       })
       .then(({ response }) => {
         if (response === 1) void wired.controller.exit();
@@ -198,8 +198,8 @@ async function googleIdToken(): Promise<string> {
   const client = loadOAuthClient(file);
   if (!client) {
     throw new Error(
-      "Google ログインの設定ファイルがありません。\n" +
-        "desktop/README.md の「初回の準備：Google ログインの設定」に従って resources/oauth-client.json を置いてください。",
+      "The Google sign-in config file is missing.\n" +
+        "Put resources/oauth-client.json in place as described in desktop/README.md (Google sign-in setup).",
     );
   }
   return signInWithGoogle(client, (url) => shell.openExternal(url));

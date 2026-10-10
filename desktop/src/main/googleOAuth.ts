@@ -32,7 +32,7 @@ export function loadOAuthClient(file: string): OAuthClient | null {
   const raw = JSON.parse(readFileSync(file, "utf8"));
   const c = raw.installed ?? raw;
   if (typeof c.client_id !== "string" || typeof c.client_secret !== "string") {
-    throw new Error(`${file} に client_id / client_secret がありません`);
+    throw new Error(`${file} has no client_id / client_secret`);
   }
   return { clientId: c.client_id, clientSecret: c.client_secret };
 }
@@ -68,7 +68,7 @@ export function parseCallback(
 ): { code: string } | { error: string } | null {
   const u = new URL(url, "http://127.0.0.1");
   if (u.pathname !== "/") return null;
-  if (u.searchParams.get("state") !== expectedState) return { error: "state が一致しません" };
+  if (u.searchParams.get("state") !== expectedState) return { error: "OAuth state mismatch" };
   const error = u.searchParams.get("error");
   if (error) return { error: error === "access_denied" ? t().login.cancelled : error };
   const code = u.searchParams.get("code");
@@ -136,7 +136,7 @@ export async function signInWithGoogle(
     });
     const body = (await res.json()) as { id_token?: string; error?: string; error_description?: string };
     if (!res.ok || !body.id_token) {
-      throw new Error(`Google のトークン取得に失敗しました: ${body.error_description ?? body.error ?? res.status}`);
+      throw new Error(`Failed to get a Google token: ${body.error_description ?? body.error ?? res.status}`);
     }
     return body.id_token;
   } finally {

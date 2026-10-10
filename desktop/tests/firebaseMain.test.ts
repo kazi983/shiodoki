@@ -153,7 +153,7 @@ describe("Google OAuth (loopback + PKCE)", () => {
 
   test("callback parsing", () => {
     expect(parseCallback("/?code=abc&state=s", "s")).toEqual({ code: "abc" });
-    expect(parseCallback("/?code=abc&state=x", "s")).toEqual({ error: "state が一致しません" });
+    expect(parseCallback("/?code=abc&state=x", "s")).toEqual({ error: "OAuth state mismatch" });
     expect(parseCallback("/?error=access_denied&state=s", "s")).toEqual({ error: "ログインがキャンセルされました" });
     expect(parseCallback("/favicon.ico", "s")).toBeNull();
   });

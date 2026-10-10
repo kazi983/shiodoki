@@ -13,7 +13,7 @@
 | 着手順 | デスクトップ → Android |
 | 言語設定の保存先 | 端末ごと（Firestore で同期しない） |
 | 開発者向けの文 | 辞書に入れず、英語の文に書き換える（どちらの言語でも英語で出る）。分け方は用語集 §5 |
-| 表記の変更（言語に関係なく） | 日本語の「作業終了」を「離席」に揃える（用語集 §6）。累計時間はゼロ埋めをやめて `2h 5m` にする（両アプリ） |
+| 表記の変更（言語に関係なく） | `stopAt` の「作業終了」を「作業ストップ」（英語は Wrap up）に変える（用語集 §6）。累計時間はゼロ埋めをやめて `2h 5m` にする（両アプリ） |
 | 日付 | 英語版は `Oct 9`、日本語版は `10-09` のまま |
 
 Firestore には表示文言を保存していない（優先度はキー、`state/desktop` は enum）。そのためデータモデル（§5）とセキュリティルールは変えない。
@@ -56,7 +56,7 @@ Firestore には表示文言を保存していない（優先度はキー、`sta
 |---|---------|------|-----------|
 | 0 | `docs/i18n-plan` | 本計画、用語集、requirements §3.5 | なし |
 | 1 | `refactor/desktop-i18n-extract` | `shared/i18n` の仕組み（`ja` のみ）を作り、日本語文言（約 180 か所）を `t()` に置き換える。ロケールを preload で渡す経路と `<html lang>` を整える。テストのロケールを `ja` に固定 | なし |
-| 1.5 | `fix/desktop-leave-wording` | `ja.ts` の「作業終了」を「離席」に揃え、`formatDuration` のゼロ埋めをやめる。使われていない `formatMinutes` を削除。requirements §7.1 と desktop/README.md の画面名を更新。E2E と unit test の期待値も合わせる | 日本語の文言と累計時間の表記が変わる |
+| 1.5 | `fix/desktop-wording` | `ja.ts` の「作業終了」を「作業ストップ」に変え、開発者向けの文を英語にし、`formatDuration` のゼロ埋めをやめる。使われていない `formatMinutes` を削除。requirements §7.1 と desktop/README.md の画面名を更新。E2E と unit test の期待値も合わせる | 日本語の文言と累計時間の表記が変わる |
 | 2 | `feat/desktop-i18n-en` | `en.ts` の追加、英語向けの UI 調整（用語集 §5）、`i18n/` 以外に日本語の literal が残っていないかの検査テスト、E2E の英語 smoke を 1 本 | OS が日本語以外なら英語で表示 |
 | 3 | `feat/desktop-language-setting` | `settings.json`、トレイの言語サブメニュー、再起動で反映 | アプリ内で言語を選べる |
 | 4 | `refactor/android-i18n-extract` | 日本語文言（約 120 か所）を `values/strings.xml` に移す。`@StringRes` 化、`UiText` の導入 | なし |

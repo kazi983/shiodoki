@@ -53,7 +53,7 @@ export class DataBridge {
     });
     this.win.webContents.on("render-process-gone", (_e, details) => {
       console.error("Data window crashed:", details.reason);
-      this.rejectAll(new Error("データ処理が停止しました"));
+      this.rejectAll(new Error("The data window crashed"));
       if (this.win && !this.win.isDestroyed()) this.load();
     });
     this.win.webContents.on("console-message", (event) => {
@@ -69,12 +69,12 @@ export class DataBridge {
 
   request<T = unknown>(request: DataRequest, timeoutMs = 60_000): Promise<T> {
     const win = this.win;
-    if (!win || win.isDestroyed()) return Promise.reject(new Error("データ処理が開始されていません"));
+    if (!win || win.isDestroyed()) return Promise.reject(new Error("The data window is not running"));
     const id = this.nextId++;
     return new Promise<T>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id);
-        reject(new Error(`データ処理がタイムアウトしました (${request.op})`));
+        reject(new Error(`The data window timed out (${request.op})`));
       }, timeoutMs);
       this.pending.set(id, {
         resolve: (v) => {
@@ -91,7 +91,7 @@ export class DataBridge {
   }
 
   destroy(): void {
-    this.rejectAll(new Error("終了しました"));
+    this.rejectAll(new Error("The data window was closed"));
     if (this.win && !this.win.isDestroyed()) this.win.destroy();
     this.win = null;
   }
