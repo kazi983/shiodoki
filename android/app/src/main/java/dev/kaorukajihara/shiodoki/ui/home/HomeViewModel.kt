@@ -71,6 +71,11 @@ class HomeViewModel(
   fun complete(taskId: String) {
     repository.update(taskId, TaskPatch(completed = true))
   }
+
+  /** "元に戻す" on the snackbar after a swipe. Also clears `completedAt`. */
+  fun undoComplete(taskId: String) {
+    repository.update(taskId, TaskPatch(completed = false))
+  }
 }
 
 /**

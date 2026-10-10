@@ -1,8 +1,7 @@
 package dev.kaorukajihara.shiodoki.ui.home
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,22 +18,24 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -61,6 +62,7 @@ import dev.kaorukajihara.shiodoki.ui.components.SyncIndicator
 import dev.kaorukajihara.shiodoki.ui.theme.MonoFamily
 import dev.kaorukajihara.shiodoki.ui.theme.ShiodokiColors
 import dev.kaorukajihara.shiodoki.ui.theme.color
+import kotlinx.coroutines.launch
 
 /** Design §5.3 and the "ホーム" artboard: the PC status card and incomplete tasks by priority. */
 @Composable
@@ -73,8 +75,7 @@ fun HomeScreen(
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   val pcStatus by viewModel.pcStatus.collectAsStateWithLifecycle()
   val snackbarHostState = remember { SnackbarHostState() }
-  // Only the id survives configuration changes; the task itself is looked up again.
-  var confirmCompleteId by rememberSaveable { mutableStateOf<String?>(null) }
+  val scope = rememberCoroutineScope()
 
   LaunchedEffect(Unit) {
     viewModel.writeFailures.collect { snackbarHostState.showSnackbar("保存できませんでした") }
@@ -103,29 +104,21 @@ fun HomeScreen(
         groups = state.groups,
         topPadding = if (pcStatus == null) 8.dp else 28.dp,
         onEditTask = onEditTask,
-        onLongClick = { confirmCompleteId = it },
+        onComplete = { taskId ->
+          viewModel.complete(taskId)
+          scope.launch {
+            // A new swipe replaces the previous snackbar instead of waiting behind it.
+            snackbarHostState.currentSnackbarData?.dismiss()
+            val result = snackbarHostState.showSnackbar(
+              message = "完了しました",
+              actionLabel = "元に戻す",
+              duration = SnackbarDuration.Long,
+            )
+            if (result == SnackbarResult.ActionPerformed) viewModel.undoComplete(taskId)
+          }
+        },
       )
     }
-  }
-
-  val confirmTask = state.groups?.firstNotNullOfOrNull { g ->
-    g.tasks.find { it.id == confirmCompleteId }
-  }
-  if (confirmTask != null) {
-    AlertDialog(
-      onDismissRequest = { confirmCompleteId = null },
-      title = { Text("完了にしますか？") },
-      text = { Text(confirmTask.name) },
-      confirmButton = {
-        TextButton(onClick = {
-          confirmCompleteId = null
-          viewModel.complete(confirmTask.id)
-        }) { Text("完了") }
-      },
-      dismissButton = {
-        TextButton(onClick = { confirmCompleteId = null }) { Text("キャンセル") }
-      },
-    )
   }
 }
 
@@ -134,7 +127,7 @@ private fun ColumnScope.TaskList(
   groups: List<PriorityGroup>?,
   topPadding: Dp,
   onEditTask: (taskId: String) -> Unit,
-  onLongClick: (taskId: String) -> Unit,
+  onComplete: (taskId: String) -> Unit,
 ) {
   val fill = Modifier.weight(1f).fillMaxWidth()
   when {
@@ -155,11 +148,10 @@ private fun ColumnScope.TaskList(
           GroupHeader(group.priority, Modifier.padding(top = if (index == 0) 0.dp else 16.dp))
         }
         items(group.tasks, key = { it.id }) { task ->
-          TaskRow(
-            task = task,
-            onClick = { onEditTask(task.id) },
-            onLongClick = { onLongClick(task.id) },
-          )
+          // The state is keyed with the row, so a task restored by undo starts settled again.
+          SwipeToComplete(onComplete = { onComplete(task.id) }, modifier = Modifier.animateItem()) {
+            TaskRow(task = task, onClick = { onEditTask(task.id) })
+          }
         }
       }
     }
@@ -185,9 +177,44 @@ private fun GroupHeader(priority: Priority, modifier: Modifier = Modifier) {
   }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+/**
+ * A swipe in either direction completes the task (design §5.3). Half the row width is needed, so
+ * a scroll that drifts sideways does not complete anything; the snackbar offers undo.
+ */
 @Composable
-private fun TaskRow(task: Task, onClick: () -> Unit, onLongClick: () -> Unit) {
+private fun SwipeToComplete(onComplete: () -> Unit, modifier: Modifier, content: @Composable () -> Unit) {
+  val state = rememberSwipeToDismissBoxState(positionalThreshold = { totalDistance -> totalDistance * 0.5f })
+  SwipeToDismissBox(
+    state = state,
+    modifier = modifier,
+    onDismiss = { onComplete() },
+    backgroundContent = {
+      val direction = state.dismissDirection
+      // Nothing behind a settled row, so its rounded corners stay clean.
+      if (direction != SwipeToDismissBoxValue.Settled) {
+        Box(
+          Modifier
+            .fillMaxSize()
+            .clip(RoundedCornerShape(12.dp))
+            .background(ShiodokiColors.Accent)
+            .padding(horizontal = 20.dp),
+          contentAlignment = if (direction == SwipeToDismissBoxValue.StartToEnd) {
+            Alignment.CenterStart
+          } else {
+            Alignment.CenterEnd
+          },
+        ) {
+          Icon(Icons.Filled.Check, contentDescription = "完了", tint = ShiodokiColors.OnAccent)
+        }
+      }
+    },
+  ) {
+    content()
+  }
+}
+
+@Composable
+private fun TaskRow(task: Task, onClick: () -> Unit) {
   val memoLine = task.memo.lineSequence().firstOrNull { it.isNotBlank() }
   Row(
     modifier = Modifier
@@ -195,7 +222,7 @@ private fun TaskRow(task: Task, onClick: () -> Unit, onLongClick: () -> Unit) {
       .heightIn(min = 56.dp)
       .clip(RoundedCornerShape(12.dp))
       .background(ShiodokiColors.Surface)
-      .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+      .clickable(onClick = onClick)
       .padding(horizontal = 14.dp, vertical = 8.dp),
     verticalAlignment = Alignment.CenterVertically,
     horizontalArrangement = Arrangement.spacedBy(12.dp),
