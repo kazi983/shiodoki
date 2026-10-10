@@ -12,14 +12,15 @@ export type Priority = (typeof PRIORITIES)[number];
 export const DEFAULT_PRIORITY: Priority = "NOW";
 
 /**
- * dot: group marker in the picker; chip: label colors in the management table.
- * Labels are UI text: t().priority.
+ * shortName: the key as shown in the UI, the same in every language (SOONER shows as SOON; the
+ * stored value stays SOONER). dot: group marker in the picker; chip: label colors in the
+ * management table. Labels are UI text: t().priority.
  */
-export const PRIORITY_META: Record<Priority, { dot: string; chipFg: string; chipBg: string }> = {
-  NOW: { dot: "#ff8a4c", chipFg: "#ffd2b8", chipBg: "#3a2418" },
-  SOONER: { dot: "#f5c451", chipFg: "#fbe3a0", chipBg: "#3a3118" },
-  ANYTIME: { dot: "#4fd1a5", chipFg: "#b6f0db", chipBg: "#16342b" },
-  SOMEDAY: { dot: "#8b93a7", chipFg: "#c9d1e6", chipBg: "#262e42" },
+export const PRIORITY_META: Record<Priority, { shortName: string; dot: string; chipFg: string; chipBg: string }> = {
+  NOW: { shortName: "NOW", dot: "#ff8a4c", chipFg: "#ffd2b8", chipBg: "#3a2418" },
+  SOONER: { shortName: "SOON", dot: "#f5c451", chipFg: "#fbe3a0", chipBg: "#3a3118" },
+  ANYTIME: { shortName: "ANYTIME", dot: "#4fd1a5", chipFg: "#b6f0db", chipBg: "#16342b" },
+  SOMEDAY: { shortName: "SOMEDAY", dot: "#8b93a7", chipFg: "#c9d1e6", chipBg: "#262e42" },
 };
 
 export type UpdatedBy = "desktop" | "android" | "migration";

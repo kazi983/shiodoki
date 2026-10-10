@@ -288,7 +288,7 @@ export function PickerPage() {
           <div key={group.priority} className="task-group" role="group" aria-label={priority[group.priority]}>
             <div className="group-label" aria-hidden>
               <span className="group-dot" style={{ background: PRIORITY_META[group.priority].dot }} />
-              {group.priority}
+              {PRIORITY_META[group.priority].shortName}
               {text.showPriorityLabel && <span className="jp">{priority[group.priority]}</span>}
             </div>
             {group.tasks.map((task) => (
