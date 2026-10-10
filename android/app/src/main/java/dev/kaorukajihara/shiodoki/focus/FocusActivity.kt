@@ -6,6 +6,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.kaorukajihara.shiodoki.ShiodokiApp
@@ -27,6 +30,12 @@ class FocusActivity : ComponentActivity() {
       statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
       navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
     )
+    // Full screen except the status bar (design §5.7). A swipe from the edge shows the
+    // navigation bar for a moment, so Back (= skip) and Home stay reachable.
+    WindowCompat.getInsetsController(window, window.decorView).apply {
+      systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+      hide(WindowInsetsCompat.Type.navigationBars())
+    }
     // Not tied to STARTED: after a screen off the activity is stopped, and it must still close.
     lifecycleScope.launch {
       controller.state.collect { if (it != FocusState.Prompting) finishAndRemoveTask() }
