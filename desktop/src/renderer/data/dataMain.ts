@@ -55,7 +55,7 @@ async function main(): Promise<void> {
   }
 
   function requireStore(): FirestoreStore {
-    if (!store) throw new Error("ログインしていません");
+    if (!store) throw new Error("Not signed in");
     return store;
   }
 
