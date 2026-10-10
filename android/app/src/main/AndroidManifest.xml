@@ -2,6 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
   <uses-permission android:name="android.permission.INTERNET" />
+  <!-- Focus screen (design §6.7). -->
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+  <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+  <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
   <application
       android:name=".ShiodokiApp"
@@ -19,6 +26,38 @@
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
     </activity>
+
+    <!--
+      Focus screen (design §6.4): its own task so closing it returns to the previous app, not in
+      recents, and never over the lock screen (M-11).
+    -->
+    <activity
+        android:name=".focus.FocusActivity"
+        android:excludeFromRecents="true"
+        android:exported="false"
+        android:launchMode="singleInstance"
+        android:showWhenLocked="false"
+        android:taskAffinity=".focus"
+        android:theme="@style/Theme.Shiodoki"
+        android:windowSoftInputMode="adjustResize" />
+
+    <service
+        android:name=".focus.FocusService"
+        android:exported="false"
+        android:foregroundServiceType="specialUse">
+      <property
+          android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+          android:value="Shows a task picker on every unlock and records the time spent on the chosen task until the screen turns off. Needs to receive USER_PRESENT and SCREEN_OFF, which are only delivered to runtime-registered receivers." />
+    </service>
+
+    <receiver
+        android:name=".focus.BootReceiver"
+        android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED" />
+        <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+      </intent-filter>
+    </receiver>
   </application>
 
 </manifest>

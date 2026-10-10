@@ -326,6 +326,18 @@ class FocusControllerTest {
   }
 
   @Test
+  fun `flush waits until the last session is recorded`() = runTest {
+    val h = Harness(this)
+    h.start()
+    h.advance(5 * MINUTE)
+    h.controller.stop()
+    assertTrue(h.recorded.isEmpty())
+
+    h.controller.flush()
+    assertEquals(EndReason.APP_EXIT, h.recorded.single().endReason)
+  }
+
+  @Test
   fun `stop while prompting closes the screen`() = runTest {
     val h = Harness(this)
     h.controller.onUnlock()

@@ -3,6 +3,8 @@ package dev.kaorukajihara.shiodoki.data
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import dev.kaorukajihara.shiodoki.model.DesktopStatus
+import dev.kaorukajihara.shiodoki.model.EndReason
+import dev.kaorukajihara.shiodoki.model.FinishedSession
 import dev.kaorukajihara.shiodoki.model.Priority
 import dev.kaorukajihara.shiodoki.model.TaskInput
 import dev.kaorukajihara.shiodoki.model.TaskPatch
@@ -51,6 +53,46 @@ class MappingTest {
     val undone = patchToDoc(TaskPatch(completed = false), now)
     assertTrue(undone.containsKey("completedAt"))
     assertNull(undone["completedAt"])
+  }
+
+  @Test
+  fun `sessionToDoc has exactly the fields the rules allow`() {
+    val start = Instant.parse("2026-10-09T05:00:00Z")
+    val session = FinishedSession("s1", "t1", "英単語", start, start.plusSeconds(150), EndReason.SCREEN_OFF)
+    val doc = sessionToDoc(session, "Pixel")
+    assertEquals(
+      setOf("taskId", "taskName", "startedAt", "endedAt", "elapsedMinutes", "endReason", "device"),
+      doc.keys,
+    )
+    assertEquals(Timestamp(start), doc["startedAt"])
+    assertEquals(Timestamp(start.plusSeconds(150)), doc["endedAt"])
+    // An integer, as the rules require.
+    assertEquals(2L, doc["elapsedMinutes"])
+    assertEquals("screen_off", doc["endReason"])
+    assertEquals("Pixel", doc["device"])
+  }
+
+  @Test
+  fun `sessionToDoc cuts the name and device to the rule limits`() {
+    val start = Instant.parse("2026-10-09T05:00:00Z")
+    val session = FinishedSession("s1", "t1", "a".repeat(250), start, start, EndReason.INTERVAL)
+    val doc = sessionToDoc(session, "d".repeat(150))
+    assertEquals(200, (doc["taskName"] as String).length)
+    assertEquals(100, (doc["device"] as String).length)
+  }
+
+  @Test
+  fun `sessionCountersDoc increments the counters and stamps the write`() {
+    val start = Instant.parse("2026-10-09T05:00:00Z")
+    val session = FinishedSession("s1", "t1", "a", start, start.plusSeconds(600), EndReason.SCREEN_OFF)
+    val doc = sessionCountersDoc(session)
+    assertEquals(setOf("totalMinutes", "sessionCount", "updatedAt", "updatedBy"), doc.keys)
+    // FieldValue.increment() has no equals(), so only check that it is not a plain number:
+    // writing a number would overwrite the totals instead of adding to them.
+    assertTrue(doc["totalMinutes"] is FieldValue)
+    assertTrue(doc["sessionCount"] is FieldValue)
+    assertEquals(FieldValue.serverTimestamp(), doc["updatedAt"])
+    assertEquals("android", doc["updatedBy"])
   }
 
   @Test

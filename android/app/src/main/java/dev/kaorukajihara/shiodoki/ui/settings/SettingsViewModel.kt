@@ -6,6 +6,7 @@ import dev.kaorukajihara.shiodoki.auth.Account
 import dev.kaorukajihara.shiodoki.auth.AuthManager
 import dev.kaorukajihara.shiodoki.data.SyncStatus
 import dev.kaorukajihara.shiodoki.data.TaskRepository
+import dev.kaorukajihara.shiodoki.focus.FocusFeature
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -15,6 +16,7 @@ import kotlinx.coroutines.launch
 class SettingsViewModel(
   private val authManager: AuthManager,
   repository: TaskRepository,
+  private val focusFeature: FocusFeature,
 ) : ViewModel() {
   val account: StateFlow<Account?> = authManager.account
 
@@ -26,12 +28,23 @@ class SettingsViewModel(
       repository.snapshot.value?.syncStatus,
     )
 
+  /** null until DataStore is read, so the switch does not flash "off". */
+  val focusEnabled: StateFlow<Boolean?> = focusFeature.enabled
+    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+  fun setFocusEnabled(enabled: Boolean) {
+    viewModelScope.launch { focusFeature.setEnabled(enabled) }
+  }
+
   /**
-   * A-04 (design §7.2). The task snapshot listener stops by itself when the uid becomes null.
-   * Steps that do not exist yet (ending a focus session, stopping the service, clearing
-   * DataStore) are added with those features.
+   * A-04 (design §7.2): record a running phone session, stop the service and clear the
+   * account's local data while still signed in, then sign out. The task snapshot listener stops
+   * by itself when the uid becomes null.
    */
   fun signOut() {
-    viewModelScope.launch { authManager.signOut() }
+    viewModelScope.launch {
+      focusFeature.onSignOut()
+      authManager.signOut()
+    }
   }
 }
