@@ -1,3 +1,5 @@
+import { t } from "@shared/i18n";
+
 /** Strip Electron's "Error invoking remote method 'x': Error: " prefix. */
 export function errorMessage(error: unknown): string {
   const raw = error instanceof Error ? error.message : String(error);
@@ -5,5 +7,5 @@ export function errorMessage(error: unknown): string {
 }
 
 export async function alertError(error: unknown): Promise<void> {
-  await window.api.dialog.alert("エラー", errorMessage(error));
+  await window.api.dialog.alert(t().common.error, errorMessage(error));
 }

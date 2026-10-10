@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { t } from "@shared/i18n";
 import type { RunningInfo } from "@shared/ipc";
 import { formatHHMM } from "@shared/leave";
 import { CheckIcon, Ring } from "../icons";
@@ -40,6 +41,7 @@ export function OverlayPage() {
   const warn = remaining <= Math.min(WARN_MS, total / 6);
   const color = warn ? "var(--warn)" : "var(--accent)";
   const minutesLeft = Math.ceil(remaining / 60_000);
+  const text = t().overlay;
 
   const ring = (
     <Ring size={44} width={4} fraction={total > 0 ? remaining / total : 0} color={color}>
@@ -68,14 +70,18 @@ export function OverlayPage() {
                 {info?.taskName ?? ""}
               </span>
               <span className="overlay-sub">
-                残り <span className="mono">{formatCountdown(remaining)}</span>
-                {info?.stopAt && ` · ${formatHHMM(new Date(info.stopAt))} に作業終了`}
+                {text.remaining(
+                  <span key="countdown" className="mono">
+                    {formatCountdown(remaining)}
+                  </span>,
+                  info?.stopAt ? formatHHMM(new Date(info.stopAt)) : null,
+                )}
               </span>
             </div>
           </div>
           <button type="button" className="btn btn-primary overlay-complete" onClick={complete}>
             <CheckIcon />
-            完了して次を選ぶ
+            {text.completeAndPick}
           </button>
         </div>
       ) : (
@@ -83,8 +89,8 @@ export function OverlayPage() {
           type="button"
           className="overlay-tab"
           onClick={complete}
-          aria-label={`残り${minutesLeft}分。クリックでセッションを完了`}
-          title="セッションを完了してタスクを選ぶ"
+          aria-label={text.tabAria(minutesLeft)}
+          title={text.tabTitle}
         >
           {ring}
         </button>

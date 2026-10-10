@@ -1,12 +1,6 @@
 import { useEffect, useState } from "react";
+import { t } from "@shared/i18n";
 import type { SyncInfo } from "@shared/sync";
-
-const LABEL: Record<SyncInfo["status"], { text: string; title: string }> = {
-  local: { text: "この PC のみ", title: "データはこの PC にだけ保存されています" },
-  synced: { text: "同期済み", title: "すべての変更が保存されています" },
-  pending: { text: "送信待ち", title: "未送信の変更があります。オンラインになると自動で送信されます" },
-  offline: { text: "オフライン", title: "オフラインです。変更はこの PC に保存され、オンラインになると自動で送信されます" },
-};
 
 /** Sync status (requirements D-06). Refreshes whenever tasks change. */
 export function SyncBadge() {
@@ -19,7 +13,7 @@ export function SyncBadge() {
   }, []);
 
   if (!info) return null;
-  const label = LABEL[info.status];
+  const label = t().sync[info.status];
   return (
     <span className={`sync-badge sync-${info.status}`} title={info.email ? `${label.title}\n${info.email}` : label.title}>
       <span className="sync-dot" aria-hidden />

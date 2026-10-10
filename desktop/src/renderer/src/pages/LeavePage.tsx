@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { t } from "@shared/i18n";
 import type { LeaveInfo } from "@shared/ipc";
 import { WARNING_LEAD_MINUTES, formatHHMM } from "@shared/leave";
 import { formatDuration } from "@shared/task";
@@ -27,6 +28,7 @@ function LeaveWarning({ info }: { info: LeaveInfo | null }) {
   const [busy, setBusy] = useState(false);
   const task = info?.task ?? null;
   const memoValue = memo ?? task?.memo ?? "";
+  const text = t().leave;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -70,24 +72,24 @@ function LeaveWarning({ info }: { info: LeaveInfo | null }) {
           </text>
           {stopAt && (
             <text x="100" y="138" textAnchor="middle" fontSize="13" fill="var(--sub)">
-              {formatHHMM(stopAt)} に終了
+              {text.stopAt(formatHHMM(stopAt))}
             </text>
           )}
         </Ring>
         <div className="warning-main">
           <div>
-            <h1>あと{WARNING_LEAD_MINUTES}分で作業終了です</h1>
-            <p className="sub">{task ? `作業中: ${task.name}` : "保存や中断の準備をしてください"}</p>
+            <h1>{text.warningTitle(WARNING_LEAD_MINUTES)}</h1>
+            <p className="sub">{task ? text.working(task.name) : text.prepare}</p>
           </div>
           {task && (
             <label>
-              次の自分へ、続きのメモ（任意）
+              {text.memoLabel}
               <textarea
                 className="field"
                 rows={3}
                 value={memoValue}
                 onChange={(e) => setMemo(e.target.value)}
-                placeholder="例: フッターの金額欄だけ残っている"
+                placeholder={text.memoPlaceholder}
                 autoFocus
               />
             </label>
@@ -95,7 +97,7 @@ function LeaveWarning({ info }: { info: LeaveInfo | null }) {
           <div className="warning-actions">
             {task && (
               <button type="button" className="btn btn-primary" onClick={() => void saveAndContinue()} disabled={busy}>
-                メモを保存して続ける
+                {text.saveAndContinue}
               </button>
             )}
             <button
@@ -104,7 +106,11 @@ function LeaveWarning({ info }: { info: LeaveInfo | null }) {
               onClick={() => void window.api.leave.dismissWarning()}
               autoFocus={!task}
             >
-              閉じる <span className="kbd">Esc</span>
+              {text.close(
+                <span key="kbd" className="kbd">
+                  Esc
+                </span>,
+              )}
             </button>
           </div>
         </div>
@@ -116,9 +122,10 @@ function LeaveWarning({ info }: { info: LeaveInfo | null }) {
 function LeaveBlock({ info }: { info: LeaveInfo | null }) {
   const today = info?.today;
   const max = Math.max(1, ...(today?.tasks.map((t) => t.minutes) ?? []));
+  const { common, leave: text } = t();
 
   const exitApp = async () => {
-    if (await window.api.dialog.confirm("終了", "アプリを終了しますか？")) await window.api.nav.exit();
+    if (await window.api.dialog.confirm(common.quit, common.quitConfirm)) await window.api.nav.exit();
   };
 
   return (
@@ -126,26 +133,26 @@ function LeaveBlock({ info }: { info: LeaveInfo | null }) {
       <div className="block-body">
         <header className="block-header">
           <div>
-            {info?.schedule && <p className="block-time">{formatHHMM(new Date(info.schedule.stopAt))} · 作業終了</p>}
-            <h1>次の予定の時間です</h1>
-            <p className="sub">PC を休止状態にして、次の予定へ向かいましょう</p>
+            {info?.schedule && <p className="block-time">{text.blockTime(formatHHMM(new Date(info.schedule.stopAt)))}</p>}
+            <h1>{text.blockTitle}</h1>
+            <p className="sub">{text.blockSub}</p>
           </div>
           {today && (
             <div className="block-stats">
               <div className="block-stat">
                 <span className="mono">{formatDuration(today.totalMinutes, "0m")}</span>
-                <span>今日の作業時間</span>
+                <span>{text.todayTotal}</span>
               </div>
               <div className="block-stat">
                 <span className="mono">{today.sessionCount}</span>
-                <span>セッション</span>
+                <span>{common.sessions}</span>
               </div>
             </div>
           )}
         </header>
 
-        <section className="today scroll" aria-label="今日のタスク別時間">
-          {today && today.tasks.length === 0 && <p className="today-empty">今日の記録はまだありません</p>}
+        <section className="today scroll" aria-label={text.todayByTask}>
+          {today && today.tasks.length === 0 && <p className="today-empty">{text.todayEmpty}</p>}
           {today?.tasks.map((t) => (
             <div key={t.taskId} className="today-row">
               <span className="ellipsis" title={t.taskName}>
@@ -161,9 +168,9 @@ function LeaveBlock({ info }: { info: LeaveInfo | null }) {
 
         <footer className="block-footer">
           <CheckIcon size={14} />
-          今日のセッションはすべて記録済みです
+          {text.allRecorded}
           <button type="button" className="link-btn" onClick={() => void exitApp()}>
-            アプリを終了
+            {text.quitApp}
           </button>
         </footer>
       </div>

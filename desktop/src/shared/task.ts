@@ -3,18 +3,23 @@
  * Field names follow the Firestore schema in docs/requirements.md §5.1.
  */
 
+import { t } from "./i18n";
+
 export const PRIORITIES = ["NOW", "SOONER", "ANYTIME", "SOMEDAY"] as const;
 
 export type Priority = (typeof PRIORITIES)[number];
 
 export const DEFAULT_PRIORITY: Priority = "NOW";
 
-/** dot: group marker in the picker; chip: label colors in the management table. */
-export const PRIORITY_META: Record<Priority, { label: string; dot: string; chipFg: string; chipBg: string }> = {
-  NOW: { label: "今すぐ", dot: "#ff8a4c", chipFg: "#ffd2b8", chipBg: "#3a2418" },
-  SOONER: { label: "近いうち", dot: "#f5c451", chipFg: "#fbe3a0", chipBg: "#3a3118" },
-  ANYTIME: { label: "いつでも", dot: "#4fd1a5", chipFg: "#b6f0db", chipBg: "#16342b" },
-  SOMEDAY: { label: "いつか", dot: "#8b93a7", chipFg: "#c9d1e6", chipBg: "#262e42" },
+/**
+ * dot: group marker in the picker; chip: label colors in the management table.
+ * Labels are UI text: t().priority.
+ */
+export const PRIORITY_META: Record<Priority, { dot: string; chipFg: string; chipBg: string }> = {
+  NOW: { dot: "#ff8a4c", chipFg: "#ffd2b8", chipBg: "#3a2418" },
+  SOONER: { dot: "#f5c451", chipFg: "#fbe3a0", chipBg: "#3a3118" },
+  ANYTIME: { dot: "#4fd1a5", chipFg: "#b6f0db", chipBg: "#16342b" },
+  SOMEDAY: { dot: "#8b93a7", chipFg: "#c9d1e6", chipBg: "#262e42" },
 };
 
 export type UpdatedBy = "desktop" | "android" | "migration";
@@ -55,16 +60,17 @@ export const MAX_MEMO_LENGTH = 5000;
 
 /**
  * Normalize and validate user input for a task.
- * Throws an Error with a user-facing (Japanese) message when invalid.
+ * Throws an Error with a user-facing message when invalid.
  */
 export function normalizeTaskInput(input: TaskInput): TaskInput {
   const name = input.name.trim();
   const memo = input.memo.trim();
 
-  if (!name) throw new Error("タスク名を入力してください");
-  if (name.length > MAX_NAME_LENGTH) throw new Error(`タスク名は${MAX_NAME_LENGTH}文字以内にしてください`);
-  if (memo.length > MAX_MEMO_LENGTH) throw new Error(`メモは${MAX_MEMO_LENGTH}文字以内にしてください`);
-  if (!isPriority(input.priority)) throw new Error("優先度が正しくありません");
+  const text = t().validation;
+  if (!name) throw new Error(text.nameRequired);
+  if (name.length > MAX_NAME_LENGTH) throw new Error(text.nameTooLong(MAX_NAME_LENGTH));
+  if (memo.length > MAX_MEMO_LENGTH) throw new Error(text.memoTooLong(MAX_MEMO_LENGTH));
+  if (!isPriority(input.priority)) throw new Error(text.invalidPriority);
 
   return { name, memo, priority: input.priority };
 }
