@@ -1,12 +1,18 @@
 package dev.kaorukajihara.shiodoki.ui.settings
 
 import android.Manifest
+import android.app.LocaleManager
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,6 +27,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
@@ -140,6 +147,14 @@ fun SettingsScreen(viewModel: SettingsViewModel, onSelectTab: (MainTab) -> Unit)
         }
       }
 
+      // The system per-app language screen exists from Android 13; older devices follow the
+      // device language (docs/i18n/plan.md, option A).
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        Section(stringResource(R.string.settings_language)) {
+          LanguageRow(context)
+        }
+      }
+
       Section(stringResource(R.string.settings_account)) {
         Row(
           modifier = Modifier.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
@@ -183,6 +198,40 @@ fun SettingsScreen(viewModel: SettingsViewModel, onSelectTab: (MainTab) -> Unit)
         TextButton(onClick = { confirmSignOut = false }) { Text(stringResource(R.string.cancel)) }
       },
     )
+  }
+}
+
+/**
+ * The app language and a way to change it in the system settings. Changing it there recreates
+ * the activity, so this screen is composed again in the new language.
+ */
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+@Composable
+private fun LanguageRow(context: Context) {
+  val locales = context.getSystemService(LocaleManager::class.java).applicationLocales
+  val current = if (locales.isEmpty) {
+    stringResource(R.string.settings_language_system)
+  } else {
+    // The name in its own language: "日本語", "English".
+    locales[0].let { it.getDisplayLanguage(it) }.replaceFirstChar { it.titlecase(locales[0]) }
+  }
+  Row(
+    modifier = Modifier
+      .fillMaxWidth()
+      .heightIn(min = 64.dp)
+      .clickable {
+        val app = Uri.fromParts("package", context.packageName, null)
+        context.startActivity(Intent(Settings.ACTION_APP_LOCALE_SETTINGS, app))
+      }
+      .padding(start = 16.dp, end = 12.dp, top = 10.dp, bottom = 10.dp),
+    verticalAlignment = Alignment.CenterVertically,
+    horizontalArrangement = Arrangement.spacedBy(12.dp),
+  ) {
+    Column(Modifier.weight(1f)) {
+      Text(current, fontSize = 15.sp, color = ShiodokiColors.TextStrong)
+      Text(stringResource(R.string.settings_language_detail), fontSize = 12.sp, color = ShiodokiColors.TextMuted)
+    }
+    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = ShiodokiColors.TextMuted)
   }
 }
 

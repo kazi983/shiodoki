@@ -1,6 +1,6 @@
 # 多言語対応（日本語・英語）実装計画
 
-- ステータス: 確定（2026-10-09）。デスクトップは PR 0〜3 で完了（#20〜#24）
+- ステータス: 確定（2026-10-09）。デスクトップは PR 0〜3 で完了（#20〜#24、#25）。Android は PR 4〜6 で完了（#26〜#28、#30）。表示の追加変更 #29
 - 関連: `docs/requirements.md` §3.5、`docs/i18n/glossary.md`
 
 ## 1. 決定事項
@@ -47,7 +47,7 @@ Firestore には表示文言を保存していない（優先度はキー、`sta
 
 - `values/strings.xml` に英語（default かつ fallback）、`values-ja/strings.xml` に日本語を置く。
 - `generateLocaleConfig = true` と `res/resources.properties`（`unqualifiedResLocale=en`）を設定し、Android 13 以降の OS の設定画面にアプリごとの言語選択（per-app language）を出す。
-- アプリ内の設定画面に「言語」行を追加する。API 33 以降は `LocaleManager.setApplicationLocales` を使う。minSdk 29〜32 への対応（AppCompat の導入、または OS の言語に従うだけにする）は Android の着手時に決める。
+- アプリ内の設定画面に「言語」行を追加し、OS のアプリ別言語設定の画面（`Settings.ACTION_APP_LOCALE_SETTINGS`）を開く（2026-10-10 決定、案 A）。API 29〜32 では行を出さず、端末の言語に従う。AppCompat は導入しない。
 - model と data は Android のリソースに依存させない。`Priority` / `SyncStatus` の表示ラベルは `ui/Labels.kt` の拡張プロパティ（`labelRes`）で `@StringRes` に対応させる。`FocusPermission` や UI 専用の enum は `@StringRes` を直接持つ。
 - ViewModel のエラーは、汎用の `UiText` ではなく場面ごとの型で UI state に載せる（必要なのは 2 か所だけだったため）。バリデーションは `TaskInputException(TaskInputError)`、ログインは `LoginError`。Composable で文字列にする。
 - 文の途中に装飾付きの時刻が入る文言（PC の状況カード）は、`%1$s` を含むテンプレートを `appendTemplate` で分割して時刻を差し込む。
