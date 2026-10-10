@@ -8,6 +8,7 @@ function subscribe(channel: string, listener: () => void): () => void {
 }
 
 const api: DesktopApi = {
+  locale: ipcRenderer.sendSync(IPC.appLocale),
   picker: {
     getState: () => ipcRenderer.invoke(IPC.pickerGetState),
     startSession: (req) => ipcRenderer.invoke(IPC.pickerStartSession, req),

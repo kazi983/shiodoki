@@ -2,6 +2,7 @@
  * Contract between the renderer (window.api) and the main process.
  */
 
+import type { Locale } from "./i18n";
 import type { LeaveScheduleInput, LeaveScheduleStatus } from "./leave";
 import type { DaySummary } from "./session";
 import type { SyncInfo } from "./sync";
@@ -46,6 +47,8 @@ export interface StartSessionRequest {
 }
 
 export interface DesktopApi {
+  /** UI locale decided by the main process. */
+  locale: Locale;
   picker: {
     getState(): Promise<PickerState>;
     startSession(req: StartSessionRequest): Promise<void>;
@@ -94,6 +97,8 @@ export interface DesktopApi {
 }
 
 export const IPC = {
+  /** Synchronous (sendSync): the preload reads the locale before the page renders. */
+  appLocale: "app:locale",
   pickerGetState: "picker:getState",
   pickerStartSession: "picker:startSession",
   pickerSnooze: "picker:snooze",
