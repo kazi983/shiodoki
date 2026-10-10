@@ -88,18 +88,11 @@ export function compareTasksForManagement(a: Task, b: Task): number {
   return compareTasks(a, b);
 }
 
-export function formatMinutes(totalMinutes: number): string {
-  const h = Math.floor(totalMinutes / 60);
-  const m = totalMinutes % 60;
-  if (h === 0) return `${m}分`;
-  return `${h}時間${m}分`;
-}
-
-/** Compact form for lists: "2h 30m", "45m", `zero` ("—") for no time yet. */
+/** Compact form for lists: "2h 5m", "45m", `zero` ("—") for no time yet. Same in every language. */
 export function formatDuration(totalMinutes: number, zero = "—"): string {
   if (totalMinutes <= 0) return zero;
   const h = Math.floor(totalMinutes / 60);
   const m = totalMinutes % 60;
   if (h === 0) return `${m}m`;
-  return `${h}h ${String(m).padStart(2, "0")}m`;
+  return `${h}h ${m}m`;
 }

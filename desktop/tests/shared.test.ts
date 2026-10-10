@@ -9,7 +9,6 @@ import {
   compareTasks,
   compareTasksForManagement,
   formatDuration,
-  formatMinutes,
   normalizeTaskInput,
   type Task,
 } from "@shared/task";
@@ -107,12 +106,6 @@ describe("task helpers", () => {
     expect(() => normalizeTaskInput({ name: "a", memo: "", priority: "HIGH" as never })).toThrow("優先度");
     expect(() => normalizeTaskInput({ name: "a".repeat(201), memo: "", priority: "NOW" })).toThrow();
   });
-
-  test("formatMinutes", () => {
-    expect(formatMinutes(0)).toBe("0分");
-    expect(formatMinutes(45)).toBe("45分");
-    expect(formatMinutes(125)).toBe("2時間5分");
-  });
 });
 
 describe("formatDuration", () => {
@@ -121,7 +114,7 @@ describe("formatDuration", () => {
     expect(formatDuration(0, "0m")).toBe("0m");
     expect(formatDuration(45)).toBe("45m");
     expect(formatDuration(150)).toBe("2h 30m");
-    expect(formatDuration(65)).toBe("1h 05m");
+    expect(formatDuration(65)).toBe("1h 5m");
   });
 });
 
