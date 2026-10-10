@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { t } from "@shared/i18n";
 import {
   PRIORITIES,
   PRIORITY_META,
@@ -38,13 +39,14 @@ export function ManagementPage() {
   const addRef = useRef<HTMLInputElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
   const tableRef = useRef<HTMLTableSectionElement>(null);
+  const { common, priority, management: text } = t();
 
   const load = useCallback(async () => {
     setTasks(await window.api.tasks.listAll());
   }, []);
 
   useEffect(() => {
-    document.title = "タスク管理";
+    document.title = t().common.manageTasks;
     void load();
     addRef.current?.focus();
     return window.api.tasks.onChanged(() => void load());
@@ -87,7 +89,7 @@ export function ManagementPage() {
   const addTask = () =>
     run(async () => {
       if (!newName.trim()) {
-        await window.api.dialog.alert("未入力", "タスクを入力してください");
+        await window.api.dialog.alert(text.emptyNameTitle, text.emptyNameMessage);
         return;
       }
       await window.api.tasks.add({ name: newName, priority: "NOW", memo: "" });
@@ -100,15 +102,15 @@ export function ManagementPage() {
     run(async () => {
       if (!selected || !form) return;
       const changes: string[] = [];
-      if (selected.name !== form.name.trim()) changes.push(`タスク: ${selected.name} ➤ ${form.name.trim()}`);
+      if (selected.name !== form.name.trim()) changes.push(text.changeName(selected.name, form.name.trim()));
       if (selected.priority !== form.priority)
-        changes.push(`優先度: ${PRIORITY_META[selected.priority].label} ➤ ${PRIORITY_META[form.priority].label}`);
-      if (selected.memo !== form.memo.trim()) changes.push("メモを変更");
+        changes.push(text.changePriority(priority[selected.priority], priority[form.priority]));
+      if (selected.memo !== form.memo.trim()) changes.push(text.changeMemo);
       if (changes.length === 0) {
-        await window.api.dialog.alert("変更なし", "変更内容を入力してください");
+        await window.api.dialog.alert(text.noChangesTitle, text.noChangesMessage);
         return;
       }
-      if (!(await window.api.dialog.confirm("更新", `更新しますか？\n\n${changes.join("\n")}`))) return;
+      if (!(await window.api.dialog.confirm(text.updateTitle, text.updateConfirm(changes.join("\n"))))) return;
       const updated = await window.api.tasks.update(selected.id, form);
       select(updated);
     });
@@ -117,10 +119,10 @@ export function ManagementPage() {
     run(async () => {
       if (!task) return;
       if (task.completed) {
-        if (!(await window.api.dialog.confirm("未完了に戻す", `${task.name} を未完了に戻しますか？`))) return;
+        if (!(await window.api.dialog.confirm(text.reopenTitle, text.reopenConfirm(task.name)))) return;
         await window.api.tasks.reopen(task.id);
       } else {
-        if (!(await window.api.dialog.confirm("タスク完了", `${task.name} を完了済みタスクに登録しますか？`))) return;
+        if (!(await window.api.dialog.confirm(text.completeTitle, text.completeConfirm(task.name)))) return;
         await window.api.tasks.complete(task.id);
       }
     });
@@ -128,7 +130,7 @@ export function ManagementPage() {
   const removeTask = () =>
     run(async () => {
       if (!selected) return;
-      if (!(await window.api.dialog.confirm("タスク削除", `${selected.name} を削除しますか？`))) return;
+      if (!(await window.api.dialog.confirm(text.deleteTitle, text.deleteConfirm(selected.name)))) return;
       await window.api.tasks.remove(selected.id);
       select(null);
     });
@@ -158,16 +160,14 @@ export function ManagementPage() {
           type="button"
           className="back-btn"
           onClick={() => void window.api.nav.openPicker()}
-          aria-label="Quick Start に戻る"
-          title="Quick Start に戻る (Esc)"
+          aria-label={text.back}
+          title={text.backTitle}
         >
           <BackIcon />
         </button>
         <div className="management-title">
-          <h1>タスク管理</h1>
-          <p className="sub">
-            未完了 {openCount} 件 · 完了 {doneCount} 件
-          </p>
+          <h1>{common.manageTasks}</h1>
+          <p className="sub">{text.counts(openCount, doneCount)}</p>
         </div>
         <div className="header-tools">
           <label className="search">
@@ -175,20 +175,20 @@ export function ManagementPage() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="タスクを検索"
-              aria-label="タスクを検索"
+              placeholder={text.search}
+              aria-label={text.search}
             />
           </label>
           <label className="toggle">
             <input type="checkbox" checked={showCompleted} onChange={(e) => setShowCompleted(e.target.checked)} />
-            完了済みも表示
+            {text.showCompleted}
           </label>
           <SyncBadge />
         </div>
       </header>
 
       <div className="management-body">
-        <section className="table-card" aria-label="タスク一覧">
+        <section className="table-card" aria-label={common.taskList}>
           <div className="table-add">
             <input
               ref={addRef}
@@ -198,11 +198,11 @@ export function ManagementPage() {
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.nativeEvent.isComposing) void addTask();
               }}
-              placeholder="新しいタスクを入力して Enter"
-              aria-label="新しいタスク"
+              placeholder={common.newTaskPlaceholder}
+              aria-label={common.newTask}
             />
             <button type="button" className="btn btn-primary" onClick={addTask} disabled={busy}>
-              追加
+              {text.add}
             </button>
           </div>
           <div className="table-scroll scroll">
@@ -210,18 +210,18 @@ export function ManagementPage() {
               <thead>
                 <tr>
                   <th>
-                    <span className="visually-hidden">完了</span>
+                    <span className="visually-hidden">{text.colDone}</span>
                   </th>
-                  <th className="col-prio">優先度</th>
-                  <th>タスク</th>
-                  <th className="col-time right">時間</th>
-                  <th className="col-date right">作成日</th>
+                  <th className="col-prio">{text.colPriority}</th>
+                  <th>{text.colTask}</th>
+                  <th className="col-time right">{text.colTime}</th>
+                  <th className="col-date right">{text.colCreated}</th>
                 </tr>
               </thead>
-              <tbody ref={tableRef} tabIndex={0} onKeyDown={onTableKeyDown} aria-label="タスク一覧">
+              <tbody ref={tableRef} tabIndex={0} onKeyDown={onTableKeyDown} aria-label={common.taskList}>
                 {visible.length === 0 && (
                   <tr className="empty">
-                    <td colSpan={5}>{query.trim() ? "見つかりませんでした" : "タスクがありません"}</td>
+                    <td colSpan={5}>{query.trim() ? text.noMatches : text.noTasks}</td>
                   </tr>
                 )}
                 {visible.map((task) => {
@@ -240,12 +240,12 @@ export function ManagementPage() {
                           checked={task.completed}
                           onClick={(e) => e.stopPropagation()}
                           onChange={() => void toggleComplete(task)}
-                          aria-label={task.completed ? `${task.name} を未完了に戻す` : `${task.name} を完了にする`}
+                          aria-label={task.completed ? text.reopenAria(task.name) : text.completeAria(task.name)}
                         />
                       </td>
                       <td>
                         <span className="prio-chip" style={{ color: meta.chipFg, background: meta.chipBg }}>
-                          {meta.label}
+                          {priority[task.priority]}
                         </span>
                       </td>
                       <td>
@@ -266,14 +266,14 @@ export function ManagementPage() {
               </tbody>
             </table>
           </div>
-          <p className="table-hint">↑↓ 選択 · Enter 編集 · Backspace 完了 · Delete 削除 · Esc 戻る</p>
+          <p className="table-hint">{text.keyHint}</p>
         </section>
 
-        <aside className="detail" aria-label="選択中のタスク">
+        <aside className="detail" aria-label={text.selectedTask}>
           {selected && form ? (
             <>
               <label>
-                タスク名
+                {text.name}
                 <input
                   ref={nameRef}
                   className="field"
@@ -282,12 +282,12 @@ export function ManagementPage() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.nativeEvent.isComposing) void updateTask();
                   }}
-                  aria-label="タスク名"
+                  aria-label={text.name}
                 />
               </label>
 
               <fieldset>
-                <legend>優先度</legend>
+                <legend>{text.priority}</legend>
                 <div className="prio-picker">
                   {PRIORITIES.map((p: Priority) => {
                     const meta = PRIORITY_META[p];
@@ -302,7 +302,7 @@ export function ManagementPage() {
                         style={on ? { borderColor: meta.dot, background: meta.chipBg, color: meta.chipFg } : undefined}
                         onClick={() => setForm({ ...form, priority: p })}
                       >
-                        {meta.label}
+                        {priority[p]}
                       </button>
                     );
                   })}
@@ -310,7 +310,7 @@ export function ManagementPage() {
               </fieldset>
 
               <label>
-                メモ
+                {text.memo}
                 <textarea
                   className="field"
                   rows={5}
@@ -319,28 +319,28 @@ export function ManagementPage() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) void updateTask();
                   }}
-                  aria-label="メモ"
+                  aria-label={text.memo}
                 />
               </label>
 
               <dl className="stats">
                 <div>
-                  <dt>累計</dt>
+                  <dt>{text.total}</dt>
                   <dd>{formatDuration(selected.totalMinutes, "0m")}</dd>
                 </div>
                 <div>
-                  <dt>セッション</dt>
+                  <dt>{common.sessions}</dt>
                   <dd>{selected.sessionCount}</dd>
                 </div>
                 <div title={formatFullDate(selected.createdAt)}>
-                  <dt>作成日</dt>
+                  <dt>{text.created}</dt>
                   <dd>{formatDate(selected.createdAt)}</dd>
                 </div>
               </dl>
 
               <div className="detail-actions">
                 <button type="button" className="btn btn-primary" onClick={updateTask} disabled={busy}>
-                  変更を保存
+                  {text.save}
                 </button>
                 <button
                   type="button"
@@ -348,16 +348,16 @@ export function ManagementPage() {
                   onClick={() => void toggleComplete(selected)}
                   disabled={busy}
                 >
-                  {selected.completed ? "未完了に戻す" : "完了にする"}
+                  {selected.completed ? text.reopen : text.complete}
                 </button>
                 <button type="button" className="btn btn-ghost-danger" onClick={removeTask} disabled={busy}>
                   <TrashIcon />
-                  削除
+                  {text.delete}
                 </button>
               </div>
             </>
           ) : (
-            <p className="detail-empty">一覧からタスクを選ぶと、ここで編集できます</p>
+            <p className="detail-empty">{text.detailEmpty}</p>
           )}
         </aside>
       </div>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { t } from "@shared/i18n";
 import type { PickerState } from "@shared/ipc";
 import {
   BUFFER_OPTIONS,
@@ -16,7 +17,8 @@ import { useNow } from "../useNow";
 
 /** "30分" / "5秒" (TASK_MODE=test uses seconds). */
 function durationLabel(ms: number): string {
-  return ms >= 60_000 ? `${Math.round(ms / 60_000)}分` : `${Math.round(ms / 1000)}秒`;
+  const { units } = t();
+  return ms >= 60_000 ? units.minutes(Math.round(ms / 60_000)) : units.seconds(Math.round(ms / 1000));
 }
 
 /** Stop time for the leave inputs, or null while the time is incomplete. */
@@ -39,6 +41,7 @@ export function PickerPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const now = useNow(10_000);
+  const { common, priority, picker: text } = t();
 
   const load = useCallback(async (selectId?: string) => {
     const next = await window.api.picker.getState();
@@ -112,10 +115,10 @@ export function PickerPage() {
   const startSession = (task: Task | null) =>
     run(async () => {
       if (!task) {
-        await window.api.dialog.alert("未選択", "タスクを選んでください");
+        await window.api.dialog.alert(text.notSelectedTitle, text.notSelectedMessage);
         return;
       }
-      if (!(await window.api.dialog.confirm("開始", `${task.name} を開始しますか？`))) return;
+      if (!(await window.api.dialog.confirm(text.startTitle, text.startConfirm(task.name)))) return;
       const leave = state?.leave ? undefined : { leaveTime: normalizeTimeInput(leaveTime), bufferMinutes };
       await window.api.picker.startSession({ taskId: task.id, leave });
     });
@@ -123,7 +126,7 @@ export function PickerPage() {
   const completeTask = (task: Task | null) =>
     run(async () => {
       if (!task) return;
-      if (!(await window.api.dialog.confirm("完了", `${task.name} を完了にしますか？`))) return;
+      if (!(await window.api.dialog.confirm(text.completeTitle, text.completeConfirm(task.name)))) return;
       await window.api.tasks.complete(task.id);
     });
 
@@ -139,7 +142,7 @@ export function PickerPage() {
 
   const exitApp = () =>
     run(async () => {
-      if (await window.api.dialog.confirm("終了", "アプリを終了しますか？")) await window.api.nav.exit();
+      if (await window.api.dialog.confirm(common.quit, common.quitConfirm)) await window.api.nav.exit();
     });
 
   function onListKeyDown(e: KeyboardEvent<HTMLDivElement>) {
@@ -177,8 +180,8 @@ export function PickerPage() {
       </div>
 
       <header className="picker-header">
-        <h1>今から何をやる？</h1>
-        <p className="sub">次の{intervalLabel}で取り組むタスクを1つ選びます</p>
+        <h1>{text.title}</h1>
+        <p className="sub">{text.subtitle(intervalLabel)}</p>
       </header>
 
       {lastTask && (
@@ -187,69 +190,73 @@ export function PickerPage() {
             <PlayIcon />
           </span>
           <span className="resume-body">
-            <span className="resume-label">前回の続き</span>
+            <span className="resume-label">{text.resumeLabel}</span>
             <span className="resume-name ellipsis">{lastTask.name}</span>
             <span className="resume-meta">
-              累計 {formatDuration(lastTask.totalMinutes)} · {lastTask.sessionCount} セッション
+              {text.resumeMeta(formatDuration(lastTask.totalMinutes), lastTask.sessionCount)}
             </span>
           </span>
           {selectedId === lastTask.id && (
-            <span className="resume-kbd" title="入力欄が空のときに Enter で開始">
+            <span className="resume-kbd" title={text.resumeKbdTitle}>
               Enter
             </span>
           )}
         </button>
       )}
 
-      <section className="leave-row" aria-label="次の予定">
+      <section className="leave-row" aria-label={text.nextPlan}>
         <ClockIcon />
         {state?.leave ? (
           <>
             <span>
-              次の予定 <span className="mono">{formatHHMM(new Date(state.leave.leaveAt))}</span> の
-              {state.leave.bufferMinutes}分前
+              {text.nextPlanSet(
+                <span key="time" className="mono">
+                  {formatHHMM(new Date(state.leave.leaveAt))}
+                </span>,
+                state.leave.bufferMinutes,
+              )}
             </span>
             <button type="button" className="link-btn" onClick={changeLeave}>
-              変更
+              {text.change}
             </button>
           </>
         ) : (
           <>
             <label>
-              次の予定
+              {text.nextPlan}
               <input
                 className="field-sm input-time"
                 value={leaveTime}
                 onChange={(e) => setLeaveTime(e.target.value)}
-                aria-label="次の予定の時刻"
+                aria-label={text.nextPlanTime}
                 placeholder="18:30"
               />
             </label>
             <label>
-              の
+              {text.bufferJoiner}
               <select
                 className="field-sm"
                 value={bufferMinutes}
                 onChange={(e) => setBufferMinutes(Number(e.target.value))}
-                aria-label="何分前に止めるか"
+                aria-label={text.bufferLabel}
               >
                 {BUFFER_OPTIONS.map((m) => (
                   <option key={m} value={m}>
-                    {m}分前
+                    {text.bufferOption(m)}
                   </option>
                 ))}
               </select>
             </label>
           </>
         )}
-        <span className="leave-stop" title="作業終了時刻">
-          {stopPreview ? (
-            <>
-              <span className="mono">{stopPreview}</span> まで作業
-            </>
-          ) : (
-            "時刻を入力"
-          )}
+        <span className="leave-stop" title={text.stopTimeTitle}>
+          {stopPreview
+            ? text.workUntil(
+                <span key="time" className="mono">
+                  {stopPreview}
+                </span>,
+              )
+            : text.enterTime}
         </span>
       </section>
 
@@ -260,10 +267,10 @@ export function PickerPage() {
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           onKeyDown={onInputKeyDown}
-          placeholder="新しいタスクを入力して Enter"
-          aria-label="新しいタスク"
+          placeholder={common.newTaskPlaceholder}
+          aria-label={common.newTask}
         />
-        <button type="button" className="btn btn-icon" onClick={addTask} aria-label="タスクを追加">
+        <button type="button" className="btn btn-icon" onClick={addTask} aria-label={text.addTask}>
           <PlusIcon />
         </button>
       </div>
@@ -273,16 +280,16 @@ export function PickerPage() {
         className="task-list scroll scroll-fade"
         role="listbox"
         tabIndex={0}
-        aria-label="タスク一覧"
+        aria-label={common.taskList}
         onKeyDown={onListKeyDown}
       >
-        {tasks.length === 0 && <p className="list-empty">タスクがありません。上の入力欄から追加してください。</p>}
+        {tasks.length === 0 && <p className="list-empty">{text.empty}</p>}
         {groups.map((group) => (
-          <div key={group.priority} className="task-group" role="group" aria-label={PRIORITY_META[group.priority].label}>
+          <div key={group.priority} className="task-group" role="group" aria-label={priority[group.priority]}>
             <div className="group-label" aria-hidden>
               <span className="group-dot" style={{ background: PRIORITY_META[group.priority].dot }} />
               {group.priority}
-              <span className="jp">{PRIORITY_META[group.priority].label}</span>
+              <span className="jp">{priority[group.priority]}</span>
             </div>
             {group.tasks.map((task) => (
               <div
@@ -311,20 +318,25 @@ export function PickerPage() {
           disabled={busy}
         >
           <PlayIcon />
-          {intervalLabel}はじめる
+          {text.start(intervalLabel)}
         </button>
         <div className="secondary-row">
           <button type="button" className="btn btn-outline" onClick={() => void window.api.picker.snooze()}>
             <SnoozeIcon />
-            {snoozeLabel}後に <span className="kbd">Esc</span>
+            {text.snooze(
+              snoozeLabel,
+              <span key="kbd" className="kbd">
+                Esc
+              </span>,
+            )}
           </button>
           <button type="button" className="btn btn-outline" onClick={() => void window.api.nav.openManagement()}>
             <EditIcon />
-            タスク管理
+            {common.manageTasks}
           </button>
           <button type="button" className="btn btn-outline" onClick={exitApp}>
             <PowerIcon />
-            終了
+            {common.quit}
           </button>
         </div>
       </footer>

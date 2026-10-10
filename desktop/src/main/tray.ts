@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { app, Menu, nativeImage, Tray } from "electron";
+import { t } from "@shared/i18n";
 
 export interface TrayActions {
   openPicker(): void;
@@ -19,14 +20,15 @@ export function createTray(actions: TrayActions, testMode: boolean): Tray | null
     const icon = nativeImage.createFromPath(join(app.getAppPath(), "resources", "tray.png"));
     const tray = new Tray(icon);
     tray.setToolTip(testMode ? "Shiodoki (TEST)" : "Shiodoki");
+    const { common, tray: text } = t();
     tray.setContextMenu(
       Menu.buildFromTemplate([
-        { label: "タスクを選ぶ", click: actions.openPicker },
-        { label: "タスク管理", click: actions.openManagement },
+        { label: text.pickTask, click: actions.openPicker },
+        { label: common.manageTasks, click: actions.openManagement },
         { type: "separator" },
-        { label: "再起動", click: actions.restart },
-        ...(actions.logout ? [{ label: "ログアウト", click: actions.logout }] : []),
-        { label: "終了", click: actions.exit },
+        { label: common.restart, click: actions.restart },
+        ...(actions.logout ? [{ label: common.logout, click: actions.logout }] : []),
+        { label: common.quit, click: actions.exit },
       ]),
     );
     return tray;

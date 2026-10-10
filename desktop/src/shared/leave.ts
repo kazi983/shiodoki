@@ -5,6 +5,8 @@
  * before the stop time and the stop (block) fires at the stop time.
  */
 
+import { t } from "./i18n";
+
 export const WARNING_LEAD_MINUTES = 5;
 export const BUFFER_OPTIONS = [5, 10, 15, 20, 25, 30] as const;
 export const DEFAULT_LEAVE_TIME = "23:30";
@@ -43,7 +45,7 @@ export function normalizeTimeInput(value: string): string {
   if (v.includes(":")) {
     const parts = v.split(":");
     if (parts.length !== 2 || !/^\d{1,2}$/.test(parts[0]) || !/^\d{1,2}$/.test(parts[1])) {
-      throw new Error("時刻の形式が正しくありません");
+      throw new Error(t().validation.invalidTime);
     }
     hour = Number(parts[0]);
     minute = Number(parts[1]);
@@ -59,10 +61,10 @@ export function normalizeTimeInput(value: string): string {
       minute = Number(v.slice(2));
     }
   } else {
-    throw new Error("時刻の形式が正しくありません");
+    throw new Error(t().validation.invalidTime);
   }
 
-  if (hour > 23 || minute > 59) throw new Error("時刻の形式が正しくありません");
+  if (hour > 23 || minute > 59) throw new Error(t().validation.invalidTime);
 
   return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
@@ -82,7 +84,7 @@ export function resolveNextOccurrence(hhmm: string, now: Date): Date {
 
 export function buildLeaveSchedule(input: LeaveScheduleInput, now: Date): LeaveSchedule {
   if (!Number.isInteger(input.bufferMinutes) || input.bufferMinutes < 0) {
-    throw new Error("何分前に止めるかが正しくありません");
+    throw new Error(t().validation.invalidBuffer);
   }
   const leaveAt = resolveNextOccurrence(input.leaveTime, now);
   const stopAt = new Date(leaveAt.getTime() - input.bufferMinutes * 60000);

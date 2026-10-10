@@ -2,6 +2,7 @@ import { hostname } from "node:os";
 import { join } from "node:path";
 import { app, dialog, shell } from "electron";
 import { EMULATOR_PROJECT_ID, FIREBASE_CONFIG } from "@shared/firebaseConfig";
+import { t } from "@shared/i18n";
 import { IPC } from "@shared/ipc";
 import type { DataEvent, SyncInfo } from "@shared/sync";
 import { AppController } from "./appController";
@@ -142,14 +143,15 @@ function startFirebase(): void {
         wired.controller.start();
       },
       logout: async () => {
+        const { common, dialogs } = t();
         const ok = await dialog.showMessageBox({
           type: "question",
-          buttons: ["ログアウト", "キャンセル"],
+          buttons: [common.logout, common.cancel],
           defaultId: 0,
           cancelId: 1,
           noLink: true,
-          title: "ログアウト",
-          message: `${email ?? ""} からログアウトしますか？\nこの PC に保存されたデータも削除されます。`,
+          title: common.logout,
+          message: dialogs.logoutConfirm(email ?? ""),
         });
         if (ok.response !== 0) return;
         await wired.controller.restart(async () => {
@@ -175,12 +177,12 @@ function startFirebase(): void {
     void dialog
       .showMessageBox({
         type: "warning",
-        buttons: ["待つ", "終了"],
+        buttons: [t().dialogs.wait, t().common.quit],
         defaultId: 0,
         cancelId: 0,
         noLink: true,
         title: "Shiodoki",
-        message: "起動に時間がかかっています。",
+        message: t().dialogs.slowStart,
         detail: "Firebase の処理を開始できていません。ターミナルに [data] で始まるエラーが出ていないか確認してください。",
       })
       .then(({ response }) => {
@@ -210,15 +212,16 @@ async function offerMigration(bridge: DataBridge): Promise<void> {
   const remoteCount = await bridge.request<number>({ op: "countRemoteTasks" }, 30_000).catch(() => -1);
   if (remoteCount !== 0) return;
 
+  const text = t().dialogs;
   const { response } = await dialog.showMessageBox({
     type: "question",
-    buttons: ["コピーする", "コピーしない"],
+    buttons: [text.migrateCopy, text.migrateSkip],
     defaultId: 0,
     cancelId: 1,
     noLink: true,
-    title: "タスクの移行",
-    message: `この PC のタスク ${local.tasks.length} 件を Firebase にコピーしますか？`,
-    detail: `読み込み元: ${local.source}\n累計時間もそのまま引き継ぎます。`,
+    title: text.migrateTitle,
+    message: text.migrateConfirm(local.tasks.length),
+    detail: text.migrateDetail(local.source),
   });
   if (response !== 0) return;
   try {
@@ -230,8 +233,8 @@ async function offerMigration(bridge: DataBridge): Promise<void> {
   } catch (error) {
     await dialog.showMessageBox({
       type: "error",
-      title: "タスクの移行",
-      message: `タスクをコピーできませんでした: ${error instanceof Error ? error.message : String(error)}`,
+      title: text.migrateTitle,
+      message: text.migrateFailed(error instanceof Error ? error.message : String(error)),
     });
   }
 }
@@ -310,12 +313,12 @@ function wire(repo: TaskRepository, syncInfo: () => SyncInfo, firebase?: Firebas
   app.on("second-instance", async () => {
     const { response } = await dialog.showMessageBox({
       type: "question",
-      buttons: ["前面に表示", "再起動", "キャンセル"],
+      buttons: [t().dialogs.bringToFront, t().common.restart, t().common.cancel],
       defaultId: 0,
       cancelId: 2,
       noLink: true,
       title: "Shiodoki",
-      message: "Shiodoki はすでに起動しています。",
+      message: t().dialogs.alreadyRunning,
     });
     if (response === 0) void controller.openPicker();
     if (response === 1) void controller.restart();

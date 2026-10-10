@@ -16,6 +16,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
+import { getLocale, t } from "@shared/i18n";
 
 export interface OAuthClient {
   clientId: string;
@@ -69,13 +70,13 @@ export function parseCallback(
   if (u.pathname !== "/") return null;
   if (u.searchParams.get("state") !== expectedState) return { error: "state が一致しません" };
   const error = u.searchParams.get("error");
-  if (error) return { error: error === "access_denied" ? "ログインがキャンセルされました" : error };
+  if (error) return { error: error === "access_denied" ? t().login.cancelled : error };
   const code = u.searchParams.get("code");
   return code ? { code } : null;
 }
 
 const PAGE = (title: string, body: string) =>
-  `<!doctype html><html lang="ja"><meta charset="utf-8"><title>${title}</title>` +
+  `<!doctype html><html lang="${getLocale()}"><meta charset="utf-8"><title>${title}</title>` +
   `<body style="font-family:sans-serif;text-align:center;padding:48px;background:#0b1326;color:#dae2fd">` +
   `<h1>${title}</h1><p>${body}</p></body></html>`;
 
@@ -105,10 +106,10 @@ export async function signInWithGoogle(
         }
         res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
         if ("error" in result) {
-          res.end(PAGE("ログインできませんでした", result.error));
+          res.end(PAGE(t().login.pageFailed, result.error));
           reject(new Error(result.error));
         } else {
-          res.end(PAGE("ログインしました", "このタブを閉じて、アプリに戻ってください。"));
+          res.end(PAGE(t().login.pageSucceeded, t().login.pageSucceededBody));
           resolve({ code: result.code, redirectUri });
         }
       });
@@ -118,7 +119,7 @@ export async function signInWithGoogle(
         redirectUri = `http://127.0.0.1:${port}`;
         openBrowser(buildAuthUrl(client.clientId, redirectUri, challenge, state)).catch(reject);
       });
-      timer = setTimeout(() => reject(new Error("ログインがタイムアウトしました")), timeoutMs);
+      timer = setTimeout(() => reject(new Error(t().login.timedOut)), timeoutMs);
     });
 
     const res = await fetchImpl(TOKEN_ENDPOINT, {

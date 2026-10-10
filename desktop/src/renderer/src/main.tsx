@@ -1,5 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { setLocale } from "@shared/i18n";
 import "@fontsource/noto-sans-jp/400.css";
 import "@fontsource/noto-sans-jp/500.css";
 import "@fontsource/noto-sans-jp/700.css";
@@ -11,6 +12,9 @@ import { ManagementPage } from "./pages/ManagementPage";
 import { OverlayPage } from "./pages/OverlayPage";
 import { LeavePage } from "./pages/LeavePage";
 import { LoginPage } from "./pages/LoginPage";
+
+setLocale(window.api.locale);
+document.documentElement.lang = window.api.locale;
 
 function Page() {
   switch (window.location.hash.slice(1)) {

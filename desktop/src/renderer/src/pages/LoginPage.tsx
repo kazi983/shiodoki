@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
+import { t } from "@shared/i18n";
 import { alertError } from "../errors";
 
 /** First launch (or after logout): sign in with Google. */
 export function LoginPage() {
   const [busy, setBusy] = useState(false);
+  const text = t().login;
 
   useEffect(() => {
-    document.title = "Shiodoki - ログイン";
+    document.title = t().login.windowTitle;
   }, []);
 
   async function signIn() {
@@ -22,15 +24,11 @@ export function LoginPage() {
   return (
     <main className="login">
       <h1>Shiodoki</h1>
-      <p className="sub">
-        タスクを Google アカウントに保存して、
-        <br />
-        スマホからも確認・編集できるようにします。
-      </p>
+      <p className="sub">{text.description(<br key="br" />)}</p>
       <button className="btn btn-primary btn-large" onClick={() => void signIn()} disabled={busy}>
-        {busy ? "ブラウザでログインしてください…" : "Google でログイン"}
+        {busy ? text.waiting : text.signIn}
       </button>
-      {busy && <p className="hint">ログインが終わると、この画面は自動で閉じます。</p>}
+      {busy && <p className="hint">{text.hint}</p>}
     </main>
   );
 }

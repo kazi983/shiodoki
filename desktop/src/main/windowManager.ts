@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { BrowserWindow, screen, type Display, type Rectangle } from "electron";
 import type { WindowPort } from "./appController";
 import { centeredBounds } from "./geometry";
+import { t } from "@shared/i18n";
 import { IPC } from "@shared/ipc";
 
 export type Route = "picker" | "management" | "overlay" | "leave-warning" | "leave-block" | "login";
@@ -77,7 +78,7 @@ export class WindowManager implements WindowPort {
       return;
     }
     this.management = this.create("management", {
-      title: "タスク管理",
+      title: t().common.manageTasks,
       width: 1100,
       height: 760,
       minWidth: 760,
@@ -145,7 +146,7 @@ export class WindowManager implements WindowPort {
       return;
     }
     this.login = this.create("login", {
-      title: "Shiodoki - ログイン",
+      title: t().login.windowTitle,
       width: 520,
       height: 560,
       minWidth: 420,

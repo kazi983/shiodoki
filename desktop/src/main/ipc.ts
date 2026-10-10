@@ -1,4 +1,5 @@
 import { dialog, ipcMain, type IpcMainInvokeEvent } from "electron";
+import { getLocale, t } from "@shared/i18n";
 import { IPC, type StartSessionRequest } from "@shared/ipc";
 import type { TaskInput } from "@shared/task";
 import type { AppController } from "./appController";
@@ -17,6 +18,10 @@ export function registerIpcHandlers(
   auth: AuthHooks,
 ): void {
   const parentOf = (e: IpcMainInvokeEvent) => windows.fromWebContentsId(e.sender.id);
+
+  ipcMain.on(IPC.appLocale, (e) => {
+    e.returnValue = getLocale();
+  });
 
   ipcMain.handle(IPC.pickerGetState, () => controller.getPickerState());
   ipcMain.handle(IPC.pickerStartSession, (_e, req: StartSessionRequest) => controller.startSession(req));
@@ -47,7 +52,7 @@ export function registerIpcHandlers(
   ipcMain.handle(IPC.dialogConfirm, async (e, title: string, message: string) => {
     const options = {
       type: "question" as const,
-      buttons: ["OK", "キャンセル"],
+      buttons: [t().common.ok, t().common.cancel],
       defaultId: 0,
       cancelId: 1,
       noLink: true,
@@ -60,7 +65,7 @@ export function registerIpcHandlers(
   });
 
   ipcMain.handle(IPC.dialogAlert, async (e, title: string, message: string) => {
-    const options = { type: "warning" as const, buttons: ["OK"], title, message };
+    const options = { type: "warning" as const, buttons: [t().common.ok], title, message };
     const parent = parentOf(e);
     if (parent) await dialog.showMessageBox(parent, options);
     else await dialog.showMessageBox(options);

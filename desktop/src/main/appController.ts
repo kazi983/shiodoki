@@ -1,5 +1,6 @@
 import type { LeaveInfo, PickerState, RunningInfo, StartSessionRequest } from "@shared/ipc";
 import type { DesktopStatus } from "@shared/desktopState";
+import { t } from "@shared/i18n";
 import type { EndReason } from "@shared/session";
 import type { SyncInfo } from "@shared/sync";
 import { LeaveScheduleService } from "./leaveScheduleService";
@@ -150,12 +151,12 @@ export class AppController {
   }
 
   async startSession(req: StartSessionRequest): Promise<void> {
-    if (this.leavePhase === "blocked") throw new Error("作業終了時刻を過ぎています");
+    if (this.leavePhase === "blocked") throw new Error(t().errors.stopTimePassed);
     const task = await this.tasks.get(req.taskId);
-    if (task.completed) throw new Error("完了済みのタスクは開始できません");
+    if (task.completed) throw new Error(t().errors.taskAlreadyCompleted);
 
     if (!this.leave.isScheduled) {
-      if (!req.leave) throw new Error("離席時刻を入力してください");
+      if (!req.leave) throw new Error(t().errors.leaveTimeRequired);
       this.leave.scheduleLeave(req.leave, this.now());
       this.leavePhase = "none";
     }
