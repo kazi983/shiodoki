@@ -73,5 +73,6 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/kazi983/shiodoki.git"
-  }
+  },
+  "author": "Kaoru Kajihara <kaoru.kajihara.mail@gmail.com>"
 }
