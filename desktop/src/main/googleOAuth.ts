@@ -62,10 +62,7 @@ export function buildAuthUrl(clientId: string, redirectUri: string, challenge: s
 }
 
 /** Result of the browser redirect to the loopback server. */
-export function parseCallback(
-  url: string,
-  expectedState: string,
-): { code: string } | { error: string } | null {
+export function parseCallback(url: string, expectedState: string): { code: string } | { error: string } | null {
   const u = new URL(url, "http://127.0.0.1");
   if (u.pathname !== "/") return null;
   if (u.searchParams.get("state") !== expectedState) return { error: "OAuth state mismatch" };

@@ -42,7 +42,10 @@ export const ja = {
     local: { text: "この PC のみ", title: "データはこの PC にだけ保存されています" },
     synced: { text: "同期済み", title: "すべての変更が保存されています" },
     pending: { text: "送信待ち", title: "未送信の変更があります。オンラインになると自動で送信されます" },
-    offline: { text: "オフライン", title: "オフラインです。変更はこの PC に保存され、オンラインになると自動で送信されます" },
+    offline: {
+      text: "オフライン",
+      title: "オフラインです。変更はこの PC に保存され、オンラインになると自動で送信されます",
+    },
   },
   validation: {
     nameRequired: "タスク名を入力してください",

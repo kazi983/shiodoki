@@ -41,7 +41,13 @@ writeFileSync(
     tasks: [
       seedTask({ id: "local-1", name: "既存タスク", priority: "SOONER", totalMinutes: 95, sessionCount: 3 }),
       seedTask({ id: "local-2", name: "いつかのタスク", priority: "SOMEDAY", createdAt: "2026-09-02T10:00:00.000Z" }),
-      seedTask({ id: "local-3", name: "完了済みタスク", priority: "NOW", completed: true, completedAt: "2026-09-03T10:00:00.000Z" }),
+      seedTask({
+        id: "local-3",
+        name: "完了済みタスク",
+        priority: "NOW",
+        completed: true,
+        completedAt: "2026-09-03T10:00:00.000Z",
+      }),
       seedTask({ id: "local-4", name: "削除済みタスク", priority: "NOW", deleted: true }),
     ],
     sessions: [],
@@ -56,7 +62,11 @@ writeFileSync(
 async function launch(locale, extraEnv = {}) {
   const launched = await electron.launch({
     executablePath: require("electron"),
-    args: [join(root, "out/main/index.js"), "--ozone-platform=x11", ...(process.getuid?.() === 0 ? ["--no-sandbox"] : [])],
+    args: [
+      join(root, "out/main/index.js"),
+      "--ozone-platform=x11",
+      ...(process.getuid?.() === 0 ? ["--no-sandbox"] : []),
+    ],
     env: {
       ...process.env,
       TASK_MODE: "test",
@@ -144,9 +154,7 @@ try {
   await picker3.waitForSelector('.leave-row:has-text("23:59")');
   await picker3.screenshot({ path: join(shots, "4-picker-after-session.png") });
 
-  const store = JSON.parse(
-    readFileSync(join(dataDir, "store_test.json"), "utf8"),
-  );
+  const store = JSON.parse(readFileSync(join(dataDir, "store_test.json"), "utf8"));
   assert.equal(store.sessions.length, 1);
   assert.equal(store.sessions[0].endReason, "interval");
   assert.equal(store.sessions[0].taskName, "E2Eで追加したタスク");

@@ -133,7 +133,9 @@ function LeaveBlock({ info }: { info: LeaveInfo | null }) {
       <div className="block-body">
         <header className="block-header">
           <div>
-            {info?.schedule && <p className="block-time">{text.blockTime(formatHHMM(new Date(info.schedule.stopAt)))}</p>}
+            {info?.schedule && (
+              <p className="block-time">{text.blockTime(formatHHMM(new Date(info.schedule.stopAt)))}</p>
+            )}
             <h1>{text.blockTitle}</h1>
             <p className="sub">{text.blockSub}</p>
           </div>

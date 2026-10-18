@@ -80,15 +80,11 @@ describe("tasks", () => {
   });
 
   test.each(["NOW", "SOONER", "ANYTIME", "SOMEDAY"])("accepts priority %s", async (priority) => {
-    await assertSucceeds(
-      setDoc(doc(dbAs(ALICE), `users/${ALICE}/tasks/t1`), newTask({ priority })),
-    );
+    await assertSucceeds(setDoc(doc(dbAs(ALICE), `users/${ALICE}/tasks/t1`), newTask({ priority })));
   });
 
   test.each(["なし", "", "HIGH", "now"])("rejects priority %j", async (priority) => {
-    await assertFails(
-      setDoc(doc(dbAs(ALICE), `users/${ALICE}/tasks/t1`), newTask({ priority })),
-    );
+    await assertFails(setDoc(doc(dbAs(ALICE), `users/${ALICE}/tasks/t1`), newTask({ priority })));
   });
 
   test("rejects empty names, unknown fields and client-side updatedAt", async () => {
@@ -102,9 +98,7 @@ describe("tasks", () => {
   test("owner can update fields and increment totals", async () => {
     await seedTask(ALICE, "t1");
     const ref = doc(dbAs(ALICE), `users/${ALICE}/tasks/t1`);
-    await assertSucceeds(
-      updateDoc(ref, { priority: "SOONER", updatedAt: serverTimestamp(), updatedBy: "android" }),
-    );
+    await assertSucceeds(updateDoc(ref, { priority: "SOONER", updatedAt: serverTimestamp(), updatedBy: "android" }));
     await assertSucceeds(
       updateDoc(ref, {
         totalMinutes: increment(30),
@@ -119,9 +113,7 @@ describe("tasks", () => {
     await seedTask(ALICE, "t1");
     const ref = doc(dbAs(ALICE), `users/${ALICE}/tasks/t1`);
     await assertFails(updateDoc(ref, { priority: "SOONER" }));
-    await assertFails(
-      updateDoc(ref, { createdAt: Timestamp.now(), updatedAt: serverTimestamp() }),
-    );
+    await assertFails(updateDoc(ref, { createdAt: Timestamp.now(), updatedAt: serverTimestamp() }));
   });
 
   test("hard delete is denied (soft delete only)", async () => {
@@ -205,18 +197,14 @@ describe("state", () => {
         device: "ubuntu-desktop",
       }),
     );
-    await assertSucceeds(
-      setDoc(ref, { status: "stopped", heartbeatAt: serverTimestamp(), device: "ubuntu-desktop" }),
-    );
+    await assertSucceeds(setDoc(ref, { status: "stopped", heartbeatAt: serverTimestamp(), device: "ubuntu-desktop" }));
     await assertSucceeds(getDoc(ref));
     await assertFails(getDoc(doc(dbAs(BOB), `users/${ALICE}/state/desktop`)));
   });
 
   test("rejects unknown desktop status and leave time fields", async () => {
     const ref = doc(dbAs(ALICE), `users/${ALICE}/state/desktop`);
-    await assertFails(
-      setDoc(ref, { status: "busy", heartbeatAt: serverTimestamp(), device: "pc" }),
-    );
+    await assertFails(setDoc(ref, { status: "busy", heartbeatAt: serverTimestamp(), device: "pc" }));
     await assertFails(
       setDoc(ref, {
         status: "idle",
@@ -229,9 +217,7 @@ describe("state", () => {
 
   test("preferences store last-selected and next task", async () => {
     const ref = doc(dbAs(ALICE), `users/${ALICE}/state/preferences`);
-    await assertSucceeds(
-      setDoc(ref, { lastSelectedTaskId: "t1", nextTaskId: null, updatedAt: serverTimestamp() }),
-    );
+    await assertSucceeds(setDoc(ref, { lastSelectedTaskId: "t1", nextTaskId: null, updatedAt: serverTimestamp() }));
     await assertFails(setDoc(ref, { lastSelectedTaskId: 1, updatedAt: serverTimestamp() }));
   });
 

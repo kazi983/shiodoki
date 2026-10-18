@@ -64,10 +64,7 @@ if (process.platform === "linux" && !process.env.TIMER_ENABLE_GPU) {
 }
 
 app.setName(APP_DIR_NAME);
-app.setPath(
-  "userData",
-  join(app.getPath("appData"), EMULATOR_MODE ? `${APP_DIR_NAME}-emulator` : APP_DIR_NAME),
-);
+app.setPath("userData", join(app.getPath("appData"), EMULATOR_MODE ? `${APP_DIR_NAME}-emulator` : APP_DIR_NAME));
 
 let quitting = false;
 
@@ -141,42 +138,38 @@ function startFirebase(): void {
 
   repo = new FirestoreTaskRepository(bridge, () => broadcastChanged());
 
-  const wired = wire(
-    repo,
-    () => ({ status: repo.status, email }),
-    {
-      reporter: new DesktopStateReporter((state) => repo.setDesktopState(state), DEVICE),
-      beforeQuit: async () => {
-        // Best effort: if offline, the writes stay queued in IndexedDB and are sent next time.
-        await repo.flush(2_000).catch(() => false);
-      },
-      signIn: async () => {
-        const idToken = EMULATOR_MODE
-          ? JSON.stringify({ sub: "e2e-user", email: "e2e@example.com", email_verified: true })
-          : await googleIdToken();
-        await bridge.request({ op: "signIn", idToken }, 30_000);
-        await offerMigration(bridge);
-        wired.windows.closeLogin();
-        wired.controller.start();
-      },
-      logout: async () => {
-        const { common, dialogs } = t();
-        const ok = await showMessageBox(wired.windows, {
-          type: "question",
-          buttons: [common.logout, common.cancel],
-          defaultId: 0,
-          cancelId: 1,
-          noLink: true,
-          title: common.logout,
-          message: dialogs.logoutConfirm(email ?? ""),
-        });
-        if (ok.response !== 0) return;
-        await wired.controller.restart(async () => {
-          await bridge.request({ op: "signOut" }, 15_000).catch((e) => console.error(e));
-        });
-      },
+  const wired = wire(repo, () => ({ status: repo.status, email }), {
+    reporter: new DesktopStateReporter((state) => repo.setDesktopState(state), DEVICE),
+    beforeQuit: async () => {
+      // Best effort: if offline, the writes stay queued in IndexedDB and are sent next time.
+      await repo.flush(2_000).catch(() => false);
     },
-  );
+    signIn: async () => {
+      const idToken = EMULATOR_MODE
+        ? JSON.stringify({ sub: "e2e-user", email: "e2e@example.com", email_verified: true })
+        : await googleIdToken();
+      await bridge.request({ op: "signIn", idToken }, 30_000);
+      await offerMigration(bridge);
+      wired.windows.closeLogin();
+      wired.controller.start();
+    },
+    logout: async () => {
+      const { common, dialogs } = t();
+      const ok = await showMessageBox(wired.windows, {
+        type: "question",
+        buttons: [common.logout, common.cancel],
+        defaultId: 0,
+        cancelId: 1,
+        noLink: true,
+        title: common.logout,
+        message: dialogs.logoutConfirm(email ?? ""),
+      });
+      if (ok.response !== 0) return;
+      await wired.controller.restart(async () => {
+        await bridge.request({ op: "signOut" }, 15_000).catch((e) => console.error(e));
+      });
+    },
+  });
   broadcastChanged = () => wired.windows.broadcast(IPC.tasksChanged);
 
   bridge.start();
@@ -263,7 +256,11 @@ function showMessageBox(windows: WindowManager, options: Electron.MessageBoxOpti
 }
 
 /** Save the tray choice; the new language applies after a restart (now or later). */
-async function changeLanguage(value: LanguageSetting, controller: AppController, windows: WindowManager): Promise<void> {
+async function changeLanguage(
+  value: LanguageSetting,
+  controller: AppController,
+  windows: WindowManager,
+): Promise<void> {
   saveLanguageSetting(settingsFile(), value);
   if (chooseLocale(value, app.getLocale(), process.env.SHIODOKI_LOCALE) === getLocale()) return;
   const text = t().language;

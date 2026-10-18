@@ -110,7 +110,11 @@ export class FirestoreStore {
 
   setPreferences(patch: Partial<PreferencesData>): void {
     this.fire(
-      setDoc(doc(this.db, `${this.base}/state/preferences`), { ...patch, updatedAt: serverTimestamp() }, { merge: true }),
+      setDoc(
+        doc(this.db, `${this.base}/state/preferences`),
+        { ...patch, updatedAt: serverTimestamp() },
+        { merge: true },
+      ),
     );
   }
 

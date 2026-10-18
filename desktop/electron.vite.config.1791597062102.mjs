@@ -7,7 +7,7 @@ var shared = { "@shared": resolve(__electron_vite_injected_dirname, "src/shared"
 var electron_vite_config_default = defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
-    resolve: { alias: shared }
+    resolve: { alias: shared },
   },
   preload: {
     plugins: [externalizeDepsPlugin()],
@@ -17,10 +17,10 @@ var electron_vite_config_default = defineConfig({
         input: {
           index: resolve(__electron_vite_injected_dirname, "src/preload/index.ts"),
           // Hidden window that runs the Firebase SDK
-          data: resolve(__electron_vite_injected_dirname, "src/preload/data.ts")
-        }
-      }
-    }
+          data: resolve(__electron_vite_injected_dirname, "src/preload/data.ts"),
+        },
+      },
+    },
   },
   renderer: {
     resolve: { alias: shared },
@@ -29,12 +29,10 @@ var electron_vite_config_default = defineConfig({
       rollupOptions: {
         input: {
           index: resolve(__electron_vite_injected_dirname, "src/renderer/index.html"),
-          data: resolve(__electron_vite_injected_dirname, "src/renderer/data.html")
-        }
-      }
-    }
-  }
+          data: resolve(__electron_vite_injected_dirname, "src/renderer/data.html"),
+        },
+      },
+    },
+  },
 });
-export {
-  electron_vite_config_default as default
-};
+export { electron_vite_config_default as default };
