@@ -2,7 +2,13 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
-import { chooseLocale, loadLanguageSetting, saveLanguageSetting } from "../src/main/settings";
+import {
+  chooseLocale,
+  loadLanguageSetting,
+  loadOverlayOffset,
+  saveLanguageSetting,
+  saveOverlayOffset,
+} from "../src/main/settings";
 
 describe("language setting file", () => {
   const dir = mkdtempSync(join(tmpdir(), "shiodoki-settings-"));
@@ -27,6 +33,28 @@ describe("language setting file", () => {
     expect(loadLanguageSetting(file)).toBe("system");
     writeFileSync(file, JSON.stringify({ language: "fr" }));
     expect(loadLanguageSetting(file)).toBe("system");
+  });
+});
+
+describe("overlay offset", () => {
+  const dir = mkdtempSync(join(tmpdir(), "shiodoki-settings-"));
+  const file = join(dir, "settings.json");
+
+  afterEach(() => rmSync(file, { force: true }));
+
+  test("missing or broken value means the default position", () => {
+    expect(loadOverlayOffset(file)).toBeNull();
+    writeFileSync(file, JSON.stringify({ overlayOffsetY: "top" }));
+    expect(loadOverlayOffset(file)).toBeNull();
+  });
+
+  test("saving one setting keeps the other", () => {
+    saveLanguageSetting(file, "en");
+    saveOverlayOffset(file, 420);
+    expect(loadLanguageSetting(file)).toBe("en");
+    expect(loadOverlayOffset(file)).toBe(420);
+    saveLanguageSetting(file, "ja");
+    expect(loadOverlayOffset(file)).toBe(420);
   });
 });
 

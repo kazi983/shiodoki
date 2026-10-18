@@ -13,17 +13,37 @@ export type LanguageSetting = (typeof LANGUAGE_SETTINGS)[number];
 
 /** A missing or broken file means "system". */
 export function loadLanguageSetting(file: string): LanguageSetting {
-  try {
-    const value: unknown = JSON.parse(readFileSync(file, "utf8")).language;
-    return (LANGUAGE_SETTINGS as readonly unknown[]).includes(value) ? (value as LanguageSetting) : "system";
-  } catch {
-    return "system";
-  }
+  const value = readSettings(file).language;
+  return (LANGUAGE_SETTINGS as readonly unknown[]).includes(value) ? (value as LanguageSetting) : "system";
 }
 
 export function saveLanguageSetting(file: string, language: LanguageSetting): void {
+  updateSettings(file, { language });
+}
+
+/** Overlay tab position: px from the top of the work area. Missing or broken means default. */
+export function loadOverlayOffset(file: string): number | null {
+  const value = readSettings(file).overlayOffsetY;
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+export function saveOverlayOffset(file: string, offsetY: number): void {
+  updateSettings(file, { overlayOffsetY: offsetY });
+}
+
+function readSettings(file: string): Record<string, unknown> {
+  try {
+    const value: unknown = JSON.parse(readFileSync(file, "utf8"));
+    return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Read-modify-write so saving one setting keeps the others. */
+function updateSettings(file: string, patch: Record<string, unknown>): void {
   mkdirSync(dirname(file), { recursive: true });
-  writeFileSync(file, JSON.stringify({ language }, null, 2));
+  writeFileSync(file, JSON.stringify({ ...readSettings(file), ...patch }, null, 2));
 }
 
 /** SHIODOKI_LOCALE (tests) > the in-app setting > the OS language. */

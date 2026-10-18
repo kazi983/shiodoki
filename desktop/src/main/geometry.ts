@@ -17,3 +17,12 @@ export function centeredBounds(display: { workArea: Rect }, width: number, heigh
     height: h,
   };
 }
+
+/**
+ * Overlay offset from the top of the work area, kept so a window of `height` (the expanded
+ * panel) still fits below it. `offset` is null until the user drags the tab: then it sits at 20%.
+ */
+export function clampOverlayOffset(workArea: Rect, offset: number | null, height: number): number {
+  const y = offset ?? Math.round(workArea.height * 0.2);
+  return Math.min(Math.max(y, 0), workArea.height - height);
+}

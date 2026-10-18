@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent,
+} from "react";
 import { t } from "@shared/i18n";
 import type { RunningInfo } from "@shared/ipc";
 import { formatHHMM } from "@shared/leave";
@@ -7,17 +13,27 @@ import { formatCountdown, useNow } from "../useNow";
 
 /** The ring turns orange in the last 5 minutes. */
 const WARN_MS = 5 * 60_000;
+/** Movement below this is a click (complete), above it a drag. */
+const DRAG_THRESHOLD_PX = 4;
 
 /**
  * Always-on-top tab on the right edge while a session runs: a ring with the
  * minutes left. On hover it expands to show the task and a complete button.
+ * Dragging moves it up or down; it stays on the right edge.
  */
 export function OverlayPage() {
   const [expanded, setExpanded] = useState(false);
   const [info, setInfo] = useState<RunningInfo | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const drag = useRef<{ startY: number; moving: boolean } | null>(null);
+  /** The click that follows a drag must not complete the session. */
+  const suppressClick = useRef(false);
   const now = useNow(1000);
 
-  const load = useCallback(() => void window.api.overlay.getState().then(setInfo), []);
+  const load = useCallback(
+    () => void window.api.overlay.getState().then(setInfo),
+    [],
+  );
 
   useEffect(() => {
     document.title = "Shiodoki";
@@ -29,11 +45,54 @@ export function OverlayPage() {
   }, [load]);
 
   function setHover(next: boolean) {
+    // The window follows the cursor while dragging, so ignore enter/leave until it ends.
+    if (drag.current?.moving) return;
     setExpanded(next);
     void window.api.overlay.setExpanded(next);
   }
 
-  const complete = () => void window.api.overlay.complete();
+  function onPointerDown(e: PointerEvent<HTMLDivElement>) {
+    if (e.button !== 0) return;
+    suppressClick.current = false;
+    drag.current = { startY: e.screenY, moving: false };
+    // Keep receiving moves even if the cursor gets ahead of the window.
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+
+  function onPointerMove(e: PointerEvent<HTMLDivElement>) {
+    const d = drag.current;
+    if (!d) return;
+    if (!d.moving) {
+      if (Math.abs(e.screenY - d.startY) < DRAG_THRESHOLD_PX) return;
+      d.moving = true;
+      setDragging(true);
+      void window.api.overlay.dragStart();
+    }
+    void window.api.overlay.dragMove();
+  }
+
+  function onPointerUp(e: PointerEvent<HTMLDivElement>) {
+    const d = drag.current;
+    drag.current = null;
+    if (!d?.moving) return;
+    setDragging(false);
+    void window.api.overlay.dragEnd();
+    suppressClick.current = true;
+    const inside =
+      e.clientX >= 0 &&
+      e.clientY >= 0 &&
+      e.clientX < window.innerWidth &&
+      e.clientY < window.innerHeight;
+    if (!inside) setHover(false);
+  }
+
+  function complete() {
+    if (suppressClick.current) {
+      suppressClick.current = false;
+      return;
+    }
+    void window.api.overlay.complete();
+  }
 
   const endsAt = info ? new Date(info.endsAt).getTime() : 0;
   const total = info ? endsAt - new Date(info.startedAt).getTime() : 1;
@@ -44,7 +103,12 @@ export function OverlayPage() {
   const text = t().overlay;
 
   const ring = (
-    <Ring size={44} width={4} fraction={total > 0 ? remaining / total : 0} color={color}>
+    <Ring
+      size={44}
+      width={4}
+      fraction={total > 0 ? remaining / total : 0}
+      color={color}
+    >
       <text
         x="22"
         y="27"
@@ -60,7 +124,15 @@ export function OverlayPage() {
   );
 
   return (
-    <div className="overlay-root" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+    <div
+      className={dragging ? "overlay-root dragging" : "overlay-root"}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+    >
       {expanded ? (
         <div className="overlay-panel">
           <div className="overlay-info">
@@ -79,7 +151,11 @@ export function OverlayPage() {
               </span>
             </div>
           </div>
-          <button type="button" className="btn btn-primary overlay-complete" onClick={complete}>
+          <button
+            type="button"
+            className="btn btn-primary overlay-complete"
+            onClick={complete}
+          >
             <CheckIcon />
             {text.completeAndPick}
           </button>

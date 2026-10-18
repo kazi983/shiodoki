@@ -85,6 +85,11 @@ export interface DesktopApi {
     onRefresh(listener: () => void): () => void;
     complete(): Promise<void>;
     setExpanded(expanded: boolean): Promise<void>;
+    /** Vertical drag along the right edge; the main process follows the cursor. */
+    dragStart(): Promise<void>;
+    dragMove(): Promise<void>;
+    /** Drop: the main process saves the position for the next launch. */
+    dragEnd(): Promise<void>;
   };
   leave: {
     getState(): Promise<LeaveInfo>;
@@ -118,6 +123,9 @@ export const IPC = {
   overlayRefresh: "overlay:refresh",
   overlayComplete: "overlay:complete",
   overlaySetExpanded: "overlay:setExpanded",
+  overlayDragStart: "overlay:dragStart",
+  overlayDragMove: "overlay:dragMove",
+  overlayDragEnd: "overlay:dragEnd",
   leaveGetState: "leave:getState",
   leaveDismissWarning: "leave:dismissWarning",
   dialogConfirm: "dialog:confirm",

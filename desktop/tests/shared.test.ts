@@ -12,7 +12,7 @@ import {
   normalizeTaskInput,
   type Task,
 } from "@shared/task";
-import { centeredBounds } from "../src/main/geometry";
+import { centeredBounds, clampOverlayOffset } from "../src/main/geometry";
 
 function task(overrides: Partial<Task>): Task {
   return {
@@ -158,5 +158,19 @@ describe("centeredBounds", () => {
     const b = centeredBounds({ workArea: { x: 0, y: 0, width: 1366, height: 700 } }, 1200, 1400);
     expect(b.height).toBe(665);
     expect(b.y).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe("clampOverlayOffset", () => {
+  const workArea = { x: 0, y: 32, width: 1920, height: 1000 };
+
+  test("starts at 20% of the work area", () => {
+    expect(clampOverlayOffset(workArea, null, 128)).toBe(200);
+  });
+
+  test("keeps a dragged position inside the work area", () => {
+    expect(clampOverlayOffset(workArea, 500, 128)).toBe(500);
+    expect(clampOverlayOffset(workArea, -40, 128)).toBe(0);
+    expect(clampOverlayOffset(workArea, 2000, 128)).toBe(1000 - 128);
   });
 });
