@@ -122,7 +122,7 @@ export class JsonFileTaskRepository implements TaskRepository {
         preferences: { ...emptyStore().preferences, ...parsed.preferences },
       };
     } catch (error) {
-      throw new Error(`Could not read the data file: ${this.file}: ${String(error)}`);
+      throw new Error(`Could not read the data file: ${this.file}: ${String(error)}`, { cause: error });
     }
   }
 
