@@ -1,0 +1,17 @@
+# Generated or vendored
+node_modules/
+out/
+dist/
+coverage/
+test-results/
+.firebase/
+desktop/resources/oauth-client.json
+package-lock.json
+desktop/e2e/screenshots/
+*.log
+
+# Not JS/TS: Kotlin has its own tools (ktlint / Spotless, separate PR)
+android/
+
+# Hand-written Japanese docs: reflowing tables makes large diffs with no benefit
+*.md
