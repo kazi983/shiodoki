@@ -73,12 +73,16 @@ describe("TaskService with JSON file", () => {
     expect((await service.listAll()).map((t) => t.name)).toEqual(["B"]);
     await expect(service.update(a.id, { name: "x", priority: "NOW", memo: "" })).rejects.toThrow();
 
-    expect(changed).toHaveBeenCalledTimes(6);
+    // A partial patch writes only its fields and is validated with the stored ones.
+    expect(await service.update(b.id, { memo: " new " })).toMatchObject({ name: "B", priority: "NOW", memo: "new" });
+    await expect(service.update(b.id, { name: " " })).rejects.toThrow();
+
+    expect(changed).toHaveBeenCalledTimes(7);
 
     // Reload from disk
     const reloaded = new TaskService(new JsonFileTaskRepository(file));
     const all = await reloaded.listAll();
-    expect(all.map((t) => [t.name, t.memo, t.completed])).toEqual([["B", "memo", false]]);
+    expect(all.map((t) => [t.name, t.memo, t.completed])).toEqual([["B", "new", false]]);
     expect(existsSync(`${file}.tmp`)).toBe(false);
   });
 
