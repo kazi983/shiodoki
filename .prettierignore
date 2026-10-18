@@ -1,17 +1,17 @@
-# Generated or vendored
+# Everything Prettier supports is formatted; only generated, vendored and secret files are skipped.
 node_modules/
 out/
 dist/
 coverage/
 test-results/
 .firebase/
-desktop/resources/oauth-client.json
 package-lock.json
 desktop/e2e/screenshots/
 *.log
+desktop/resources/oauth-client.json
 
-# Not JS/TS: Kotlin has its own tools (ktlint / Spotless, separate PR)
-android/
-
-# Hand-written Japanese docs: reflowing tables makes large diffs with no benefit
-*.md
+# Android / Gradle build output and IDE files
+**/build/
+.gradle/
+.kotlin/
+.idea/

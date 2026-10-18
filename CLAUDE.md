@@ -26,9 +26,9 @@ written in Japanese.
 
 ## Layout and commands
 
-- Repo root — formatter and linter for the JS/TS parts (`desktop/`, `firebase/`): Prettier
-  (`.prettierrc.json`, 120 columns; Markdown and `android/` are not formatted) and ESLint
-  (`eslint.config.mjs`, no type information). `npm install` at the root installs them and the
+- Repo root — formatter and linter: Prettier for every file type it supports, Markdown
+  included (`.prettierrc.json`, 120 columns), and ESLint for the JS/TS parts (`desktop/`,
+  `firebase/`; `eslint.config.mjs`, no type information). `npm install` at the root installs them and the
   husky pre-commit hook (lint-staged: Prettier + ESLint on staged files). Before committing,
   run `npm run format:check` and `npm run lint` at the root; CI (`.github/workflows/lint.yml`)
   runs both. `.claude/settings.json` formats every file Claude edits. The whole-tree format
