@@ -68,6 +68,9 @@
   <string name="settings_focus_toggle_detail">「今から何をやる？」を全画面で聞きます</string>
   <string name="settings_permissions">必要な権限</string>
   <string name="settings_account">アカウント</string>
+  <string name="settings_language">言語 / Language</string>
+  <string name="settings_language_system">端末の設定に従う</string>
+  <string name="settings_language_detail">端末の設定画面で変更します</string>
   <string name="settings_logout_confirm">ログアウトしますか？</string>
   <string name="settings_granted">許可済み</string>
   <string name="settings_grant">設定する</string>

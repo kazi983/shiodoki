@@ -75,6 +75,10 @@
   <string name="settings_focus_toggle_detail">Asks “What\'s your focus now?” in full screen</string>
   <string name="settings_permissions">Required permissions</string>
   <string name="settings_account">Account</string>
+  <!-- Both languages, so the row can be found whichever language is shown. -->
+  <string name="settings_language">Language / 言語</string>
+  <string name="settings_language_system">System default</string>
+  <string name="settings_language_detail">Change it in the system settings</string>
   <string name="settings_logout_confirm">Sign out?</string>
   <string name="settings_granted">Granted</string>
   <string name="settings_grant">Grant</string>
