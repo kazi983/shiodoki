@@ -26,6 +26,13 @@ written in Japanese.
 
 ## Layout and commands
 
+- Repo root — formatter and linter for the JS/TS parts (`desktop/`, `firebase/`): Prettier
+  (`.prettierrc.json`, 120 columns; Markdown and `android/` are not formatted) and ESLint
+  (`eslint.config.mjs`, no type information). `npm install` at the root installs them and the
+  husky pre-commit hook (lint-staged: Prettier + ESLint on staged files). Before committing,
+  run `npm run format:check` and `npm run lint` at the root; CI (`.github/workflows/lint.yml`)
+  runs both. `.claude/settings.json` formats every file Claude edits. The whole-tree format
+  commit is listed in `.git-blame-ignore-revs` (`git config blame.ignoreRevsFile .git-blame-ignore-revs`).
 - `firebase/` — `firestore.rules`, emulator config, rules tests. `npm test` runs the rules tests
   on the Firestore emulator (Java 21+). `npm run deploy:rules` deploys to project
   `shiodoki-e4e8f` (`.firebaserc`).

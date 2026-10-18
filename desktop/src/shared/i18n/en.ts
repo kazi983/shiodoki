@@ -39,7 +39,10 @@ export const en: Messages = {
   sync: {
     local: { text: "This PC only", title: "Data is saved only on this PC" },
     synced: { text: "Synced", title: "All changes are saved" },
-    pending: { text: "Pending", title: "Some changes are not sent yet. They are sent automatically when you are online" },
+    pending: {
+      text: "Pending",
+      title: "Some changes are not sent yet. They are sent automatically when you are online",
+    },
     offline: {
       text: "Offline",
       title: "You are offline. Changes are saved on this PC and sent automatically when you are back online",

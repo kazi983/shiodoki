@@ -8,10 +8,13 @@ export class TimerService {
 
   start(delayMs: number, callback: () => void): string {
     const id = `t_${++this.counter}`;
-    const handle = setTimeout(() => {
-      this.timers.delete(id);
-      callback();
-    }, Math.max(0, delayMs));
+    const handle = setTimeout(
+      () => {
+        this.timers.delete(id);
+        callback();
+      },
+      Math.max(0, delayMs),
+    );
     this.timers.set(id, handle);
     return id;
   }

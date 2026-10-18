@@ -183,8 +183,14 @@ describe("FirestoreStore (rules enforced)", () => {
     });
     const task = newTask({ name: "Live" });
     store.createTask(task);
-    await until(async () => tasks, (t) => t.some((x) => x.id === task.id && x.name === "Live"));
-    await until(async () => prefs, (p) => p?.lastSelectedTaskId === "abc");
+    await until(
+      async () => tasks,
+      (t) => t.some((x) => x.id === task.id && x.name === "Live"),
+    );
+    await until(
+      async () => prefs,
+      (p) => p?.lastSelectedTaskId === "abc",
+    );
     off();
   });
 
@@ -202,7 +208,10 @@ describe("FirestoreStore (rules enforced)", () => {
   test("writes to another user's data are rejected by the rules", async () => {
     const other = new FirestoreStore(db, "someone-else", (e) => writeErrors.push(e));
     other.createTask(newTask());
-    await until(async () => writeErrors.length, (n) => n > 0);
+    await until(
+      async () => writeErrors.length,
+      (n) => n > 0,
+    );
     expect(writeErrors[0].message).toMatch(/permission/i);
     writeErrors.length = 0;
   });

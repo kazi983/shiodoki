@@ -83,7 +83,11 @@ describe("FirestoreTaskRepository", () => {
   test("a later snapshot replaces the cache (remote edits from Android)", async () => {
     const { repo } = setup();
     repo.handleEvent({ type: "tasks", tasks: [task()], status: "synced" });
-    repo.handleEvent({ type: "tasks", tasks: [task({ name: "Edited on phone", updatedBy: "android" })], status: "pending" });
+    repo.handleEvent({
+      type: "tasks",
+      tasks: [task({ name: "Edited on phone", updatedBy: "android" })],
+      status: "pending",
+    });
     expect((await repo.getTask("t1"))?.name).toBe("Edited on phone");
     expect(repo.status).toBe("pending");
   });
@@ -109,8 +113,20 @@ describe("DesktopStateReporter", () => {
     const reporter = new DesktopStateReporter(write, "pc", 1000);
     const startedAt = new Date("2026-10-06T09:00:00.000Z");
 
-    reporter.report({ status: "idle", currentTaskId: null, currentTaskName: null, startedAt: null, nextPromptAt: null });
-    reporter.report({ status: "idle", currentTaskId: null, currentTaskName: null, startedAt: null, nextPromptAt: null });
+    reporter.report({
+      status: "idle",
+      currentTaskId: null,
+      currentTaskName: null,
+      startedAt: null,
+      nextPromptAt: null,
+    });
+    reporter.report({
+      status: "idle",
+      currentTaskId: null,
+      currentTaskName: null,
+      startedAt: null,
+      nextPromptAt: null,
+    });
     reporter.report({ status: "running", currentTaskId: "t1", currentTaskName: "Task", startedAt, nextPromptAt: null });
     expect(write).toHaveBeenCalledTimes(2);
     expect(write).toHaveBeenLastCalledWith({
@@ -125,7 +141,13 @@ describe("DesktopStateReporter", () => {
     vi.advanceTimersByTime(2500);
     expect(write).toHaveBeenCalledTimes(4);
 
-    reporter.report({ status: "stopped", currentTaskId: null, currentTaskName: null, startedAt: null, nextPromptAt: null });
+    reporter.report({
+      status: "stopped",
+      currentTaskId: null,
+      currentTaskName: null,
+      startedAt: null,
+      nextPromptAt: null,
+    });
     vi.advanceTimersByTime(5000);
     expect(write).toHaveBeenCalledTimes(5);
   });
@@ -194,9 +216,7 @@ describe("Google OAuth (loopback + PKCE)", () => {
       const u = new URL(authUrl);
       await fetch(`${u.searchParams.get("redirect_uri")}/?error=access_denied&state=${u.searchParams.get("state")}`);
     };
-    await expect(signInWithGoogle({ clientId: "id", clientSecret: "s" }, openBrowser)).rejects.toThrow(
-      "キャンセル",
-    );
+    await expect(signInWithGoogle({ clientId: "id", clientSecret: "s" }, openBrowser)).rejects.toThrow("キャンセル");
   });
 });
 

@@ -15,7 +15,10 @@ export function SyncBadge() {
   if (!info) return null;
   const label = t().sync[info.status];
   return (
-    <span className={`sync-badge sync-${info.status}`} title={info.email ? `${label.title}\n${info.email}` : label.title}>
+    <span
+      className={`sync-badge sync-${info.status}`}
+      title={info.email ? `${label.title}\n${info.email}` : label.title}
+    >
       <span className="sync-dot" aria-hidden />
       {label.text}
     </span>

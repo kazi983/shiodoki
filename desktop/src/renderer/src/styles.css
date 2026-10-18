@@ -158,7 +158,9 @@ p {
   font-size: 14px;
   white-space: nowrap;
   cursor: pointer;
-  transition: filter 0.1s, background-color 0.1s;
+  transition:
+    filter 0.1s,
+    background-color 0.1s;
 }
 
 .btn:hover:not(:disabled) {
