@@ -22,8 +22,8 @@ android {
     applicationId = "dev.kaorukajihara.shiodoki"
     minSdk = 29
     targetSdk = 37
-    versionCode = 1
-    versionName = "0.1.0"
+    versionCode = 2
+    versionName = "0.2.0"
     buildConfigField("boolean", "USE_FIREBASE_EMULATOR", "false")
   }
 
@@ -78,4 +78,28 @@ dependencies {
   testImplementation(libs.junit)
   testImplementation(libs.kotlinx.coroutines.test)
   debugImplementation(libs.androidx.compose.ui.tooling)
+}
+
+val keystoreProperties = Properties().apply {
+  val file = rootProject.file("keystore.properties")
+  if (file.exists()) file.inputStream().use { load(it) }
+}
+
+android {
+  signingConfigs {
+    if (keystoreProperties.isNotEmpty()) {
+      create("release") {
+        storeFile = file(keystoreProperties.getProperty("storeFile"))
+        storePassword = keystoreProperties.getProperty("storePassword")
+        keyAlias = keystoreProperties.getProperty("keyAlias")
+        keyPassword = keystoreProperties.getProperty("keyPassword")
+      }
+    }
+  }
+  buildTypes {
+    release {
+      signingConfig = signingConfigs.findByName("release")
+      // (existing optimization block stays)
+    }
+  }
 }
