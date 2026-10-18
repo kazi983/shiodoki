@@ -127,15 +127,20 @@ try {
   assert.equal(rows, 4, "3 seeded (1 completed) + 1 added; deleted one is skipped");
   await management.click('tr:has-text("いつかのタスク")');
   assert.equal(await management.getAttribute(".prio-option[aria-pressed=true]", "title"), "SOMEDAY");
+  // Autosave: a priority click saves at once, typing saves after a pause.
   await management.click('.prio-option[title="ANYTIME"]');
-  await management.fill('textarea[aria-label="メモ"]', "メモも保存される");
-  await management.click("text=変更を保存");
-  await management.waitForSelector('.cell-memo:has-text("メモも保存される")');
   await management.waitForSelector('tr:has-text("いつかのタスク") .prio-chip:has-text("いつでも")');
+  await management.fill('textarea[aria-label="メモ"]', "メモも保存される");
+  await management.waitForSelector('.save-status:has-text("未保存の変更")');
+  await management.waitForSelector('.cell-memo:has-text("メモも保存される")');
+  await management.waitForSelector('.save-status:has-text("保存済み")');
   await management.fill('input[aria-label="タスクを検索"]', "メモも");
   assert.equal(await management.locator(".task-table tbody tr").count(), 1, "search matches the memo");
   await management.fill('input[aria-label="タスクを検索"]', "");
   await management.screenshot({ path: join(shots, "2-management.png") });
+
+  // Leaving before the pause is over still saves (checked in the store below).
+  await management.fill('textarea[aria-label="メモ"]', "戻るときに保存される");
 
   // ---- back to picker, start a session (TASK_MODE=test: 5 second interval) ----
   await management.click('button[aria-label="Quick Start に戻る"]');
@@ -159,6 +164,7 @@ try {
   assert.equal(store.sessions[0].endReason, "interval");
   assert.equal(store.sessions[0].taskName, "E2Eで追加したタスク");
   assert.equal(store.tasks.find((t) => t.name === "E2Eで追加したタスク").sessionCount, 1);
+  assert.equal(store.tasks.find((t) => t.name === "いつかのタスク").memo, "戻るときに保存される");
 
   // ---- English UI from the language setting: same data, translated text ----
   await app.close();
