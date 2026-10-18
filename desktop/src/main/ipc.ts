@@ -30,7 +30,7 @@ export function registerIpcHandlers(
 
   ipcMain.handle(IPC.tasksListAll, () => tasks.listAll());
   ipcMain.handle(IPC.tasksAdd, (_e, input: TaskInput) => tasks.add(input));
-  ipcMain.handle(IPC.tasksUpdate, (_e, id: string, input: TaskInput) => tasks.update(id, input));
+  ipcMain.handle(IPC.tasksUpdate, (_e, id: string, patch: Partial<TaskInput>) => tasks.update(id, patch));
   ipcMain.handle(IPC.tasksComplete, (_e, id: string) => tasks.complete(id));
   ipcMain.handle(IPC.tasksReopen, (_e, id: string) => tasks.reopen(id));
   ipcMain.handle(IPC.tasksRemove, (_e, id: string) => tasks.remove(id));

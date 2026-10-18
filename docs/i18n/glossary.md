@@ -107,6 +107,8 @@
 | 読み込み中                 | Loading                    |                                                      |      |
 | エラー                     | Error                      |                                                      |      |
 | 保存できませんでした       | Couldn't save              |                                                      |      |
+| 未保存の変更               | Unsaved changes            | タスク管理画面の自動保存の状態表示                   |      |
+| 保存済み                   | Saved                      | 同上                                                 |      |
 | 見つかりませんでした       | No matches                 | 検索結果が 0 件                                      |      |
 | 必要な権限                 | Required permissions       | Android                                              |      |
 | 許可済み / 設定する        | Granted / Grant            | Android の権限行                                     |      |

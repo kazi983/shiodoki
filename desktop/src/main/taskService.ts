@@ -1,8 +1,17 @@
 import { randomUUID } from "node:crypto";
 import { t } from "@shared/i18n";
 import { startOfWorkDay, summarizeSessions, type DaySummary, type SessionRecord } from "@shared/session";
-import { compareTasks, compareTasksForManagement, normalizeTaskInput, type Task, type TaskInput } from "@shared/task";
+import {
+  compareTasks,
+  compareTasksForManagement,
+  normalizeTaskInput,
+  type Task,
+  type TaskInput,
+  type TaskPatch,
+} from "@shared/task";
 import type { Preferences, TaskRepository } from "./taskRepository";
+
+const INPUT_FIELDS = ["name", "priority", "memo"] as const;
 
 /**
  * Task use cases. Every mutation notifies `onChanged` so open windows
@@ -53,10 +62,13 @@ export class TaskService {
     return task;
   }
 
-  async update(id: string, input: TaskInput): Promise<Task> {
-    const v = normalizeTaskInput(input);
-    await this.get(id);
-    await this.repo.updateTask(id, v);
+  /** Write only the given fields, validated together with the stored values of the others. */
+  async update(id: string, patch: Partial<TaskInput>): Promise<Task> {
+    const current = await this.get(id);
+    const v = normalizeTaskInput({ name: current.name, priority: current.priority, memo: current.memo, ...patch });
+    const fields = INPUT_FIELDS.filter((field) => patch[field] !== undefined);
+    if (fields.length === 0) return current;
+    await this.repo.updateTask(id, Object.fromEntries(fields.map((field) => [field, v[field]])) as TaskPatch);
     this.onChanged();
     return this.get(id);
   }

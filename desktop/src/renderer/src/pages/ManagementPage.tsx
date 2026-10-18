@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { t } from "@shared/i18n";
-import { PRIORITIES, PRIORITY_META, formatDuration, type Priority, type Task, type TaskInput } from "@shared/task";
+import { PRIORITIES, PRIORITY_META, formatDuration, type Priority, type Task } from "@shared/task";
 import { alertError } from "../errors";
 import { BackIcon, SearchIcon, TrashIcon } from "../icons";
 import { SyncBadge } from "../SyncBadge";
+import { useTaskDraft } from "../useTaskDraft";
 
 function matches(task: Task, query: string): boolean {
   const q = query.trim().toLowerCase();
@@ -14,7 +15,6 @@ function matches(task: Task, query: string): boolean {
 export function ManagementPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [form, setForm] = useState<TaskInput | null>(null);
   const [newName, setNewName] = useState("");
   const [query, setQuery] = useState("");
   const [showCompleted, setShowCompleted] = useState(true);
@@ -35,16 +35,25 @@ export function ManagementPage() {
     return window.api.tasks.onChanged(() => void load());
   }, [load]);
 
+  const visible = tasks.filter((t) => (showCompleted || !t.completed) && matches(t, query));
+  const selected = tasks.find((t) => t.id === selectedId) ?? null;
+  const draft = useTaskDraft(selected);
+  const form = draft.form;
+  const { leave } = draft;
+  const statusText = { idle: "", pending: text.unsavedChanges, saved: text.saved, failed: text.saveFailed };
+
+  const backToPicker = useCallback(async () => {
+    await leave();
+    await window.api.nav.openPicker();
+  }, [leave]);
+
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
-      if (e.key === "Escape" && !e.isComposing) void window.api.nav.openPicker();
+      if (e.key === "Escape" && !e.isComposing) void backToPicker();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  const visible = tasks.filter((t) => (showCompleted || !t.completed) && matches(t, query));
-  const selected = tasks.find((t) => t.id === selectedId) ?? null;
+  }, [backToPicker]);
   const openCount = tasks.filter((t) => !t.completed).length;
   const doneCount = tasks.length - openCount;
 
@@ -53,8 +62,9 @@ export function ManagementPage() {
   }, [selectedId]);
 
   function select(task: Task | null) {
+    if ((task?.id ?? null) === selectedId) return;
+    void draft.leave();
     setSelectedId(task?.id ?? null);
-    setForm(task ? { name: task.name, priority: task.priority, memo: task.memo } : null);
   }
 
   async function run(action: () => Promise<void>) {
@@ -81,26 +91,10 @@ export function ManagementPage() {
       addRef.current?.focus();
     });
 
-  const updateTask = () =>
-    run(async () => {
-      if (!selected || !form) return;
-      const changes: string[] = [];
-      if (selected.name !== form.name.trim()) changes.push(text.changeName(selected.name, form.name.trim()));
-      if (selected.priority !== form.priority)
-        changes.push(text.changePriority(priority[selected.priority], priority[form.priority]));
-      if (selected.memo !== form.memo.trim()) changes.push(text.changeMemo);
-      if (changes.length === 0) {
-        await window.api.dialog.alert(text.noChangesTitle, text.noChangesMessage);
-        return;
-      }
-      if (!(await window.api.dialog.confirm(text.updateTitle, text.updateConfirm(changes.join("\n"))))) return;
-      const updated = await window.api.tasks.update(selected.id, form);
-      select(updated);
-    });
-
   const toggleComplete = (task: Task | null) =>
     run(async () => {
       if (!task) return;
+      if (task.id === selectedId) await draft.flush();
       if (task.completed) {
         if (!(await window.api.dialog.confirm(text.reopenTitle, text.reopenConfirm(task.name)))) return;
         await window.api.tasks.reopen(task.id);
@@ -114,6 +108,7 @@ export function ManagementPage() {
     run(async () => {
       if (!selected) return;
       if (!(await window.api.dialog.confirm(text.deleteTitle, text.deleteConfirm(selected.name)))) return;
+      draft.cancel();
       await window.api.tasks.remove(selected.id);
       select(null);
     });
@@ -142,7 +137,7 @@ export function ManagementPage() {
         <button
           type="button"
           className="back-btn"
-          onClick={() => void window.api.nav.openPicker()}
+          onClick={() => void backToPicker()}
           aria-label={text.back}
           title={text.backTitle}
         >
@@ -261,9 +256,9 @@ export function ManagementPage() {
                   ref={nameRef}
                   className="field"
                   value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  onChange={(e) => draft.edit({ name: e.target.value })}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.nativeEvent.isComposing) void updateTask();
+                    if (e.key === "Enter" && !e.nativeEvent.isComposing) void draft.flush();
                   }}
                   aria-label={text.name}
                 />
@@ -283,7 +278,10 @@ export function ManagementPage() {
                         aria-pressed={on}
                         title={meta.shortName}
                         style={on ? { borderColor: meta.dot, background: meta.chipBg, color: meta.chipFg } : undefined}
-                        onClick={() => setForm({ ...form, priority: p })}
+                        onClick={() => {
+                          draft.edit({ priority: p });
+                          void draft.flush();
+                        }}
                       >
                         {priority[p]}
                       </button>
@@ -298,9 +296,9 @@ export function ManagementPage() {
                   className="field"
                   rows={5}
                   value={form.memo}
-                  onChange={(e) => setForm({ ...form, memo: e.target.value })}
+                  onChange={(e) => draft.edit({ memo: e.target.value })}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) void updateTask();
+                    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) void draft.flush();
                   }}
                   aria-label={text.memo}
                 />
@@ -322,9 +320,12 @@ export function ManagementPage() {
               </dl>
 
               <div className="detail-actions">
-                <button type="button" className="btn btn-primary" onClick={updateTask} disabled={busy}>
-                  {text.save}
-                </button>
+                <p
+                  className={draft.error || draft.status === "failed" ? "save-status error" : "save-status"}
+                  role="status"
+                >
+                  {draft.error ?? statusText[draft.status]}
+                </p>
                 <button
                   type="button"
                   className="btn btn-outline"

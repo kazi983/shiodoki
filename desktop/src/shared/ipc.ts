@@ -60,7 +60,8 @@ export interface DesktopApi {
   tasks: {
     listAll(): Promise<Task[]>;
     add(input: TaskInput): Promise<Task>;
-    update(id: string, input: TaskInput): Promise<Task>;
+    /** Changes only the given fields. */
+    update(id: string, patch: Partial<TaskInput>): Promise<Task>;
     complete(id: string): Promise<void>;
     reopen(id: string): Promise<void>;
     remove(id: string): Promise<void>;
