@@ -41,6 +41,9 @@ const api: DesktopApi = {
     onRefresh: (listener) => subscribe(IPC.overlayRefresh, listener),
     complete: () => ipcRenderer.invoke(IPC.overlayComplete),
     setExpanded: (expanded) => ipcRenderer.invoke(IPC.overlaySetExpanded, expanded),
+    dragStart: () => ipcRenderer.invoke(IPC.overlayDragStart),
+    dragMove: () => ipcRenderer.invoke(IPC.overlayDragMove),
+    dragEnd: () => ipcRenderer.invoke(IPC.overlayDragEnd),
   },
   leave: {
     getState: () => ipcRenderer.invoke(IPC.leaveGetState),

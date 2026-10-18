@@ -42,6 +42,9 @@ export function registerIpcHandlers(
   ipcMain.handle(IPC.overlayGetState, () => controller.getRunningInfo());
   ipcMain.handle(IPC.overlayComplete, () => controller.completeFromOverlay());
   ipcMain.handle(IPC.overlaySetExpanded, (_e, expanded: boolean) => windows.setOverlayExpanded(expanded));
+  ipcMain.handle(IPC.overlayDragStart, () => windows.startOverlayDrag());
+  ipcMain.handle(IPC.overlayDragMove, () => windows.moveOverlayDrag());
+  ipcMain.handle(IPC.overlayDragEnd, () => windows.endOverlayDrag());
 
   ipcMain.handle(IPC.leaveGetState, () => controller.getLeaveInfo());
   ipcMain.handle(IPC.leaveDismissWarning, () => controller.dismissWarning());

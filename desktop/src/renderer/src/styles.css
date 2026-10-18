@@ -949,6 +949,12 @@ html:has(.overlay-root) body {
   display: flex;
   justify-content: flex-end;
   align-items: flex-start;
+  user-select: none;
+}
+
+.overlay-root.dragging,
+.overlay-root.dragging * {
+  cursor: grabbing;
 }
 
 .overlay-tab {

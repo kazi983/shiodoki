@@ -14,7 +14,14 @@ import { loadOAuthClient, signInWithGoogle } from "./googleOAuth";
 import { registerIpcHandlers } from "./ipc";
 import { findLocalData } from "./localMigration";
 import { SessionService } from "./sessionService";
-import { chooseLocale, loadLanguageSetting, saveLanguageSetting, type LanguageSetting } from "./settings";
+import {
+  chooseLocale,
+  loadLanguageSetting,
+  loadOverlayOffset,
+  saveLanguageSetting,
+  saveOverlayOffset,
+  type LanguageSetting,
+} from "./settings";
 import { JsonFileTaskRepository, type TaskRepository } from "./taskRepository";
 import { TaskService } from "./taskService";
 import { TimerService } from "./timerService";
@@ -290,13 +297,17 @@ function wire(repo: TaskRepository, syncInfo: () => SyncInfo, firebase?: Firebas
   const sessions = new SessionService(DEVICE);
 
   let controller!: AppController;
-  windows = new WindowManager({
-    onPickerClosedByUser: () => controller.snooze(),
-    onManagementClosedByUser: () => controller.backToPicker(),
-    onWarningClosedByUser: () => controller.dismissWarning(),
-    onLoginClosedByUser: () => void controller.exit(),
-    isQuitting: () => quitting,
-  });
+  windows = new WindowManager(
+    {
+      onPickerClosedByUser: () => controller.snooze(),
+      onManagementClosedByUser: () => controller.backToPicker(),
+      onWarningClosedByUser: () => controller.dismissWarning(),
+      onLoginClosedByUser: () => void controller.exit(),
+      onOverlayMoved: (offsetY) => saveOverlayOffset(settingsFile(), offsetY),
+      isQuitting: () => quitting,
+    },
+    loadOverlayOffset(settingsFile()),
+  );
   const wm = windows;
 
   controller = new AppController(

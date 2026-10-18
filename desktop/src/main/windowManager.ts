@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { BrowserWindow, screen, type Display, type Rectangle } from "electron";
 import type { WindowPort } from "./appController";
-import { centeredBounds } from "./geometry";
+import { centeredBounds, clampOverlayOffset } from "./geometry";
 import { t } from "@shared/i18n";
 import { IPC } from "@shared/ipc";
 
@@ -22,6 +22,8 @@ export interface WindowHandlers {
   onWarningClosedByUser(): void;
   /** Sign-in window closed before signing in -> quit. */
   onLoginClosedByUser(): void;
+  /** The user dropped the overlay tab: px from the top of the work area, to persist. */
+  onOverlayMoved(offsetY: number): void;
   isQuitting(): boolean;
 }
 
@@ -36,13 +38,22 @@ export class WindowManager implements WindowPort {
   private picker: BrowserWindow | null = null;
   private management: BrowserWindow | null = null;
   private overlay: BrowserWindow | null = null;
+  /** While dragging: cursor y minus the overlay top when the drag started. */
+  private overlayGrabOffset = 0;
   private leave: BrowserWindow | null = null;
   private login: BrowserWindow | null = null;
   private lastDisplayId: number | null = null;
   /** Set while closing a window from code, so "closed by user" handlers do not fire. */
   private closingProgrammatically = new WeakSet<BrowserWindow>();
 
-  constructor(private readonly handlers: WindowHandlers) {}
+  /**
+   * @param overlayOffset where the user last dropped the overlay tab (px from the top of the
+   *   work area), or null for the default position.
+   */
+  constructor(
+    private readonly handlers: WindowHandlers,
+    private overlayOffset: number | null = null,
+  ) {}
 
   // -------------------------
   // WindowPort
@@ -133,11 +144,35 @@ export class WindowManager implements WindowPort {
     if (!this.overlay || this.overlay.isDestroyed()) return;
     const { workArea } = this.targetDisplay();
     const size = expanded ? OVERLAY_SIZE.expanded : OVERLAY_SIZE.collapsed;
+    // Clamp with the expanded height so the panel never opens below the work area.
+    this.overlayOffset = clampOverlayOffset(workArea, this.overlayOffset, OVERLAY_SIZE.expanded.height);
     this.overlay.setBounds({
       x: workArea.x + workArea.width - size.width,
-      y: workArea.y + Math.round(workArea.height * 0.2),
+      y: workArea.y + this.overlayOffset,
       ...size,
     });
+  }
+
+  /** Drag on the overlay: remember where the cursor grabbed it. */
+  startOverlayDrag(): void {
+    if (!this.overlay || this.overlay.isDestroyed()) return;
+    this.overlayGrabOffset = screen.getCursorScreenPoint().y - this.overlay.getBounds().y;
+  }
+
+  /** Follow the cursor vertically; x stays on the right edge. */
+  moveOverlayDrag(): void {
+    if (!this.overlay || this.overlay.isDestroyed()) return;
+    const { workArea } = this.targetDisplay();
+    const offset = screen.getCursorScreenPoint().y - this.overlayGrabOffset - workArea.y;
+    this.overlayOffset = clampOverlayOffset(workArea, offset, OVERLAY_SIZE.expanded.height);
+    const { width, height } = this.overlay.getBounds();
+    const x = workArea.x + workArea.width - width;
+    this.overlay.setBounds({ x, y: workArea.y + this.overlayOffset, width, height });
+  }
+
+  /** Drop: persist the position once, not on every move. */
+  endOverlayDrag(): void {
+    if (this.overlayOffset !== null) this.handlers.onOverlayMoved(this.overlayOffset);
   }
 
   showLogin(): void {
