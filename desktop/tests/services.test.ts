@@ -42,7 +42,13 @@ describe("SessionService", () => {
     const s = new SessionService("pc");
     s.start({ id: "t1", name: "Task" }, new Date("2026-10-06T09:00:00Z"));
     const r = s.finish("interval", new Date("2026-10-06T09:31:59Z"));
-    expect(r).toMatchObject({ taskId: "t1", taskName: "Task", elapsedMinutes: 31, endReason: "interval", device: "pc" });
+    expect(r).toMatchObject({
+      taskId: "t1",
+      taskName: "Task",
+      elapsedMinutes: 31,
+      endReason: "interval",
+      device: "pc",
+    });
     expect(s.finish("app_exit")).toBeNull();
   });
 });

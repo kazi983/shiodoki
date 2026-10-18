@@ -33,6 +33,7 @@ Kotlin ＋ Jetpack Compose の Android アプリです。設計は [docs/android
    ```
 
    release 用の鍵を作ったら、その SHA-1 も「フィンガープリントを追加」で登録する。
+
 4. `google-services.json` をダウンロードして `android/app/` に置き、コミットする。中身はアプリに埋め込む前提の公開情報（デスクトップの `firebaseConfig.ts` と同じ）。
 5. SHA-1 を後から追加したときは、`google-services.json` をダウンロードし直す。
 

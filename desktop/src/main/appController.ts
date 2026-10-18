@@ -25,7 +25,6 @@ export interface LifecyclePort {
   relaunch(): void;
 }
 
-
 /** none -> warned (5 minutes left) -> blocked (stop time reached) */
 type LeavePhase = "none" | "warned" | "blocked";
 

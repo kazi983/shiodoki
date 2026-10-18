@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type PointerEvent,
-} from "react";
+import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
 import { t } from "@shared/i18n";
 import type { RunningInfo } from "@shared/ipc";
 import { formatHHMM } from "@shared/leave";
@@ -30,10 +24,7 @@ export function OverlayPage() {
   const suppressClick = useRef(false);
   const now = useNow(1000);
 
-  const load = useCallback(
-    () => void window.api.overlay.getState().then(setInfo),
-    [],
-  );
+  const load = useCallback(() => void window.api.overlay.getState().then(setInfo), []);
 
   useEffect(() => {
     document.title = "Shiodoki";
@@ -78,11 +69,7 @@ export function OverlayPage() {
     setDragging(false);
     void window.api.overlay.dragEnd();
     suppressClick.current = true;
-    const inside =
-      e.clientX >= 0 &&
-      e.clientY >= 0 &&
-      e.clientX < window.innerWidth &&
-      e.clientY < window.innerHeight;
+    const inside = e.clientX >= 0 && e.clientY >= 0 && e.clientX < window.innerWidth && e.clientY < window.innerHeight;
     if (!inside) setHover(false);
   }
 
@@ -103,12 +90,7 @@ export function OverlayPage() {
   const text = t().overlay;
 
   const ring = (
-    <Ring
-      size={44}
-      width={4}
-      fraction={total > 0 ? remaining / total : 0}
-      color={color}
-    >
+    <Ring size={44} width={4} fraction={total > 0 ? remaining / total : 0} color={color}>
       <text
         x="22"
         y="27"
@@ -151,11 +133,7 @@ export function OverlayPage() {
               </span>
             </div>
           </div>
-          <button
-            type="button"
-            className="btn btn-primary overlay-complete"
-            onClick={complete}
-          >
+          <button type="button" className="btn btn-primary overlay-complete" onClick={complete}>
             <CheckIcon />
             {text.completeAndPick}
           </button>

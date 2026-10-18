@@ -1,17 +1,7 @@
 import { describe, expect, test } from "vitest";
-import {
-  buildLeaveSchedule,
-  normalizeTimeInput,
-  resolveNextOccurrence,
-} from "@shared/leave";
+import { buildLeaveSchedule, normalizeTimeInput, resolveNextOccurrence } from "@shared/leave";
 import { startOfWorkDay, summarizeSessions, type SessionRecord } from "@shared/session";
-import {
-  compareTasks,
-  compareTasksForManagement,
-  formatDuration,
-  normalizeTaskInput,
-  type Task,
-} from "@shared/task";
+import { compareTasks, compareTasksForManagement, formatDuration, normalizeTaskInput, type Task } from "@shared/task";
 import { centeredBounds, clampOverlayOffset } from "../src/main/geometry";
 
 function task(overrides: Partial<Task>): Task {
@@ -82,13 +72,7 @@ describe("task helpers", () => {
       task({ id: "now-old", priority: "NOW", createdAt: "2026-10-01T00:00:00.000Z" }),
       task({ id: "sooner", priority: "SOONER" }),
     ];
-    expect(tasks.sort(compareTasks).map((t) => t.id)).toEqual([
-      "now-old",
-      "now-new",
-      "sooner",
-      "anytime",
-      "someday",
-    ]);
+    expect(tasks.sort(compareTasks).map((t) => t.id)).toEqual(["now-old", "now-new", "sooner", "anytime", "someday"]);
   });
 
   test("management list puts completed tasks last", () => {

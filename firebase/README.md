@@ -3,12 +3,12 @@
 Cloud Firestore のセキュリティルール、インデックス、Emulator の設定です。
 データ構造とルールの方針は [`../docs/requirements.md`](../docs/requirements.md) の §5 を参照してください。
 
-| ファイル | 内容 |
-|----------|------|
-| `firestore.rules` | セキュリティルール（自分の `users/{uid}` 配下のみ読み書き可、項目の型・優先度の値をチェック） |
-| `firestore.indexes.json` | 複合インデックス（現時点では不要なので空） |
-| `firebase.json` | Firebase CLI と Emulator の設定 |
-| `tests/` | ルールのテスト（Emulator 上で実行） |
+| ファイル                 | 内容                                                                                          |
+| ------------------------ | --------------------------------------------------------------------------------------------- |
+| `firestore.rules`        | セキュリティルール（自分の `users/{uid}` 配下のみ読み書き可、項目の型・優先度の値をチェック） |
+| `firestore.indexes.json` | 複合インデックス（現時点では不要なので空）                                                    |
+| `firebase.json`          | Firebase CLI と Emulator の設定                                                               |
+| `tests/`                 | ルールのテスト（Emulator 上で実行）                                                           |
 
 ## ルールのテストを動かす
 

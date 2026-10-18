@@ -1,13 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { t } from "@shared/i18n";
 import { startOfWorkDay, summarizeSessions, type DaySummary, type SessionRecord } from "@shared/session";
-import {
-  compareTasks,
-  compareTasksForManagement,
-  normalizeTaskInput,
-  type Task,
-  type TaskInput,
-} from "@shared/task";
+import { compareTasks, compareTasksForManagement, normalizeTaskInput, type Task, type TaskInput } from "@shared/task";
 import type { Preferences, TaskRepository } from "./taskRepository";
 
 /**

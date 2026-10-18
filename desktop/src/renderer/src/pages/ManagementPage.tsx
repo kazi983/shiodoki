@@ -1,13 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { t } from "@shared/i18n";
-import {
-  PRIORITIES,
-  PRIORITY_META,
-  formatDuration,
-  type Priority,
-  type Task,
-  type TaskInput,
-} from "@shared/task";
+import { PRIORITIES, PRIORITY_META, formatDuration, type Priority, type Task, type TaskInput } from "@shared/task";
 import { alertError } from "../errors";
 import { BackIcon, SearchIcon, TrashIcon } from "../icons";
 import { SyncBadge } from "../SyncBadge";

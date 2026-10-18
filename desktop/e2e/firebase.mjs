@@ -56,7 +56,8 @@ async function poll(read, ok, what) {
   throw new Error(`timed out waiting for ${what}: ${JSON.stringify(last)}`);
 }
 
-const remoteTasks = async () => (await getDocs(collection(phoneDb, `${base}/tasks`))).docs.map((d) => ({ id: d.id, ...d.data() }));
+const remoteTasks = async () =>
+  (await getDocs(collection(phoneDb, `${base}/tasks`))).docs.map((d) => ({ id: d.id, ...d.data() }));
 const desktopState = async () => (await getDoc(doc(phoneDb, `${base}/state/desktop`))).data();
 
 // ---- local-mode data on this "PC" (userData is shiodoki-emulator/ with TIMER_FIREBASE_EMULATOR=1) ----
@@ -91,7 +92,11 @@ writeFileSync(
 async function launch() {
   const app = await electron.launch({
     executablePath: require("electron"),
-    args: [join(root, "out/main/index.js"), "--ozone-platform=x11", ...(process.getuid?.() === 0 ? ["--no-sandbox"] : [])],
+    args: [
+      join(root, "out/main/index.js"),
+      "--ozone-platform=x11",
+      ...(process.getuid?.() === 0 ? ["--no-sandbox"] : []),
+    ],
     env: {
       ...process.env,
       TASK_MODE: "test",
