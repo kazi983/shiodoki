@@ -1,7 +1,7 @@
 {
   "name": "shiodoki",
   "productName": "Shiodoki",
-  "version": "2.0.0-alpha.1",
+  "version": "2.0.0-alpha.2",
   "description": "Desktop app that asks what to work on every 30 minutes and tracks time per task",
   "private": true,
   "main": "./out/main/index.js",
