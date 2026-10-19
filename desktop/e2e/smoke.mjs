@@ -95,6 +95,17 @@ async function windowFor(route) {
   throw new Error(`window #${route} did not open`);
 }
 
+/** Whether the open window for a route is sticky (shown on every workspace). */
+async function visibleOnAllWorkspaces(route) {
+  return app.evaluate(
+    ({ BrowserWindow }, r) =>
+      BrowserWindow.getAllWindows()
+        .find((w) => !w.isDestroyed() && w.webContents.getURL().endsWith(`#${r}`))
+        ?.isVisibleOnAllWorkspaces(),
+    route,
+  );
+}
+
 async function waitClosed(route) {
   for (let i = 0; i < 100; i++) {
     if (!app.windows().some((w) => !w.isClosed() && w.url().endsWith(`#${route}`))) return;
@@ -112,6 +123,7 @@ try {
   assert.match(await picker.locator(".resume-card").textContent(), /前回の続き既存タスク累計 1h 35m · 3 セッション/);
   assert.deepEqual(await picker.locator(".group-label").allTextContents(), ["SOON近いうち", "SOMEDAYいつか"]);
   await picker.screenshot({ path: join(shots, "1-picker.png") });
+  assert.equal(await visibleOnAllWorkspaces("picker"), true, "picker is on every workspace");
 
   // ---- add from the picker ----
   await picker.fill('input[aria-label="新しいタスク"]', "E2Eで追加したタスク");
@@ -123,6 +135,7 @@ try {
   const management = await windowFor("management");
   await waitClosed("picker");
   await management.waitForSelector(".task-table tbody tr");
+  assert.equal(await visibleOnAllWorkspaces("management"), true, "management is on every workspace");
   const rows = await management.locator(".task-table tbody tr").count();
   assert.equal(rows, 4, "3 seeded (1 completed) + 1 added; deleted one is skipped");
   await management.click('tr:has-text("いつかのタスク")');

@@ -72,6 +72,7 @@ export class WindowManager implements WindowPort {
       minWidth: 420,
       minHeight: 560,
       alwaysOnTop: true,
+      visibleOnAllWorkspaces: true,
     });
     this.picker.on("close", () => {
       if (!this.isProgrammatic(this.picker)) this.handlers.onPickerClosedByUser();
@@ -95,6 +96,7 @@ export class WindowManager implements WindowPort {
       minWidth: 760,
       minHeight: 520,
       alwaysOnTop: true,
+      visibleOnAllWorkspaces: true,
     });
     this.management.on("close", () => {
       if (!this.isProgrammatic(this.management)) this.handlers.onManagementClosedByUser();
@@ -210,6 +212,7 @@ export class WindowManager implements WindowPort {
       minimizable: !block,
       closable: !block,
       alwaysOnTop: true,
+      visibleOnAllWorkspaces: true,
       skipTaskbar: false,
       bounds: block ? display.workArea : undefined,
     });
@@ -278,6 +281,8 @@ export class WindowManager implements WindowPort {
       minWidth?: number;
       minHeight?: number;
       alwaysOnTop?: boolean;
+      /** Sticky window: shown on every workspace (Linux; no-op on Windows). */
+      visibleOnAllWorkspaces?: boolean;
       frame?: boolean;
       resizable?: boolean;
       minimizable?: boolean;
@@ -305,6 +310,9 @@ export class WindowManager implements WindowPort {
       webPreferences: this.webPreferences(),
     });
     win.setMenu(null);
+    // Only once the window is shown: set before show(), GNOME (Mutter) left the picker on the
+    // workspace it opened on.
+    if (opts.visibleOnAllWorkspaces) win.once("show", () => win.setVisibleOnAllWorkspaces(true));
     win.once("ready-to-show", () => this.focus(win));
     win.on("moved", () => this.remember(win));
     this.load(win, route);
