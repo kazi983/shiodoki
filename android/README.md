@@ -2,7 +2,7 @@
 
 Kotlin ＋ Jetpack Compose の Android アプリです。設計は [docs/android/design.md](../docs/android/design.md) を参照してください。
 
-- パッケージ名（`applicationId`）：`dev.kaorukajihara.shiodoki`
+- パッケージ名（`applicationId`）：`dev.kaorukajihara.shiodoki`（debug ビルドは `dev.kaorukajihara.shiodoki.debug`。アプリ名「Shiodoki (debug)」、オレンジのアイコンで、release 版と並べて入れられる）
 - `minSdk` 29（Android 10）、`compileSdk` / `targetSdk` 37
 - AGP 9.4.1、Gradle 9.6.0、Kotlin 2.4.20
 
@@ -25,7 +25,7 @@ Kotlin ＋ Jetpack Compose の Android アプリです。設計は [docs/android
 ## Firebase への登録（最初の 1 回だけ）
 
 1. [Firebase コンソール](https://console.firebase.google.com/) → プロジェクト `shiodoki-e4e8f` → 「プロジェクトの設定」→「マイアプリ」→ Android アイコン。
-2. パッケージ名に `dev.kaorukajihara.shiodoki`、ニックネームに `android` を入れる。
+2. パッケージ名に `dev.kaorukajihara.shiodoki`、ニックネームに `android` を入れる。debug ビルド用に、同じ手順で `dev.kaorukajihara.shiodoki.debug`（ニックネーム `android-debug`）も登録し、debug 用の SHA-1 を付ける。
 3. **署名証明書の SHA-1** を登録する。Google ログインに必須。debug 用は次のコマンドで確認できる。
 
    ```bash
@@ -70,7 +70,7 @@ cd android
    ```bash
    ./gradlew assembleDebug testDebugUnitTest \
      && adb install -r -g app/build/outputs/apk/debug/app-debug.apk \
-     && adb shell monkey -p dev.kaorukajihara.shiodoki -c android.intent.category.LAUNCHER 1
+     && adb shell monkey -p dev.kaorukajihara.shiodoki.debug -c android.intent.category.LAUNCHER 1
    ```
 
    - `&&` でつないでいるので、ビルドかテストが失敗すると、そこで止まります（古い APK はインストールされません）。

@@ -47,7 +47,8 @@ written in Japanese.
     `docs/i18n/glossary.md`). Never hardcode UI text: `tests/i18n.test.ts` fails on Japanese outside
     the dictionary. Language: `SHIODOKI_LOCALE=en|ja` > the tray setting (`userData/settings.json`,
     applied on restart) > the OS (`ja*` → Japanese, else English).
-- `android/` — Kotlin + Jetpack Compose, package `dev.kaorukajihara.shiodoki`. Design:
+- `android/` — Kotlin + Jetpack Compose, package `dev.kaorukajihara.shiodoki` (debug builds:
+  `dev.kaorukajihara.shiodoki.debug`, so they install next to the release build). Design:
   `docs/android/design.md`. Build with Android Studio's JDK (`JAVA_HOME=/snap/android-studio/current/jbr`):
   `./gradlew assembleDebug testDebugUnitTest`. `app/google-services.json` is public and committed.
   - Kotlin 2.4.20 is forced via `org.jetbrains.kotlin.android` in the root build (AGP 9.4.1's
