@@ -15,6 +15,7 @@ import dev.kaorukajihara.shiodoki.data.LocalStore
 import dev.kaorukajihara.shiodoki.data.TaskRepository
 import dev.kaorukajihara.shiodoki.focus.ActivityFocusScreen
 import dev.kaorukajihara.shiodoki.focus.DeviceGuards
+import dev.kaorukajihara.shiodoki.focus.FocusConfig
 import dev.kaorukajihara.shiodoki.focus.FocusController
 import dev.kaorukajihara.shiodoki.focus.FocusFeature
 import dev.kaorukajihara.shiodoki.focus.FocusPermission
@@ -78,6 +79,8 @@ class AppContainer(context: Context) {
         }
         signedIn && overlay && !busy
       },
+      // Debug builds always use the short test intervals, like desktop TASK_MODE=test (design §6.8).
+      config = if (BuildConfig.DEBUG) FocusConfig.TEST else FocusConfig.DEFAULT,
       onStoreError = { Log.w(TAG, "Focus store write failed", it) },
     )
   }

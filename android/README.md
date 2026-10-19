@@ -2,7 +2,7 @@
 
 Kotlin ＋ Jetpack Compose の Android アプリです。設計は [docs/android/design.md](../docs/android/design.md) を参照してください。
 
-- パッケージ名（`applicationId`）：`dev.kaorukajihara.shiodoki`（debug ビルドは `dev.kaorukajihara.shiodoki.debug`。アプリ名「Shiodoki (debug)」、オレンジのアイコンで、release 版と並べて入れられる）
+- パッケージ名（`applicationId`）：`dev.kaorukajihara.shiodoki`（debug ビルドは `dev.kaorukajihara.shiodoki.debug`。アプリ名「Shiodoki (debug)」、オレンジのアイコンで、release 版と並べて入れられる。debug ビルドは常にテストモードで、30 分 → 30 秒、離れたあとの再表示 1 分 → 10 秒）
 - `minSdk` 29（Android 10）、`compileSdk` / `targetSdk` 37
 - AGP 9.4.1、Gradle 9.6.0、Kotlin 2.4.20
 
