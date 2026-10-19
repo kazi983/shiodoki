@@ -14,6 +14,11 @@ val localProperties = Properties().apply {
 }
 val useFirebaseEmulator = localProperties.getProperty("shiodoki.useFirebaseEmulator") == "true"
 
+val keystoreProperties = Properties().apply {
+  val file = rootProject.file("keystore.properties")
+  if (file.exists()) file.inputStream().use { load(it) }
+}
+
 android {
   namespace = "dev.kaorukajihara.shiodoki"
   compileSdk = 37
@@ -27,8 +32,30 @@ android {
     buildConfigField("boolean", "USE_FIREBASE_EMULATOR", "false")
   }
 
+  buildFeatures {
+    compose = true
+    buildConfig = true
+    resValues = true
+  }
+
+  signingConfigs {
+    if (keystoreProperties.isNotEmpty()) {
+      create("release") {
+        storeFile = file(keystoreProperties.getProperty("storeFile"))
+        storePassword = keystoreProperties.getProperty("storePassword")
+        keyAlias = keystoreProperties.getProperty("keyAlias")
+        keyPassword = keystoreProperties.getProperty("keyPassword")
+      }
+    }
+  }
+
   buildTypes {
     debug {
+      // A separate app (dev.kaorukajihara.shiodoki.debug), so it installs next to the release build.
+      // Its launcher icon background comes from src/debug/res.
+      applicationIdSuffix = ".debug"
+      versionNameSuffix = "-debug"
+      resValue("string", "app_name", "Shiodoki (debug)")
       // Only debug builds may talk to the local Firebase emulators (design §9.3).
       buildConfigField("boolean", "USE_FIREBASE_EMULATOR", useFirebaseEmulator.toString())
     }
@@ -36,6 +63,7 @@ android {
       optimization {
         enable = false
       }
+      signingConfig = signingConfigs.findByName("release")
     }
   }
   androidResources {
@@ -46,10 +74,6 @@ android {
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
-  }
-  buildFeatures {
-    compose = true
-    buildConfig = true
   }
 }
 
@@ -78,28 +102,4 @@ dependencies {
   testImplementation(libs.junit)
   testImplementation(libs.kotlinx.coroutines.test)
   debugImplementation(libs.androidx.compose.ui.tooling)
-}
-
-val keystoreProperties = Properties().apply {
-  val file = rootProject.file("keystore.properties")
-  if (file.exists()) file.inputStream().use { load(it) }
-}
-
-android {
-  signingConfigs {
-    if (keystoreProperties.isNotEmpty()) {
-      create("release") {
-        storeFile = file(keystoreProperties.getProperty("storeFile"))
-        storePassword = keystoreProperties.getProperty("storePassword")
-        keyAlias = keystoreProperties.getProperty("keyAlias")
-        keyPassword = keystoreProperties.getProperty("keyPassword")
-      }
-    }
-  }
-  buildTypes {
-    release {
-      signingConfig = signingConfigs.findByName("release")
-      // (existing optimization block stays)
-    }
-  }
 }
