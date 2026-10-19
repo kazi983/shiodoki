@@ -67,10 +67,10 @@ export class WindowManager implements WindowPort {
     }
     this.picker = this.create("picker", {
       title: "Quick Start",
-      width: 520,
-      height: 720,
-      minWidth: 420,
-      minHeight: 560,
+      width: 600,
+      height: 1000,
+      minWidth: 500,
+      minHeight: 600,
       alwaysOnTop: true,
       visibleOnAllWorkspaces: true,
     });
