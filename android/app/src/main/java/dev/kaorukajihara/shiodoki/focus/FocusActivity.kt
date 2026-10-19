@@ -31,7 +31,8 @@ class FocusActivity : ComponentActivity() {
       navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
     )
     // Full screen except the status bar (design §5.7). A swipe from the edge shows the
-    // navigation bar for a moment, so Home (= skip) stays reachable. Back does nothing.
+    // navigation bar for a moment, so Home stays reachable (the screen comes back a minute
+    // later). Back does nothing.
     WindowCompat.getInsetsController(window, window.decorView).apply {
       systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
       hide(WindowInsetsCompat.Type.navigationBars())
@@ -58,11 +59,12 @@ class FocusActivity : ComponentActivity() {
   }
 
   /**
-   * Leaving without a choice (Home, another app) is a skip (M-14), so the next unlock shows the
-   * screen again. Back never gets here: FocusContent consumes it. After a choice the state is Running and this does nothing.
+   * Leaving without a choice (Home, another app) shows the screen again a minute later (M-14).
+   * Back never gets here: FocusContent consumes it. After a choice the state is Running, and
+   * after a screen off Idle, so this does nothing.
    */
   override fun onStop() {
     super.onStop()
-    if (!isChangingConfigurations) controller.onSkip()
+    if (!isChangingConfigurations) controller.onLeave()
   }
 }

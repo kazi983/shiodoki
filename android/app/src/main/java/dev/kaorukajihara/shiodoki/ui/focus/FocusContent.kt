@@ -1,13 +1,9 @@
 package dev.kaorukajihara.shiodoki.ui.focus
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,7 +11,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -44,20 +39,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.onLongClick
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -89,8 +75,8 @@ fun FocusContent(viewModel: FocusViewModel) {
   val scope = rememberCoroutineScope()
   val completed = stringResource(R.string.task_completed)
   val undo = stringResource(R.string.undo)
-  // Back does nothing: it would bypass the long press. Leaving with Home is still a skip
-  // (FocusActivity.onStop).
+  // Back does nothing: there is no skip (M-14). Leaving with Home brings the screen back a
+  // minute later (FocusActivity.onStop).
   BackHandler {}
 
   Column(
@@ -144,7 +130,6 @@ fun FocusContent(viewModel: FocusViewModel) {
 
     QuickAdd(viewModel)
 
-    // The snackbar covers the end of the list, not the skip button.
     Box(Modifier.weight(1f)) {
       TaskList(
         groups = state.groups,
@@ -160,70 +145,8 @@ fun FocusContent(viewModel: FocusViewModel) {
       )
       SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
     }
-
-    HoldToSkipButton(onSkip = viewModel::skip)
   }
 }
-
-/**
- * "スキップ" needs a [SKIP_HOLD_MS] hold, so the screen is not dismissed by reflex (M-14).
- * Releasing early resets it; the fill from the left shows the progress. TalkBack users get an
- * immediate long-click action instead, since holding is hard with a screen reader.
- */
-@Composable
-private fun HoldToSkipButton(onSkip: () -> Unit) {
-  val skipLabel = stringResource(R.string.focus_skip)
-  val progress = remember { Animatable(0f) }
-  val scope = rememberCoroutineScope()
-  val haptic = LocalHapticFeedback.current
-  val currentOnSkip by rememberUpdatedState(onSkip)
-  val shape = RoundedCornerShape(14.dp)
-  Row(
-    modifier = Modifier
-      .fillMaxWidth()
-      .height(52.dp)
-      .clip(shape)
-      .border(1.dp, ShiodokiColors.Outline, shape)
-      // Read in the draw phase, so the animation only redraws.
-      .drawBehind {
-        drawRect(ShiodokiColors.Outline, size = size.copy(width = size.width * progress.value))
-      }
-      .pointerInput(Unit) {
-        detectTapGestures(onPress = {
-          val hold = scope.launch {
-            // Throws when cancelled, so the skip runs only after the full hold.
-            progress.animateTo(1f, tween(SKIP_HOLD_MS, easing = LinearEasing))
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            currentOnSkip()
-          }
-          tryAwaitRelease()
-          if (hold.isActive) {
-            hold.cancel()
-            progress.snapTo(0f)
-          }
-        })
-      }
-      .semantics(mergeDescendants = true) {
-        role = Role.Button
-        onLongClick(label = skipLabel) {
-          currentOnSkip()
-          true
-        }
-      },
-    horizontalArrangement = Arrangement.Center,
-    verticalAlignment = Alignment.CenterVertically,
-  ) {
-    Text(skipLabel, fontSize = 15.sp, color = ShiodokiColors.Text)
-    Text(
-      stringResource(R.string.focus_skip_hint),
-      fontSize = 12.sp,
-      color = ShiodokiColors.TextMuted,
-      modifier = Modifier.padding(start = 8.dp),
-    )
-  }
-}
-
-private const val SKIP_HOLD_MS = 5_000
 
 /** "PC と同じ" and "スマホで前回": one tap starts that task. */
 @Composable

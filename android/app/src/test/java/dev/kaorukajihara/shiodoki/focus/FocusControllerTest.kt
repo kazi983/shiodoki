@@ -139,7 +139,7 @@ class FocusControllerTest {
     assertTrue(h.state is FocusState.Running)
   }
 
-  // --- select / skip ---
+  // --- select / leave ---
 
   @Test
   fun `selecting a task starts a session and saves it on the device`() = runTest {
@@ -161,23 +161,105 @@ class FocusControllerTest {
   }
 
   @Test
-  fun `skip closes without recording`() = runTest {
+  fun `leaving the screen shows it again after a minute without recording`() = runTest {
     val h = Harness(this)
     h.controller.onUnlock()
-    h.controller.onSkip()
-    h.advance(31 * MINUTE)
+    h.controller.onLeave()
+    assertEquals(FocusState.Away, h.state)
 
-    assertEquals(FocusState.Idle, h.state)
+    h.advance(MINUTE - 1)
+    assertEquals(1, h.screen.shown)
+
+    h.advance(1)
+    assertEquals(FocusState.Prompting, h.state)
+    assertEquals(2, h.screen.shown)
     assertTrue(h.recorded.isEmpty())
-    // Q-A2: not shown again after a skip, even with the screen on.
+  }
+
+  @Test
+  fun `leaving again and again keeps bringing the screen back`() = runTest {
+    val h = Harness(this)
+    h.controller.onUnlock()
+    repeat(3) {
+      h.controller.onLeave()
+      h.advance(MINUTE)
+    }
+    assertEquals(FocusState.Prompting, h.state)
+    assertEquals(4, h.screen.shown)
+  }
+
+  @Test
+  fun `a task can be picked from the screen shown again`() = runTest {
+    val h = Harness(this)
+    h.controller.onUnlock()
+    h.controller.onLeave()
+    h.advance(MINUTE)
+    h.controller.onTaskSelected("t1", "英単語")
+    runCurrent()
+    assertEquals(FocusState.Running("s1", "t1", "英単語", T0.plusMillis(MINUTE)), h.state)
+  }
+
+  @Test
+  fun `after leaving in a call the screen waits for the next unlock`() = runTest {
+    val h = Harness(this)
+    h.controller.onUnlock()
+    h.controller.onLeave()
+    h.canPrompt = false
+    h.advance(MINUTE)
+    assertEquals(FocusState.Idle, h.state)
+    assertEquals(1, h.screen.shown)
+
+    h.canPrompt = true
+    h.controller.onUnlock()
+    assertEquals(2, h.screen.shown)
+  }
+
+  @Test
+  fun `screen off while away cancels the wait`() = runTest {
+    val h = Harness(this)
+    h.controller.onUnlock()
+    h.controller.onLeave()
+    h.controller.onScreenOff()
+    assertEquals(FocusState.Idle, h.state)
+
+    h.advance(MINUTE)
+    assertEquals(FocusState.Idle, h.state)
+    assertEquals(1, h.screen.shown)
+
+    // The next unlock shows it again.
+    h.controller.onUnlock()
+    assertEquals(2, h.screen.shown)
+  }
+
+  @Test
+  fun `stop while away cancels the wait`() = runTest {
+    val h = Harness(this)
+    h.controller.onUnlock()
+    h.controller.onLeave()
+    h.controller.stop()
+    h.advance(MINUTE)
+    assertEquals(FocusState.Idle, h.state)
     assertEquals(1, h.screen.shown)
   }
 
   @Test
-  fun `skip is ignored while running`() = runTest {
+  fun `unlock while away does nothing`() = runTest {
     val h = Harness(this)
+    h.controller.onUnlock()
+    h.controller.onLeave()
+    h.controller.onUnlock()
+    assertEquals(FocusState.Away, h.state)
+    assertEquals(1, h.screen.shown)
+  }
+
+  @Test
+  fun `leaving is ignored unless the screen is showing`() = runTest {
+    val h = Harness(this)
+    h.controller.onLeave()
+    assertEquals(FocusState.Idle, h.state)
+
     h.start()
-    h.controller.onSkip()
+    h.controller.onLeave()
     assertTrue(h.state is FocusState.Running)
   }
 
@@ -420,6 +502,17 @@ class FocusControllerTest {
     h.controller.onScreenOff()
     runCurrent()
     assertEquals(1, h.recorded.size)
+  }
+
+  @Test
+  fun `test mode shows the screen again 10 seconds after leaving`() = runTest {
+    val h = Harness(this, FocusConfig.TEST)
+    h.controller.onUnlock()
+    h.controller.onLeave()
+    h.advance(9_999)
+    assertEquals(FocusState.Away, h.state)
+    h.advance(1)
+    assertEquals(FocusState.Prompting, h.state)
   }
 
   @Test
