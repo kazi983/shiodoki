@@ -50,7 +50,6 @@
 | 何分前に止めるか           | Stop how many minutes before | 入力欄のラベル。表示は `Stop 5 min before` → OK                                                                                     |      |
 | スヌーズ                   | Snooze                       |                                                                                                                                     |      |
 | フォーカス画面             | Focus screen                 | Android                                                                                                                             |      |
-| スキップ                   | Skip                         |                                                                                                                                     |      |
 | PC と同じ                  | Same as PC                   | フォーカス画面の選択肢                                                                                                              |      |
 | スマホで前回               | Last on phone                |                                                                                                                                     |      |
 | PC の状況                  | PC status                    |                                                                                                                                     |      |
