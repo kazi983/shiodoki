@@ -41,8 +41,6 @@
   <string name="focus_subtitle">選んだタスクで、画面を消すまで記録します</string>
   <string name="focus_same_as_pc">PC と同じ</string>
   <string name="focus_last_on_phone">スマホで前回</string>
-  <string name="focus_skip">スキップ</string>
-  <string name="focus_skip_hint">5秒長押しで記録せずに閉じる</string>
   <string name="focus_new_task_placeholder">新しいタスク（今すぐ）</string>
 
   <!-- Edit screen -->

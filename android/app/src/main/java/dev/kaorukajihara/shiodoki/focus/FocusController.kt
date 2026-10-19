@@ -24,19 +24,34 @@ data class FocusConfig(
   val minRecordMs: Long,
   /** How often `lastSeenAt` is saved while running (§6.6). */
   val lastSeenIntervalMs: Long,
+  /** The focus screen is shown again this long after leaving it without a choice (M-14). */
+  val repromptAfterLeaveMs: Long,
 ) {
   companion object {
-    val DEFAULT = FocusConfig(intervalMs = 30 * 60_000L, minRecordMs = 60_000L, lastSeenIntervalMs = 60_000L)
-    val TEST = FocusConfig(intervalMs = 30_000L, minRecordMs = 5_000L, lastSeenIntervalMs = 5_000L)
+    val DEFAULT = FocusConfig(
+      intervalMs = 30 * 60_000L,
+      minRecordMs = 60_000L,
+      lastSeenIntervalMs = 60_000L,
+      repromptAfterLeaveMs = 60_000L,
+    )
+    val TEST = FocusConfig(
+      intervalMs = 30_000L,
+      minRecordMs = 5_000L,
+      lastSeenIntervalMs = 5_000L,
+      repromptAfterLeaveMs = 10_000L,
+    )
   }
 }
 
 sealed interface FocusState {
-  /** Nothing to do: after a skip or screen off, or when the screen was not shown (e.g. in a call). */
+  /** Nothing to do: after a screen off, or when the screen was not shown (e.g. in a call). */
   data object Idle : FocusState
 
   /** The focus screen is showing. */
   data object Prompting : FocusState
+
+  /** The screen was left without a choice; it is shown again after `repromptAfterLeaveMs`. */
+  data object Away : FocusState
 
   /** A phone session is running and the interval timer is ticking. */
   data class Running(
@@ -76,6 +91,9 @@ class FocusController(
 
   /** The interval timer and the lastSeenAt ticker of the running session. */
   private var timers: Job? = null
+
+  /** The wait in [FocusState.Away]. */
+  private var reprompt: Job? = null
 
   private val storeOps = Channel<suspend () -> Unit>(Channel.UNLIMITED)
 
@@ -118,15 +136,27 @@ class FocusController(
     startTimers()
   }
 
-  /** Skip button or Back (M-14): nothing is recorded. */
-  fun onSkip() {
-    if (_state.value == FocusState.Prompting) _state.value = FocusState.Idle
+  /**
+   * The screen was left without a choice (Home, another app). There is no skip (M-14): nothing
+   * is recorded and the screen comes back after `repromptAfterLeaveMs`, every time.
+   */
+  fun onLeave() {
+    if (_state.value != FocusState.Prompting) return
+    _state.value = FocusState.Away
+    reprompt = scope.launch {
+      delay(config.repromptAfterLeaveMs)
+      reprompt = null
+      // Same guard as the interval: in a call, wait for the next unlock instead.
+      if (canPrompt()) prompt() else _state.value = FocusState.Idle
+    }
   }
 
   fun onScreenOff() {
     when (_state.value) {
       is FocusState.Running -> finishSession(EndReason.SCREEN_OFF)
       FocusState.Prompting -> closeScreen()
+      // The next unlock shows the screen anyway.
+      FocusState.Away -> cancelReprompt()
       FocusState.Idle -> Unit
     }
   }
@@ -136,6 +166,7 @@ class FocusController(
     when (_state.value) {
       is FocusState.Running -> finishSession(EndReason.APP_EXIT)
       FocusState.Prompting -> closeScreen()
+      FocusState.Away -> cancelReprompt()
       FocusState.Idle -> Unit
     }
   }
@@ -218,6 +249,12 @@ class FocusController(
   private fun closeScreen() {
     _state.value = FocusState.Idle
     screen.dismiss()
+  }
+
+  private fun cancelReprompt() {
+    reprompt?.cancel()
+    reprompt = null
+    _state.value = FocusState.Idle
   }
 
   private fun recordIfLongEnough(session: FinishedSession) {

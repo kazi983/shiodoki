@@ -102,8 +102,6 @@ class FocusViewModel(
 
   fun select(taskId: String, taskName: String) = controller.onTaskSelected(taskId, taskName)
 
-  fun skip() = controller.onSkip()
-
   /** Swipe on a row (design §5.7): completes the task without closing the screen. */
   fun complete(taskId: String) = repository.update(taskId, TaskPatch(completed = true))
 
