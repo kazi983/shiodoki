@@ -33,7 +33,7 @@ service cloud.firestore {
                              'createdAt', 'updatedAt', 'updatedBy'])
         && d.name is string && d.name.size() > 0 && d.name.size() <= 200
         && d.memo is string && d.memo.size() <= 5000
-        && d.priority in ['NOW', 'SOONER', 'ANYTIME', 'SOMEDAY']
+        && d.priority in ['NOW', 'ROUTINE', 'SOONER', 'ANYTIME', 'SOMEDAY', 'BREAK']
         && d.completed is bool
         && isNullOrTimestamp(d.completedAt)
         && d.deleted is bool

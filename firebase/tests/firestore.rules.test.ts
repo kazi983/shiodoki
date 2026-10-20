@@ -79,7 +79,7 @@ describe("tasks", () => {
     await assertFails(setDoc(doc(dbAs(BOB), `users/${ALICE}/tasks/t2`), newTask()));
   });
 
-  test.each(["NOW", "SOONER", "ANYTIME", "SOMEDAY"])("accepts priority %s", async (priority) => {
+  test.each(["NOW", "ROUTINE", "SOONER", "ANYTIME", "SOMEDAY", "BREAK"])("accepts priority %s", async (priority) => {
     await assertSucceeds(setDoc(doc(dbAs(ALICE), `users/${ALICE}/tasks/t1`), newTask({ priority })));
   });
 
