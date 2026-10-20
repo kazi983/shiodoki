@@ -106,6 +106,8 @@ fun EditTaskScreen(viewModel: EditTaskViewModel, onClose: () -> Unit) {
       if (!viewModel.notFound) {
         Footer(
           isNew = viewModel.isNew,
+          // A completed task (opened from the All tab) is reopened by a swipe there instead.
+          canComplete = viewModel.original?.completed != true,
           onSave = { if (viewModel.save()) onClose() },
           onComplete = { confirm = Confirm.COMPLETE },
           onDelete = { confirm = Confirm.DELETE },
@@ -271,6 +273,7 @@ private fun Stat(label: String, value: String, modifier: Modifier) {
 @Composable
 private fun Footer(
   isNew: Boolean,
+  canComplete: Boolean,
   onSave: () -> Unit,
   onComplete: () -> Unit,
   onDelete: () -> Unit,
@@ -295,15 +298,17 @@ private fun Footer(
       }
       if (!isNew) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-          OutlinedButton(
-            onClick = onComplete,
-            shape = RoundedCornerShape(14.dp),
-            border = BorderStroke(1.dp, ShiodokiColors.Outline),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = ShiodokiColors.Text),
-            modifier = Modifier.weight(1f).height(48.dp),
-          ) {
-            Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp))
-            Text(stringResource(R.string.edit_mark_done), fontSize = 14.sp, modifier = Modifier.padding(start = 6.dp))
+          if (canComplete) {
+            OutlinedButton(
+              onClick = onComplete,
+              shape = RoundedCornerShape(14.dp),
+              border = BorderStroke(1.dp, ShiodokiColors.Outline),
+              colors = ButtonDefaults.outlinedButtonColors(contentColor = ShiodokiColors.Text),
+              modifier = Modifier.weight(1f).height(48.dp),
+            ) {
+              Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+              Text(stringResource(R.string.edit_mark_done), fontSize = 14.sp, modifier = Modifier.padding(start = 6.dp))
+            }
           }
           TextButton(
             onClick = onDelete,

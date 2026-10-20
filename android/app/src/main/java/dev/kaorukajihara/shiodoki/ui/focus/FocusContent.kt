@@ -57,7 +57,7 @@ import dev.kaorukajihara.shiodoki.model.Priority
 import dev.kaorukajihara.shiodoki.model.Task
 import dev.kaorukajihara.shiodoki.model.formatMinutes
 import dev.kaorukajihara.shiodoki.ui.components.SwipeToComplete
-import dev.kaorukajihara.shiodoki.ui.components.showCompletedWithUndo
+import dev.kaorukajihara.shiodoki.ui.components.showWithUndo
 import dev.kaorukajihara.shiodoki.ui.components.strokeIcon
 import dev.kaorukajihara.shiodoki.ui.home.PriorityGroup
 import dev.kaorukajihara.shiodoki.ui.message
@@ -138,7 +138,7 @@ fun FocusContent(viewModel: FocusViewModel) {
         onComplete = { taskId ->
           viewModel.complete(taskId)
           scope.launch {
-            if (snackbarHostState.showCompletedWithUndo(completed, undo)) viewModel.undoComplete(taskId)
+            if (snackbarHostState.showWithUndo(completed, undo)) viewModel.undoComplete(taskId)
           }
         },
         modifier = Modifier.fillMaxSize(),

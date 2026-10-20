@@ -11,6 +11,7 @@ fun task(
   memo: String = "",
   createdAt: String = "2026-01-01T00:00:00Z",
   completed: Boolean = false,
+  completedAt: String? = null,
   deleted: Boolean = false,
 ) = Task(
   id = id,
@@ -18,7 +19,7 @@ fun task(
   memo = memo,
   priority = priority,
   completed = completed,
-  completedAt = null,
+  completedAt = completedAt?.let(Instant::parse),
   deleted = deleted,
   totalMinutes = 0,
   sessionCount = 0,

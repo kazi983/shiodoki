@@ -13,6 +13,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import dev.kaorukajihara.shiodoki.AppContainer
+import dev.kaorukajihara.shiodoki.ui.all.AllTasksScreen
+import dev.kaorukajihara.shiodoki.ui.all.AllTasksViewModel
 import dev.kaorukajihara.shiodoki.ui.components.MainTab
 import dev.kaorukajihara.shiodoki.ui.edit.EditTaskScreen
 import dev.kaorukajihara.shiodoki.ui.edit.EditTaskViewModel
@@ -26,6 +28,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable object LoginRoute
 @Serializable object HomeRoute
+@Serializable object AllTasksRoute
 @Serializable object SettingsRoute
 
 /** taskId == null adds a new task. */
@@ -57,6 +60,10 @@ fun ShiodokiNavHost(container: AppContainer) {
   val selectTab: (MainTab) -> Unit = { tab ->
     when (tab) {
       MainTab.TASKS -> navController.popBackStack<HomeRoute>(inclusive = false)
+      MainTab.ALL -> navController.navigate(AllTasksRoute) {
+        popUpTo<HomeRoute>()
+        launchSingleTop = true
+      }
       MainTab.SETTINGS -> navController.navigate(SettingsRoute) {
         popUpTo<HomeRoute>()
         launchSingleTop = true
@@ -72,6 +79,13 @@ fun ShiodokiNavHost(container: AppContainer) {
       HomeScreen(
         viewModel = viewModel { HomeViewModel(taskRepository, desktopStateRepository) },
         onAddTask = { navController.navigate(EditTaskRoute()) },
+        onEditTask = { navController.navigate(EditTaskRoute(it)) },
+        onSelectTab = selectTab,
+      )
+    }
+    composable<AllTasksRoute> {
+      AllTasksScreen(
+        viewModel = viewModel { AllTasksViewModel(taskRepository) },
         onEditTask = { navController.navigate(EditTaskRoute(it)) },
         onSelectTab = selectTab,
       )

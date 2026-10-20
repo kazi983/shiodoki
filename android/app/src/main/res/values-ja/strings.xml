@@ -18,13 +18,21 @@
   <string name="elapsed_minutes">%1$d分経過</string>
   <string name="task_completed">完了しました</string>
   <string name="undo">元に戻す</string>
+  <string name="reopen">未完了に戻す</string>
+  <string name="task_reopened">未完了に戻しました</string>
   <string name="save_failed">保存できませんでした</string>
   <string name="what_now">今から何をやる？</string>
   <string name="focus_screen">フォーカス画面</string>
 
   <!-- Tabs and headers -->
   <string name="tab_tasks">タスク</string>
+  <string name="tab_all">すべて</string>
   <string name="tab_settings">設定</string>
+
+  <!-- All tab -->
+  <string name="filter_open">未完了</string>
+  <string name="filter_completed">完了済み</string>
+  <string name="no_completed_tasks">この 30 日に完了したタスクはありません</string>
 
   <!-- Priorities (requirements §5.5) -->
   <string name="priority_now">今すぐ</string>
