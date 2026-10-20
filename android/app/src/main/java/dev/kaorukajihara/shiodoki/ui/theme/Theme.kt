@@ -47,9 +47,11 @@ object ShiodokiColors {
 val Priority.color: Color
   get() = when (this) {
     Priority.NOW -> Color(0xFFFF8A4C)
+    Priority.ROUTINE -> Color(0xFF7CC4FF)
     Priority.SOONER -> Color(0xFFF5C451)
     Priority.ANYTIME -> Color(0xFF4FD1A5)
     Priority.SOMEDAY -> Color(0xFF8B93A7)
+    Priority.BREAK -> Color(0xFFC08CFF)
   }
 
 /** Fill of a selected priority button: the priority color faintly over the background. */

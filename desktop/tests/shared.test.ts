@@ -66,13 +66,23 @@ describe("leave schedule", () => {
 describe("task helpers", () => {
   test("sorts by priority, then oldest first", () => {
     const tasks = [
+      task({ id: "break", priority: "BREAK" }),
       task({ id: "someday", priority: "SOMEDAY" }),
       task({ id: "now-new", priority: "NOW", createdAt: "2026-10-03T00:00:00.000Z" }),
       task({ id: "anytime", priority: "ANYTIME" }),
       task({ id: "now-old", priority: "NOW", createdAt: "2026-10-01T00:00:00.000Z" }),
       task({ id: "sooner", priority: "SOONER" }),
+      task({ id: "routine", priority: "ROUTINE" }),
     ];
-    expect(tasks.sort(compareTasks).map((t) => t.id)).toEqual(["now-old", "now-new", "sooner", "anytime", "someday"]);
+    expect(tasks.sort(compareTasks).map((t) => t.id)).toEqual([
+      "now-old",
+      "now-new",
+      "routine",
+      "sooner",
+      "anytime",
+      "someday",
+      "break",
+    ]);
   });
 
   test("management list puts completed tasks last", () => {
@@ -87,7 +97,7 @@ describe("task helpers", () => {
       priority: "SOONER",
     });
     expect(() => normalizeTaskInput({ name: "  ", memo: "", priority: "NOW" })).toThrow("タスク名");
-    expect(() => normalizeTaskInput({ name: "a", memo: "", priority: "HIGH" as never })).toThrow("優先度");
+    expect(() => normalizeTaskInput({ name: "a", memo: "", priority: "HIGH" as never })).toThrow("分類");
     expect(() => normalizeTaskInput({ name: "a".repeat(201), memo: "", priority: "NOW" })).toThrow();
   });
 });

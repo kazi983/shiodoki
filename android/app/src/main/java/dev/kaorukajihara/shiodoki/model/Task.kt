@@ -3,14 +3,17 @@ package dev.kaorukajihara.shiodoki.model
 import java.time.Instant
 
 /**
- * Fixed priorities (requirements §5.5). Labels are string resources (`ui/Labels.kt`) and colors
+ * Fixed priorities (requirements §5.5). The UI calls them categories (分類 / Category); the field
+ * and the code keep the name priority. Labels are string resources (`ui/Labels.kt`) and colors
  * live in the UI theme. Declaration order is the sort order.
  */
 enum class Priority {
   NOW,
+  ROUTINE,
   SOONER,
   ANYTIME,
   SOMEDAY,
+  BREAK,
   ;
 
   companion object {

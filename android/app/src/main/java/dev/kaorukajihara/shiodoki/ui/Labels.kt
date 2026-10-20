@@ -20,9 +20,11 @@ import java.util.Locale
 val Priority.labelRes: Int
   get() = when (this) {
     Priority.NOW -> R.string.priority_now
+    Priority.ROUTINE -> R.string.priority_routine
     Priority.SOONER -> R.string.priority_sooner
     Priority.ANYTIME -> R.string.priority_anytime
     Priority.SOMEDAY -> R.string.priority_someday
+    Priority.BREAK -> R.string.priority_break
   }
 
 @get:StringRes
