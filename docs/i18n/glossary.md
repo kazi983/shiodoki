@@ -34,11 +34,13 @@
 | タスク                     | Task                         |                                                                                                                                     |      |
 | セッション                 | Session                      | 1 回の作業記録（30 分単位）                                                                                                         |      |
 | 累計                       | Total                        | `Total 1h 35m`                                                                                                                      |      |
-| 優先度                     | Priority                     |                                                                                                                                     |      |
+| 分類                       | Category                     | 旧「優先度 / Priority」（2026-10-20 変更）。保存するフィールド名とコードは `priority` のまま                                        | ✅   |
 | 今すぐ NOW                 | Now                          |                                                                                                                                     |      |
+| 定期 ROUTINE               | Routine                      | 2026-10-20 追加                                                                                                                     | ✅   |
 | 近いうち（SOONER）         | Soon                         | 表示ラベルだけ `Soon`。画面に出すキーも日英とも `SOON`（2026-10-10 変更）。保存するキーは `SOONER` のまま（データモデルは変えない） | ✅   |
 | いつでも ANYTIME           | Anytime                      |                                                                                                                                     |      |
 | いつか SOMEDAY             | Someday                      |                                                                                                                                     |      |
+| 休憩 BREAK                 | Break                        | 2026-10-20 追加                                                                                                                     | ✅   |
 | 完了 / 完了済み            | Done / Completed             | 操作は `Mark as done`、状態・一覧は `Completed`                                                                                     |      |
 | 未完了                     | Open                         | `3 open · 5 completed`。操作「未完了に戻す」は `Reopen`                                                                             |      |
 | メモ                       | Note                         | `Memo` は和製英語寄りのため `Note`                                                                                                  |      |
