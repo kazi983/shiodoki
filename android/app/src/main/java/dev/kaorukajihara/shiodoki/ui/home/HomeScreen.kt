@@ -56,7 +56,7 @@ import dev.kaorukajihara.shiodoki.ui.components.MainTab
 import dev.kaorukajihara.shiodoki.ui.components.ScreenHeader
 import dev.kaorukajihara.shiodoki.ui.components.SwipeToComplete
 import dev.kaorukajihara.shiodoki.ui.components.SyncIndicator
-import dev.kaorukajihara.shiodoki.ui.components.showCompletedWithUndo
+import dev.kaorukajihara.shiodoki.ui.components.showWithUndo
 import dev.kaorukajihara.shiodoki.ui.priorityHeading
 import dev.kaorukajihara.shiodoki.ui.theme.MonoFamily
 import dev.kaorukajihara.shiodoki.ui.theme.ShiodokiColors
@@ -109,7 +109,7 @@ fun HomeScreen(
         onComplete = { taskId ->
           viewModel.complete(taskId)
           scope.launch {
-            if (snackbarHostState.showCompletedWithUndo(completed, undo)) viewModel.undoComplete(taskId)
+            if (snackbarHostState.showWithUndo(completed, undo)) viewModel.undoComplete(taskId)
           }
         },
       )
@@ -117,8 +117,9 @@ fun HomeScreen(
   }
 }
 
+/** Open tasks under priority headings, each swipeable to complete. Also the "未完了" view of the All tab. */
 @Composable
-private fun ColumnScope.TaskList(
+internal fun ColumnScope.TaskList(
   groups: List<PriorityGroup>?,
   topPadding: Dp,
   onEditTask: (taskId: String) -> Unit,
@@ -145,7 +146,7 @@ private fun ColumnScope.TaskList(
         items(group.tasks, key = { it.id }) { task ->
           // The swipe state is not saveable, so a task restored by undo starts settled again.
           SwipeToComplete(onComplete = { onComplete(task.id) }, modifier = Modifier.animateItem()) {
-            TaskRow(task = task, onClick = { onEditTask(task.id) })
+            TaskRow(task = task, detail = formatMinutes(task.totalMinutes), onClick = { onEditTask(task.id) })
           }
         }
       }
@@ -172,8 +173,9 @@ private fun GroupHeader(priority: Priority, modifier: Modifier = Modifier) {
   }
 }
 
+/** Name, the first memo line and [detail] on the right (the total time, or the completion date). */
 @Composable
-private fun TaskRow(task: Task, onClick: () -> Unit) {
+internal fun TaskRow(task: Task, detail: String, onClick: () -> Unit) {
   val memoLine = task.memo.lineSequence().firstOrNull { it.isNotBlank() }
   Row(
     modifier = Modifier
@@ -205,7 +207,7 @@ private fun TaskRow(task: Task, onClick: () -> Unit) {
       }
     }
     Text(
-      formatMinutes(task.totalMinutes),
+      detail,
       fontFamily = MonoFamily,
       fontWeight = FontWeight.Medium,
       fontSize = 12.sp,
@@ -215,7 +217,7 @@ private fun TaskRow(task: Task, onClick: () -> Unit) {
 }
 
 /** Fades out the last 32dp, so rows scrolling under the add button do not end abruptly. */
-private fun Modifier.bottomFade(): Modifier = this
+internal fun Modifier.bottomFade(): Modifier = this
   .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
   .drawWithContent {
     drawContent()

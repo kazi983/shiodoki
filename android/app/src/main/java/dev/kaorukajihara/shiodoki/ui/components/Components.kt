@@ -16,6 +16,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -94,12 +96,13 @@ fun Dot(color: Color, size: Int) {
 
 enum class MainTab(@StringRes val label: Int, val icon: ImageVector) {
   TASKS(R.string.tab_tasks, Icons.AutoMirrored.Filled.List),
+  ALL(R.string.tab_all, Icons.Filled.CheckCircle),
   SETTINGS(R.string.tab_settings, Icons.Filled.Settings),
 }
 
 /**
- * Bottom navigation of the design. Only the tabs whose screens exist are shown; "完了済み" and
- * "集計" are added with P6.
+ * Bottom navigation of the design. Only the tabs whose screens exist are shown; "集計" is added
+ * with P6.
  */
 @Composable
 fun MainBottomBar(current: MainTab, onSelect: (MainTab) -> Unit) {
@@ -131,10 +134,25 @@ fun MainBottomBar(current: MainTab, onSelect: (MainTab) -> Unit) {
 /**
  * A swipe in either direction completes the task (design §5.3, §5.7). Half the row width is
  * needed, so a scroll that drifts sideways does not complete anything; pair it with
- * [showCompletedWithUndo].
+ * [showWithUndo].
  */
 @Composable
-fun SwipeToComplete(onComplete: () -> Unit, modifier: Modifier, content: @Composable () -> Unit) {
+fun SwipeToComplete(onComplete: () -> Unit, modifier: Modifier, content: @Composable () -> Unit) =
+  SwipeAction(Icons.Filled.Check, stringResource(R.string.complete), onComplete, modifier, content)
+
+/** Like [SwipeToComplete], for a completed task: a swipe makes it open again (design §5.5). */
+@Composable
+fun SwipeToReopen(onReopen: () -> Unit, modifier: Modifier, content: @Composable () -> Unit) =
+  SwipeAction(Icons.Filled.Refresh, stringResource(R.string.reopen), onReopen, modifier, content)
+
+@Composable
+private fun SwipeAction(
+  icon: ImageVector,
+  label: String,
+  onSwipe: () -> Unit,
+  modifier: Modifier,
+  content: @Composable () -> Unit,
+) {
   // Not rememberSwipeToDismissBoxState: it uses rememberSaveable, and a LazyColumn keeps saved state per key, so
   // a task restored by undo would come back dismissed and SwipeToDismissBox would complete it again at once.
   val state = remember {
@@ -143,7 +161,7 @@ fun SwipeToComplete(onComplete: () -> Unit, modifier: Modifier, content: @Compos
   SwipeToDismissBox(
     state = state,
     modifier = modifier,
-    onDismiss = { onComplete() },
+    onDismiss = { onSwipe() },
     backgroundContent = {
       val direction = state.dismissDirection
       // Nothing behind a settled row, so its rounded corners stay clean.
@@ -160,7 +178,7 @@ fun SwipeToComplete(onComplete: () -> Unit, modifier: Modifier, content: @Compos
             Alignment.CenterEnd
           },
         ) {
-          Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.complete), tint = ShiodokiColors.OnAccent)
+          Icon(icon, contentDescription = label, tint = ShiodokiColors.OnAccent)
         }
       }
     },
@@ -174,7 +192,7 @@ fun SwipeToComplete(onComplete: () -> Unit, modifier: Modifier, content: @Compos
  * Both come from the caller, which reads them with stringResource (this is not a composable). A visible snackbar
  * is dismissed first, so a new swipe does not wait behind it.
  */
-suspend fun SnackbarHostState.showCompletedWithUndo(message: String, actionLabel: String): Boolean {
+suspend fun SnackbarHostState.showWithUndo(message: String, actionLabel: String): Boolean {
   currentSnackbarData?.dismiss()
   val result = showSnackbar(message = message, actionLabel = actionLabel, duration = SnackbarDuration.Long)
   return result == SnackbarResult.ActionPerformed
