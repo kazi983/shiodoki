@@ -5,7 +5,11 @@
 
 import { t } from "./i18n";
 
-export const PRIORITIES = ["NOW", "SOONER", "ANYTIME", "SOMEDAY"] as const;
+/**
+ * Fixed priorities (requirements §5.5), in display order. The UI calls them categories (分類 /
+ * Category); the field and the code keep the name priority.
+ */
+export const PRIORITIES = ["NOW", "ROUTINE", "SOONER", "ANYTIME", "SOMEDAY", "BREAK"] as const;
 
 export type Priority = (typeof PRIORITIES)[number];
 
@@ -18,9 +22,11 @@ export const DEFAULT_PRIORITY: Priority = "NOW";
  */
 export const PRIORITY_META: Record<Priority, { shortName: string; dot: string; chipFg: string; chipBg: string }> = {
   NOW: { shortName: "NOW", dot: "#ff8a4c", chipFg: "#ffd2b8", chipBg: "#3a2418" },
+  ROUTINE: { shortName: "ROUTINE", dot: "#7cc4ff", chipFg: "#cbe6ff", chipBg: "#162d42" },
   SOONER: { shortName: "SOON", dot: "#f5c451", chipFg: "#fbe3a0", chipBg: "#3a3118" },
   ANYTIME: { shortName: "ANYTIME", dot: "#4fd1a5", chipFg: "#b6f0db", chipBg: "#16342b" },
   SOMEDAY: { shortName: "SOMEDAY", dot: "#8b93a7", chipFg: "#c9d1e6", chipBg: "#262e42" },
+  BREAK: { shortName: "BREAK", dot: "#c08cff", chipFg: "#e6d3ff", chipBg: "#2e2142" },
 };
 
 export type UpdatedBy = "desktop" | "android" | "migration";
