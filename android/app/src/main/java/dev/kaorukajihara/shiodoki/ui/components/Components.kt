@@ -26,10 +26,11 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -134,7 +135,11 @@ fun MainBottomBar(current: MainTab, onSelect: (MainTab) -> Unit) {
  */
 @Composable
 fun SwipeToComplete(onComplete: () -> Unit, modifier: Modifier, content: @Composable () -> Unit) {
-  val state = rememberSwipeToDismissBoxState(positionalThreshold = { totalDistance -> totalDistance * 0.5f })
+  // Not rememberSwipeToDismissBoxState: it uses rememberSaveable, and a LazyColumn keeps saved state per key, so
+  // a task restored by undo would come back dismissed and SwipeToDismissBox would complete it again at once.
+  val state = remember {
+    SwipeToDismissBoxState(SwipeToDismissBoxValue.Settled, positionalThreshold = { totalDistance -> totalDistance / 2 })
+  }
   SwipeToDismissBox(
     state = state,
     modifier = modifier,
