@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -207,37 +208,43 @@ private fun Field(label: String, content: @Composable () -> Unit) {
   }
 }
 
-/** Four equal buttons; the selected one takes its priority color. */
+/** Two rows of three equal buttons; the selected one takes its priority color. */
 @Composable
 private fun PrioritySelector(selected: Priority, onSelect: (Priority) -> Unit) {
-  Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-    Priority.entries.forEach { p ->
-      val isSelected = p == selected
-      OutlinedButton(
-        onClick = { onSelect(p) },
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, if (isSelected) p.color else ShiodokiColors.Outline),
-        colors = ButtonDefaults.outlinedButtonColors(
-          containerColor = if (isSelected) p.selectedFill else ShiodokiColors.Background,
-          contentColor = if (isSelected) p.selectedText else ShiodokiColors.Text,
-        ),
-        contentPadding = PaddingValues(0.dp),
-        modifier = Modifier
-          .weight(1f)
-          .height(48.dp)
-          .semantics {
-            role = Role.RadioButton
-            this.selected = isSelected
-          },
-      ) {
-        Text(
-          stringResource(p.labelRes),
-          fontSize = 13.sp,
-          fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-          maxLines = 1,
-        )
+  Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Priority.entries.chunked(3).forEach { row ->
+      Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        row.forEach { p -> PriorityButton(p, isSelected = p == selected, onSelect = onSelect) }
       }
     }
+  }
+}
+
+@Composable
+private fun RowScope.PriorityButton(p: Priority, isSelected: Boolean, onSelect: (Priority) -> Unit) {
+  OutlinedButton(
+    onClick = { onSelect(p) },
+    shape = RoundedCornerShape(12.dp),
+    border = BorderStroke(1.dp, if (isSelected) p.color else ShiodokiColors.Outline),
+    colors = ButtonDefaults.outlinedButtonColors(
+      containerColor = if (isSelected) p.selectedFill else ShiodokiColors.Background,
+      contentColor = if (isSelected) p.selectedText else ShiodokiColors.Text,
+    ),
+    contentPadding = PaddingValues(0.dp),
+    modifier = Modifier
+      .weight(1f)
+      .height(48.dp)
+      .semantics {
+        role = Role.RadioButton
+        this.selected = isSelected
+      },
+  ) {
+    Text(
+      stringResource(p.labelRes),
+      fontSize = 13.sp,
+      fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+      maxLines = 1,
+    )
   }
 }
 

@@ -42,9 +42,11 @@
 
   <!-- Priorities (requirements §5.5) -->
   <string name="priority_now">Now</string>
+  <string name="priority_routine">Routine</string>
   <string name="priority_sooner">Soon</string>
   <string name="priority_anytime">Anytime</string>
   <string name="priority_someday">Someday</string>
+  <string name="priority_break">Break</string>
 
   <!-- Sync status -->
   <string name="sync_synced">Synced</string>
@@ -61,7 +63,7 @@
   <string name="edit_title_edit">Edit task</string>
   <string name="edit_not_found">Task not found</string>
   <string name="edit_name">Task name</string>
-  <string name="edit_priority">Priority</string>
+  <string name="edit_priority">Category</string>
   <string name="edit_memo">Note</string>
   <string name="edit_total">Total</string>
   <string name="edit_sessions">Sessions</string>

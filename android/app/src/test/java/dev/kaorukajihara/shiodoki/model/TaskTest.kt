@@ -11,14 +11,16 @@ class TaskTest {
   @Test
   fun `tasks sort by priority, then oldest first`() {
     val tasks = listOf(
+      task("break", priority = Priority.BREAK),
       task("someday", priority = Priority.SOMEDAY),
       task("now-new", priority = Priority.NOW, createdAt = "2026-01-02T00:00:00Z"),
       task("sooner", priority = Priority.SOONER),
       task("now-old", priority = Priority.NOW, createdAt = "2026-01-01T00:00:00Z"),
       task("anytime", priority = Priority.ANYTIME),
+      task("routine", priority = Priority.ROUTINE),
     )
     assertEquals(
-      listOf("now-old", "now-new", "sooner", "anytime", "someday"),
+      listOf("now-old", "now-new", "routine", "sooner", "anytime", "someday", "break"),
       tasks.sortedWith(taskOrder).map { it.id },
     )
   }
