@@ -143,7 +143,7 @@ private fun ColumnScope.TaskList(
           GroupHeader(group.priority, Modifier.padding(top = if (index == 0) 0.dp else 16.dp))
         }
         items(group.tasks, key = { it.id }) { task ->
-          // The state is keyed with the row, so a task restored by undo starts settled again.
+          // The swipe state is not saveable, so a task restored by undo starts settled again.
           SwipeToComplete(onComplete = { onComplete(task.id) }, modifier = Modifier.animateItem()) {
             TaskRow(task = task, onClick = { onEditTask(task.id) })
           }
