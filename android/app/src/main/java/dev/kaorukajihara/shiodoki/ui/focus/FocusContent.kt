@@ -26,6 +26,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -35,6 +36,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -76,7 +78,8 @@ fun FocusContent(viewModel: FocusViewModel) {
   val completed = stringResource(R.string.task_completed)
   val undo = stringResource(R.string.undo)
   // Back does nothing: there is no skip (M-14). Leaving with Home brings the screen back a
-  // minute later (FocusActivity.onStop).
+  // minute later (FocusActivity.onStop). While the start confirmation is open, Back goes to the
+  // dialog and chooses again.
   BackHandler {}
 
   Column(
@@ -146,9 +149,31 @@ fun FocusContent(viewModel: FocusViewModel) {
       SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
     }
   }
+
+  viewModel.pendingStart?.let {
+    StartConfirmDialog(it, onConfirm = viewModel::confirmStart, onDismiss = viewModel::cancelStart)
+  }
 }
 
-/** "PC と同じ" and "スマホで前回": one tap starts that task. */
+/**
+ * "「X」をはじめます" before starting (M-13, design §5.7). Back and a tap outside choose again,
+ * like the dismiss button.
+ */
+@Composable
+private fun StartConfirmDialog(pending: PendingStart, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+  AlertDialog(
+    onDismissRequest = onDismiss,
+    title = { Text(stringResource(R.string.focus_start_confirm, pending.taskName)) },
+    confirmButton = {
+      TextButton(onClick = onConfirm) { Text(stringResource(R.string.focus_start_ok)) }
+    },
+    dismissButton = {
+      TextButton(onClick = onDismiss) { Text(stringResource(R.string.focus_choose_again)) }
+    },
+  )
+}
+
+/** "PC と同じ" and "スマホで前回": a tap asks to start that task. */
 @Composable
 private fun ShortcutCard(
   icon: ImageVector,
