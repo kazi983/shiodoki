@@ -54,6 +54,7 @@
 | フォーカス画面             | Focus screen                 | Android                                                                                                                             |      |
 | PC と同じ                  | Same as PC                   | フォーカス画面の選択肢                                                                                                              |      |
 | スマホで前回               | Last on phone                |                                                                                                                                     |      |
+| 再開                       | Resume                       | フォーカス画面で「スマホで前回」のタスクを始めるボタン                                                                              |      |
 | PC の状況                  | PC status                    |                                                                                                                                     |      |
 | PC で実行中                | Running on PC                |                                                                                                                                     |      |
 | PC で途中終了              | Interrupted on PC            |                                                                                                                                     |      |

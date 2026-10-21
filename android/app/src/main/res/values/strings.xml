@@ -58,6 +58,8 @@
   <string name="focus_same_as_pc">Same as PC</string>
   <string name="focus_last_on_phone">Last on phone</string>
   <string name="focus_new_task_placeholder">New task (Now)</string>
+  <string name="focus_banner">Focus · Tap a task to start recording</string>
+  <string name="focus_resume">Resume</string>
 
   <!-- Edit screen -->
   <string name="edit_title_edit">Edit task</string>

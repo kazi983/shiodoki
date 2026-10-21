@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.OutlinedTextField
@@ -44,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -86,111 +89,153 @@ fun FocusContent(viewModel: FocusViewModel) {
       // The status bar stays visible so the time and notifications can be checked.
       .statusBarsPadding()
       .navigationBarsPadding()
-      .imePadding()
-      .padding(start = 24.dp, end = 24.dp, top = 32.dp, bottom = 20.dp),
-    verticalArrangement = Arrangement.spacedBy(16.dp),
+      .imePadding(),
   ) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-      Text(stringResource(R.string.what_now), fontSize = 26.sp, fontWeight = FontWeight.Bold, color = ShiodokiColors.TextStrong)
-      Text(stringResource(R.string.focus_subtitle), fontSize = 13.sp, color = ShiodokiColors.TextMuted)
+    ModeBanner()
+
+    Column(
+      modifier = Modifier
+        .weight(1f)
+        .padding(start = 24.dp, end = 24.dp, top = 24.dp),
+      verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+      Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(stringResource(R.string.what_now), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = ShiodokiColors.TextStrong)
+        Text(stringResource(R.string.focus_subtitle), fontSize = 13.sp, color = ShiodokiColors.TextMuted)
+      }
+
+      QuickAdd(viewModel)
+
+      Box(Modifier.weight(1f)) {
+        TaskList(
+          groups = state.groups,
+          highlightedId = viewModel.addedTaskId,
+          onSelect = { viewModel.select(it.id, it.name) },
+          onComplete = { taskId ->
+            viewModel.complete(taskId)
+            scope.launch {
+              if (snackbarHostState.showWithUndo(completed, undo)) viewModel.undoComplete(taskId)
+            }
+          },
+          modifier = Modifier.fillMaxSize(),
+        )
+        SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
+      }
     }
 
-    state.pcTask?.let { pc ->
-      val elapsed = pc.elapsedMinutes?.let { " · " + stringResource(R.string.elapsed_minutes, it) }.orEmpty()
-      ShortcutCard(
-        icon = FocusIcons.Monitor,
-        caption = stringResource(R.string.pc_running) + elapsed,
-        name = pc.taskName,
-        highlighted = true,
-        onClick = { viewModel.select(pc.taskId, pc.taskName) },
-      ) {
-        Text(
-          stringResource(R.string.focus_same_as_pc),
-          fontSize = 13.sp,
-          fontWeight = FontWeight.Bold,
-          color = ShiodokiColors.OnAccent,
-          modifier = Modifier
-            .background(ShiodokiColors.Accent, CircleShape)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+    ShortcutDock(state.pcTask, state.previous, onSelect = viewModel::select)
+  }
+}
+
+/** The accent strip that tells this screen (tap = start) apart from the task list (tap = edit). */
+@Composable
+private fun ModeBanner() {
+  Row(
+    modifier = Modifier
+      .fillMaxWidth()
+      .background(ShiodokiColors.Accent)
+      .padding(horizontal = 24.dp, vertical = 12.dp),
+    verticalAlignment = Alignment.CenterVertically,
+    horizontalArrangement = Arrangement.spacedBy(10.dp),
+  ) {
+    Icon(Icons.Filled.PlayArrow, contentDescription = null, tint = ShiodokiColors.OnAccent, modifier = Modifier.size(18.dp))
+    Text(
+      stringResource(R.string.focus_banner),
+      fontSize = 13.sp,
+      fontWeight = FontWeight.Bold,
+      color = ShiodokiColors.OnAccent,
+    )
+  }
+}
+
+/**
+ * "PC と同じ" above "スマホで前回", fixed at the bottom within thumb reach. When both are shown,
+ * only the top one is filled so the two do not compete; hidden when there is neither.
+ */
+@Composable
+private fun ShortcutDock(pcTask: PcTask?, previous: Task?, onSelect: (taskId: String, taskName: String) -> Unit) {
+  if (pcTask == null && previous == null) return
+  Column(Modifier.fillMaxWidth().background(ShiodokiColors.NavBar)) {
+    HorizontalDivider(color = ShiodokiColors.Outline)
+    Column(
+      modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 20.dp),
+      verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+      pcTask?.let { pc ->
+        val elapsed = pc.elapsedMinutes?.let { " · " + stringResource(R.string.elapsed_minutes, it) }.orEmpty()
+        ShortcutButton(
+          icon = FocusIcons.Monitor,
+          caption = stringResource(R.string.pc_running) + elapsed,
+          name = pc.taskName,
+          action = stringResource(R.string.focus_same_as_pc),
+          primary = true,
+          onClick = { onSelect(pc.taskId, pc.taskName) },
         )
       }
-    }
-
-    state.previous?.let { task ->
-      ShortcutCard(
-        icon = FocusIcons.History,
-        caption = stringResource(R.string.focus_last_on_phone),
-        name = task.name,
-        highlighted = false,
-        onClick = { viewModel.select(task.id, task.name) },
-      ) {
-        Icon(Icons.Filled.PlayArrow, contentDescription = null, tint = ShiodokiColors.TextMuted)
+      previous?.let { task ->
+        ShortcutButton(
+          icon = FocusIcons.History,
+          caption = stringResource(R.string.focus_last_on_phone),
+          name = task.name,
+          action = stringResource(R.string.focus_resume),
+          primary = pcTask == null,
+          onClick = { onSelect(task.id, task.name) },
+        )
       }
-    }
-
-    QuickAdd(viewModel)
-
-    Box(Modifier.weight(1f)) {
-      TaskList(
-        groups = state.groups,
-        highlightedId = viewModel.addedTaskId,
-        onSelect = { viewModel.select(it.id, it.name) },
-        onComplete = { taskId ->
-          viewModel.complete(taskId)
-          scope.launch {
-            if (snackbarHostState.showWithUndo(completed, undo)) viewModel.undoComplete(taskId)
-          }
-        },
-        modifier = Modifier.fillMaxSize(),
-      )
-      SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
     }
   }
 }
 
-/** "PC と同じ" and "スマホで前回": one tap starts that task. */
+/** One tap starts that task. [primary] is filled with the accent, otherwise outlined. */
 @Composable
-private fun ShortcutCard(
+private fun ShortcutButton(
   icon: ImageVector,
   caption: String,
   name: String,
-  highlighted: Boolean,
+  action: String,
+  primary: Boolean,
   onClick: () -> Unit,
-  trailing: @Composable () -> Unit,
 ) {
-  val shape = RoundedCornerShape(14.dp)
+  val shape = RoundedCornerShape(20.dp)
   Row(
     modifier = Modifier
       .fillMaxWidth()
+      .heightIn(min = 76.dp)
       .clip(shape)
-      .background(if (highlighted) ShiodokiColors.SurfaceRaised else ShiodokiColors.Surface)
-      .then(if (highlighted) Modifier.border(1.dp, ShiodokiColors.Accent, shape) else Modifier)
-      .clickable(onClick = onClick)
-      .padding(horizontal = 14.dp, vertical = 12.dp),
+      .background(if (primary) ShiodokiColors.Accent else ShiodokiColors.SurfaceRaised)
+      .then(if (primary) Modifier else Modifier.border(1.5.dp, ShiodokiColors.Accent, shape))
+      .clickable(role = Role.Button, onClick = onClick)
+      .padding(start = 20.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
     verticalAlignment = Alignment.CenterVertically,
-    horizontalArrangement = Arrangement.spacedBy(12.dp),
+    horizontalArrangement = Arrangement.spacedBy(14.dp),
   ) {
-    Box(
-      Modifier
-        .size(40.dp)
-        .background(ShiodokiColors.NavIndicator, CircleShape)
-        .then(if (highlighted) Modifier.border(3.dp, ShiodokiColors.Accent, CircleShape) else Modifier),
-      contentAlignment = Alignment.Center,
-    ) {
-      Icon(icon, contentDescription = null, tint = ShiodokiColors.Text, modifier = Modifier.size(18.dp))
-    }
-    Column(Modifier.weight(1f)) {
-      Text(caption, fontSize = 12.sp, color = ShiodokiColors.TextMuted)
+    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+      Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        val captionColor = if (primary) ShiodokiColors.OnAccent else ShiodokiColors.TextMuted
+        Icon(icon, contentDescription = null, tint = captionColor, modifier = Modifier.size(14.dp))
+        Text(caption, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = captionColor)
+      }
       Text(
         name,
-        fontSize = 15.sp,
+        fontSize = 17.sp,
         fontWeight = FontWeight.Bold,
-        color = ShiodokiColors.TextStrong,
+        color = if (primary) ShiodokiColors.OnAccent else ShiodokiColors.TextStrong,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
       )
     }
-    trailing()
+    Row(
+      modifier = Modifier
+        .height(48.dp)
+        .background(if (primary) ShiodokiColors.OnAccent else ShiodokiColors.Accent, CircleShape)
+        .padding(horizontal = 16.dp),
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+      val actionColor = if (primary) ShiodokiColors.AccentLight else ShiodokiColors.OnAccent
+      Icon(Icons.Filled.PlayArrow, contentDescription = null, tint = actionColor, modifier = Modifier.size(18.dp))
+      Text(action, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = actionColor)
+    }
   }
 }
 
@@ -252,8 +297,8 @@ private fun TaskList(
     }
     else -> LazyColumn(
       modifier = modifier.fillMaxWidth(),
-      contentPadding = PaddingValues(vertical = 4.dp),
-      verticalArrangement = Arrangement.spacedBy(8.dp),
+      contentPadding = PaddingValues(top = 4.dp, bottom = 16.dp),
+      verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
       groups.forEachIndexed { index, group ->
         item(key = group.priority.name) {
@@ -287,36 +332,47 @@ private fun GroupHeader(priority: Priority, modifier: Modifier = Modifier) {
   }
 }
 
+/** A raised card with a play button, unlike the flat rows of the task list (tap = edit there). */
 @Composable
 private fun TaskRow(task: Task, highlighted: Boolean, onClick: () -> Unit) {
-  val shape = RoundedCornerShape(12.dp)
+  val shape = RoundedCornerShape(16.dp)
   Row(
     modifier = Modifier
       .fillMaxWidth()
-      .heightIn(min = 52.dp)
+      .heightIn(min = 64.dp)
       .clip(shape)
-      .background(ShiodokiColors.Surface)
-      .then(if (highlighted) Modifier.border(1.dp, ShiodokiColors.Accent, shape) else Modifier)
-      .clickable(onClick = onClick)
-      .padding(horizontal = 14.dp),
+      .background(ShiodokiColors.SurfaceRaised)
+      .border(if (highlighted) 2.dp else 1.dp, if (highlighted) ShiodokiColors.Accent else ShiodokiColors.Outline, shape)
+      .clickable(role = Role.Button, onClick = onClick)
+      .padding(start = 16.dp, end = 10.dp, top = 8.dp, bottom = 8.dp),
     verticalAlignment = Alignment.CenterVertically,
     horizontalArrangement = Arrangement.spacedBy(12.dp),
   ) {
-    Text(
-      task.name,
-      fontSize = 15.sp,
-      color = ShiodokiColors.TextStrong,
-      maxLines = 1,
-      overflow = TextOverflow.Ellipsis,
-      modifier = Modifier.weight(1f),
-    )
-    Text(
-      formatMinutes(task.totalMinutes),
-      fontFamily = MonoFamily,
-      fontWeight = FontWeight.Medium,
-      fontSize = 12.sp,
-      color = ShiodokiColors.TextMuted,
-    )
+    Column(Modifier.weight(1f)) {
+      Text(
+        task.name,
+        fontSize = 16.sp,
+        fontWeight = FontWeight.Medium,
+        color = ShiodokiColors.TextStrong,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+      )
+      Text(
+        formatMinutes(task.totalMinutes),
+        fontFamily = MonoFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 12.sp,
+        color = ShiodokiColors.TextMuted,
+      )
+    }
+    Box(
+      Modifier
+        .size(44.dp)
+        .border(1.5.dp, ShiodokiColors.Accent, CircleShape),
+      contentAlignment = Alignment.Center,
+    ) {
+      Icon(Icons.Filled.PlayArrow, contentDescription = null, tint = ShiodokiColors.Accent, modifier = Modifier.size(18.dp))
+    }
   }
 }
 
