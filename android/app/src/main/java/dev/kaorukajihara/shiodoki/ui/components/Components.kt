@@ -132,9 +132,10 @@ fun MainBottomBar(current: MainTab, onSelect: (MainTab) -> Unit) {
 }
 
 /**
- * A swipe in either direction completes the task (design §5.3, §5.7). Half the row width is
- * needed, so a scroll that drifts sideways does not complete anything; pair it with
- * [showWithUndo].
+ * A swipe in either direction completes the task (design §5.3, §5.7). The row has to be dragged
+ * all the way across, so a scroll that drifts sideways or a half-hearted swipe does not complete
+ * anything (a fast fling still does: SwipeToDismissBox's velocity threshold is fixed); pair it
+ * with [showWithUndo].
  */
 @Composable
 fun SwipeToComplete(onComplete: () -> Unit, modifier: Modifier, content: @Composable () -> Unit) =
@@ -156,7 +157,7 @@ private fun SwipeAction(
   // Not rememberSwipeToDismissBoxState: it uses rememberSaveable, and a LazyColumn keeps saved state per key, so
   // a task restored by undo would come back dismissed and SwipeToDismissBox would complete it again at once.
   val state = remember {
-    SwipeToDismissBoxState(SwipeToDismissBoxValue.Settled, positionalThreshold = { totalDistance -> totalDistance / 2 })
+    SwipeToDismissBoxState(SwipeToDismissBoxValue.Settled, positionalThreshold = { totalDistance -> totalDistance })
   }
   SwipeToDismissBox(
     state = state,
