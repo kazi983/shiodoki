@@ -8,7 +8,6 @@ import androidx.lifecycle.viewModelScope
 import dev.kaorukajihara.shiodoki.data.DesktopStateRepository
 import dev.kaorukajihara.shiodoki.data.TaskRepository
 import dev.kaorukajihara.shiodoki.data.TasksSnapshot
-import dev.kaorukajihara.shiodoki.focus.FocusController
 import dev.kaorukajihara.shiodoki.model.DesktopState
 import dev.kaorukajihara.shiodoki.model.Priority
 import dev.kaorukajihara.shiodoki.model.Task
@@ -56,12 +55,18 @@ fun toFocusUiState(snapshot: TasksSnapshot?, desktop: DesktopState?, lastSelecte
     previous = snapshot?.tasks?.find { it.id == lastSelectedTaskId && !it.completed && !it.deleted },
   )
 
-/** Design §5.7. Selecting and skipping go to [FocusController]; the activity closes on its own. */
+/** A task chosen on the focus screen, waiting for "OK" on the start confirmation (Q-A10). */
+data class PendingStart(val taskId: String, val taskName: String)
+
+/**
+ * Design §5.7. A confirmed choice goes to `FocusController.onTaskSelected` ([startTask]); the
+ * activity closes on its own.
+ */
 class FocusViewModel(
   private val repository: TaskRepository,
   desktopStateRepository: DesktopStateRepository,
   lastSelectedTaskId: Flow<String?>,
-  private val controller: FocusController,
+  private val startTask: (taskId: String, taskName: String) -> Unit,
 ) : ViewModel() {
   val uiState: StateFlow<FocusUiState> =
     combine(repository.snapshot, desktopStateRepository.snapshot, lastSelectedTaskId) { tasks, desktop, last ->
@@ -100,7 +105,29 @@ class FocusViewModel(
     newTaskName = ""
   }
 
-  fun select(taskId: String, taskName: String) = controller.onTaskSelected(taskId, taskName)
+  /**
+   * The task waiting for the start confirmation, or null. Only the screen knows about it: the
+   * controller stays Prompting until "OK" (design §5.7).
+   */
+  var pendingStart by mutableStateOf<PendingStart?>(null)
+    private set
+
+  /** A tap on a task asks before starting it, so a stray tap records nothing (M-13). */
+  fun select(taskId: String, taskName: String) {
+    pendingStart = PendingStart(taskId, taskName)
+  }
+
+  /** "OK" on the confirmation: starts the phone session. */
+  fun confirmStart() {
+    val pending = pendingStart ?: return
+    pendingStart = null
+    startTask(pending.taskId, pending.taskName)
+  }
+
+  /** "選び直す", Back, or a tap outside the dialog: back to the list. */
+  fun cancelStart() {
+    pendingStart = null
+  }
 
   /** Swipe on a row (design §5.7): completes the task without closing the screen. */
   fun complete(taskId: String) = repository.update(taskId, TaskPatch(completed = true))
