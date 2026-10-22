@@ -20,6 +20,8 @@ written in Japanese.
 ## Coding conventions
 
 - Write comments, commit messages, and identifiers in English.
+- Push work to a branch named after the change (`feat/…`, `fix/…`, `docs/…`, e.g.
+  `feat/routine-break-categories`), not to an auto-generated session branch.
 - Firebase config values in `desktop/src/shared/firebaseConfig.ts` are public by design. Never
   commit `desktop/resources/oauth-client.json` (Google OAuth client, gitignored) or any service
   account key.

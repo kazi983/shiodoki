@@ -52,8 +52,11 @@
   <string name="focus_same_as_pc">PC と同じ</string>
   <string name="focus_last_on_phone">スマホで前回</string>
   <string name="focus_new_task_placeholder">新しいタスク（今すぐ）</string>
-  <string name="focus_banner">フォーカス · タップすると記録開始</string>
+  <string name="focus_banner">フォーカス · タスクを選んで記録開始</string>
   <string name="focus_resume">再開</string>
+  <string name="focus_start_confirm">「%1$s」をはじめます</string>
+  <string name="focus_choose_again">選び直す</string>
+  <string name="focus_start_ok">OK</string>
 
   <!-- Edit screen -->
   <string name="edit_title_edit">タスクを編集</string>

@@ -96,6 +96,7 @@
 | 戻る                       | Back                       |                                                      |      |
 | 閉じる                     | Close                      |                                                      |      |
 | 開始 / はじめる            | Start                      |                                                      |      |
+| 選び直す                   | Choose again               | Android フォーカス画面の開始の確認                   |      |
 | 元に戻す                   | Undo                       | スナックバー                                         |      |
 | 完了しました               | Task completed             | スナックバー                                         |      |
 | 検索                       | Search                     | `Search tasks`                                       |      |
@@ -130,6 +131,7 @@
 | 今から何をやる？                                                     | What's your focus now?                                     | ✅   | §7  |
 | 次の 30分 で取り組むタスクを1つ選びます                              | Pick one task for the next 30 min                          |      |
 | 「X」を開始しますか？                                                | Start “X”?                                                 |      |
+| 「X」をはじめます                                                    | Starting “X”                                               |      |     |
 | 「X」を完了にしますか？                                              | Mark “X” as done?                                          |      |
 | 「X」を削除しますか？                                                | Delete “X”?                                                |      |
 | アプリを終了しますか？                                               | Quit Shiodoki?                                             |      |
