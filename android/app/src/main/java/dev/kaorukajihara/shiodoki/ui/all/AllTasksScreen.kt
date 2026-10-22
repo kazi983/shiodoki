@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -29,16 +27,19 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.kaorukajihara.shiodoki.R
-import dev.kaorukajihara.shiodoki.model.Task
+import dev.kaorukajihara.shiodoki.model.TaskDrop
 import dev.kaorukajihara.shiodoki.ui.components.MainBottomBar
 import dev.kaorukajihara.shiodoki.ui.components.MainTab
 import dev.kaorukajihara.shiodoki.ui.components.ScreenHeader
 import dev.kaorukajihara.shiodoki.ui.components.SwipeToReopen
 import dev.kaorukajihara.shiodoki.ui.components.SyncIndicator
 import dev.kaorukajihara.shiodoki.ui.components.showWithUndo
+import dev.kaorukajihara.shiodoki.ui.home.GroupedTaskList
+import dev.kaorukajihara.shiodoki.ui.home.PriorityGroup
 import dev.kaorukajihara.shiodoki.ui.home.TaskList
 import dev.kaorukajihara.shiodoki.ui.home.TaskRow
 import dev.kaorukajihara.shiodoki.ui.home.bottomFade
+import dev.kaorukajihara.shiodoki.ui.home.rememberMoveWithUndo
 import dev.kaorukajihara.shiodoki.ui.rememberDateFormatter
 import dev.kaorukajihara.shiodoki.ui.theme.ShiodokiColors
 import java.time.ZoneId
@@ -58,6 +59,8 @@ fun AllTasksScreen(
   val reopened = stringResource(R.string.task_reopened)
   val undo = stringResource(R.string.undo)
   val scope = rememberCoroutineScope()
+  val onMove = rememberMoveWithUndo(snackbarHostState, scope, viewModel::move, viewModel::undoMove)
+  val onMoveCompleted = rememberMoveWithUndo(snackbarHostState, scope, viewModel::moveCompleted, viewModel::undoMove)
 
   LaunchedEffect(Unit) {
     viewModel.writeFailures.collect { snackbarHostState.showSnackbar(saveFailed) }
@@ -79,14 +82,16 @@ fun AllTasksScreen(
             viewModel.complete(taskId)
             scope.launch { if (snackbarHostState.showWithUndo(completed, undo)) viewModel.reopen(taskId) }
           },
+          onMove = onMove,
         )
         TaskFilter.COMPLETED -> CompletedList(
-          tasks = state.completed,
+          groups = state.completed,
           onEditTask = onEditTask,
           onReopen = { taskId ->
             viewModel.reopen(taskId)
             scope.launch { if (snackbarHostState.showWithUndo(reopened, undo)) viewModel.complete(taskId) }
           },
+          onMove = onMoveCompleted,
         )
       }
     }
@@ -120,33 +125,36 @@ private fun FilterRow(selected: TaskFilter, onSelect: (TaskFilter) -> Unit) {
   }
 }
 
-/** Newest first, each with its completion date; a swipe reopens the task. */
+/**
+ * By priority, each newest first with its completion date; a swipe reopens the task. Dragging a row into another
+ * priority changes only its priority (design §5.5).
+ */
 @Composable
 private fun ColumnScope.CompletedList(
-  tasks: List<Task>?,
+  groups: List<PriorityGroup>?,
   onEditTask: (taskId: String) -> Unit,
   onReopen: (taskId: String) -> Unit,
+  onMove: (TaskDrop) -> Boolean,
 ) {
   val fill = Modifier.weight(1f).fillMaxWidth()
   val dateFormatter = rememberDateFormatter()
   when {
-    tasks == null -> Box(fill, Alignment.Center) {
+    groups == null -> Box(fill, Alignment.Center) {
       CircularProgressIndicator(color = ShiodokiColors.Accent)
     }
-    tasks.isEmpty() -> Box(fill, Alignment.Center) {
+    groups.isEmpty() -> Box(fill, Alignment.Center) {
       Text(stringResource(R.string.no_completed_tasks), color = ShiodokiColors.TextMuted)
     }
-    else -> LazyColumn(
+    else -> GroupedTaskList(
+      groups = groups,
+      onMove = onMove,
       modifier = fill.bottomFade(),
       contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 32.dp),
-      verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-      items(tasks, key = { it.id }) { task ->
-        // recentlyCompleted only returns tasks with completedAt.
-        val date = task.completedAt?.atZone(ZoneId.systemDefault())?.format(dateFormatter).orEmpty()
-        SwipeToReopen(onReopen = { onReopen(task.id) }, modifier = Modifier.animateItem()) {
-          TaskRow(task = task, detail = date, onClick = { onEditTask(task.id) })
-        }
+    ) { task ->
+      // recentlyCompleted only returns tasks with completedAt.
+      val date = task.completedAt?.atZone(ZoneId.systemDefault())?.format(dateFormatter).orEmpty()
+      SwipeToReopen(onReopen = { onReopen(task.id) }, modifier = Modifier) {
+        TaskRow(task = task, detail = date, onClick = { onEditTask(task.id) })
       }
     }
   }
