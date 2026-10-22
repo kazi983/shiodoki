@@ -20,6 +20,7 @@
   <string name="undo">元に戻す</string>
   <string name="reopen">未完了に戻す</string>
   <string name="task_reopened">未完了に戻しました</string>
+  <string name="task_moved">%1$s → %2$s に移動しました</string>
   <string name="save_failed">保存できませんでした</string>
   <string name="what_now">今から何をやる？</string>
   <string name="focus_screen">フォーカス画面</string>

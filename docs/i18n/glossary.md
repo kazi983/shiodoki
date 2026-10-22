@@ -80,45 +80,46 @@
 
 ## 3. 共通 UI 用語
 
-| 日本語                     | English 案                 | 補足                                                 | 確認 |
-| -------------------------- | -------------------------- | ---------------------------------------------------- | ---- |
-| ログイン / ログアウト      | Sign in / Sign out         | Google のボタン表記 `Sign in with Google` に合わせる |      |
-| Google でログイン          | Sign in with Google        |                                                      |      |
-| 終了（アプリ）             | Quit                       | デスクトップアプリの慣習                             |      |
-| 再起動                     | Restart                    |                                                      |      |
-| 前面に表示                 | Bring to front             | 多重起動時のダイアログ                               |      |
-| キャンセル                 | Cancel                     |                                                      |      |
-| 追加 / タスクを追加        | Add / Add task             |                                                      |      |
-| 新しいタスク               | New task                   |                                                      |      |
-| 変更を保存                 | Save changes               |                                                      |      |
-| 削除                       | Delete                     |                                                      |      |
-| 編集                       | Edit                       |                                                      |      |
-| 戻る                       | Back                       |                                                      |      |
-| 閉じる                     | Close                      |                                                      |      |
-| 開始 / はじめる            | Start                      |                                                      |      |
-| 選び直す                   | Choose again               | Android フォーカス画面の開始の確認                   |      |
-| 元に戻す                   | Undo                       | スナックバー                                         |      |
-| 完了しました               | Task completed             | スナックバー                                         |      |
-| 検索                       | Search                     | `Search tasks`                                       |      |
-| 作成日                     | Created                    |                                                      |      |
-| 時間                       | Time                       | 一覧の列見出し                                       |      |
-| 設定                       | Settings                   |                                                      |      |
-| アカウント                 | Account                    |                                                      |      |
-| ホーム                     | Home                       |                                                      |      |
-| 言語                       | Language                   | 言語設定（新規）                                     |      |
-| OS の設定に従う            | System default             | 言語設定の選択肢（新規）                             |      |
-| 読み込み中                 | Loading                    |                                                      |      |
-| エラー                     | Error                      |                                                      |      |
-| 保存できませんでした       | Couldn't save              |                                                      |      |
-| 未保存の変更               | Unsaved changes            | タスク管理画面の自動保存の状態表示                   |      |
-| 保存済み                   | Saved                      | 同上                                                 |      |
-| 見つかりませんでした       | No matches                 | 検索結果が 0 件                                      |      |
-| 必要な権限                 | Required permissions       | Android                                              |      |
-| 許可済み / 設定する        | Granted / Grant            | Android の権限行                                     |      |
-| 他のアプリの上に重ねて表示 | Display over other apps    | Android 公式の英語表記に合わせる                     |      |
-| 通知                       | Notifications              |                                                      |      |
-| 電池の最適化の対象外       | Unrestricted battery usage | Android 公式の英語表記に合わせる                     |      |
-| 休止状態にする             | Put to sleep               | 離席時の案内文                                       |      |
+| 日本語                     | English 案                 | 補足                                                          | 確認 |
+| -------------------------- | -------------------------- | ------------------------------------------------------------- | ---- |
+| ログイン / ログアウト      | Sign in / Sign out         | Google のボタン表記 `Sign in with Google` に合わせる          |      |
+| Google でログイン          | Sign in with Google        |                                                               |      |
+| 終了（アプリ）             | Quit                       | デスクトップアプリの慣習                                      |      |
+| 再起動                     | Restart                    |                                                               |      |
+| 前面に表示                 | Bring to front             | 多重起動時のダイアログ                                        |      |
+| キャンセル                 | Cancel                     |                                                               |      |
+| 追加 / タスクを追加        | Add / Add task             |                                                               |      |
+| 新しいタスク               | New task                   |                                                               |      |
+| 変更を保存                 | Save changes               |                                                               |      |
+| 削除                       | Delete                     |                                                               |      |
+| 編集                       | Edit                       |                                                               |      |
+| 戻る                       | Back                       |                                                               |      |
+| 閉じる                     | Close                      |                                                               |      |
+| 開始 / はじめる            | Start                      |                                                               |      |
+| 選び直す                   | Choose again               | Android フォーカス画面の開始の確認                            |      |
+| 元に戻す                   | Undo                       | スナックバー                                                  |      |
+| 完了しました               | Task completed             | スナックバー                                                  |      |
+| X → Y に移動しました       | Moved X → Y                | スナックバー。ドラッグで分類を変えたとき（X・Y は分類のキー） |      |
+| 検索                       | Search                     | `Search tasks`                                                |      |
+| 作成日                     | Created                    |                                                               |      |
+| 時間                       | Time                       | 一覧の列見出し                                                |      |
+| 設定                       | Settings                   |                                                               |      |
+| アカウント                 | Account                    |                                                               |      |
+| ホーム                     | Home                       |                                                               |      |
+| 言語                       | Language                   | 言語設定（新規）                                              |      |
+| OS の設定に従う            | System default             | 言語設定の選択肢（新規）                                      |      |
+| 読み込み中                 | Loading                    |                                                               |      |
+| エラー                     | Error                      |                                                               |      |
+| 保存できませんでした       | Couldn't save              |                                                               |      |
+| 未保存の変更               | Unsaved changes            | タスク管理画面の自動保存の状態表示                            |      |
+| 保存済み                   | Saved                      | 同上                                                          |      |
+| 見つかりませんでした       | No matches                 | 検索結果が 0 件                                               |      |
+| 必要な権限                 | Required permissions       | Android                                                       |      |
+| 許可済み / 設定する        | Granted / Grant            | Android の権限行                                              |      |
+| 他のアプリの上に重ねて表示 | Display over other apps    | Android 公式の英語表記に合わせる                              |      |
+| 通知                       | Notifications              |                                                               |      |
+| 電池の最適化の対象外       | Unrestricted battery usage | Android 公式の英語表記に合わせる                              |      |
+| 休止状態にする             | Put to sleep               | 離席時の案内文                                                |      |
 
 ---
 

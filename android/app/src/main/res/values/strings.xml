@@ -26,6 +26,8 @@
   <string name="undo">Undo</string>
   <string name="reopen">Reopen</string>
   <string name="task_reopened">Task reopened</string>
+  <!-- After dropping a task under another category heading: "NOW → SOON". -->
+  <string name="task_moved">Moved %1$s → %2$s</string>
   <string name="save_failed">Couldn\'t save</string>
   <string name="what_now">What\'s your focus now?</string>
   <string name="focus_screen">Focus screen</string>
