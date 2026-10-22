@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Shiodoki
+Exec=/opt/Shiodoki/shiodoki --ozone-platform=x11 %U
+Terminal=false
+Type=Application
+Icon=shiodoki
+StartupWMClass=Shiodoki
+Comment=Desktop app that asks what to work on every 30 minutes and tracks time per task
+Categories=Utility;
