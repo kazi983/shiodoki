@@ -4,6 +4,7 @@ import { startOfWorkDay, summarizeSessions, type DaySummary, type SessionRecord 
 import {
   compareTasks,
   compareTasksForManagement,
+  endSortOrder,
   normalizeTaskInput,
   type Task,
   type TaskInput,
@@ -42,7 +43,8 @@ export class TaskService {
 
   async add(input: TaskInput): Promise<Task> {
     const v = normalizeTaskInput(input);
-    const now = this.now().toISOString();
+    const date = this.now();
+    const now = date.toISOString();
     const task: Task = {
       id: randomUUID(),
       name: v.name,
@@ -56,6 +58,8 @@ export class TaskService {
       createdAt: now,
       updatedAt: now,
       updatedBy: "desktop",
+      // New tasks go to the end of their priority (requirements §5.5).
+      sortOrder: endSortOrder(await this.repo.listTasks(), v.priority, date),
     };
     await this.repo.createTask(task);
     this.onChanged();
@@ -68,7 +72,12 @@ export class TaskService {
     const v = normalizeTaskInput({ name: current.name, priority: current.priority, memo: current.memo, ...patch });
     const fields = INPUT_FIELDS.filter((field) => patch[field] !== undefined);
     if (fields.length === 0) return current;
-    await this.repo.updateTask(id, Object.fromEntries(fields.map((field) => [field, v[field]])) as TaskPatch);
+    const write = Object.fromEntries(fields.map((field) => [field, v[field]])) as TaskPatch;
+    // A task moved to another priority goes to the end of it (requirements §5.5).
+    if (v.priority !== current.priority) {
+      write.sortOrder = endSortOrder(await this.repo.listTasks(), v.priority, this.now(), id);
+    }
+    await this.repo.updateTask(id, write);
     this.onChanged();
     return this.get(id);
   }

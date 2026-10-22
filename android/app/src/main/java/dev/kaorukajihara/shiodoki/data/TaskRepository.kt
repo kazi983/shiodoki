@@ -30,8 +30,12 @@ interface TaskRepository {
   /** Emits once per write the server rejected (e.g. a rules violation). */
   val writeFailures: Flow<Unit>
 
-  /** Creates a task and returns its new id. */
+  /** Creates a task at the end of its priority and returns its new id. */
   fun add(input: TaskInput): String
 
+  /** A [TaskPatch.priority] without [TaskPatch.sortOrder] also moves the task to the end of the new priority. */
   fun update(id: String, patch: TaskPatch)
+
+  /** Several tasks in one write: a priority renumbered after a drop (`reorderPatches`). */
+  fun updateAll(patches: Map<String, TaskPatch>) = patches.forEach { (id, patch) -> update(id, patch) }
 }

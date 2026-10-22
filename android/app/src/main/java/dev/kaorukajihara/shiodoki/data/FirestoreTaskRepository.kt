@@ -7,8 +7,11 @@ import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentSnapshot.ServerTimestampBehavior
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.MetadataChanges
+import dev.kaorukajihara.shiodoki.model.Task
 import dev.kaorukajihara.shiodoki.model.TaskInput
 import dev.kaorukajihara.shiodoki.model.TaskPatch
+import dev.kaorukajihara.shiodoki.model.endSortOrder
+import dev.kaorukajihara.shiodoki.model.withEndSortOrder
 import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -48,15 +51,35 @@ class FirestoreTaskRepository(
     // Client-side id, so a retried write cannot create a duplicate (design §4.3).
     val id = UUID.randomUUID().toString()
     val tasks = tasksRef() ?: return id
-    tasks.document(id).set(newTaskDoc(input, Timestamp.now())).fire("add $id")
+    val now = Timestamp.now()
+    val sortOrder = endSortOrder(currentTasks(), input.priority, now.toInstant())
+    tasks.document(id).set(newTaskDoc(input, now, sortOrder)).fire("add $id")
     return id
   }
 
   override fun update(id: String, patch: TaskPatch) {
     if (patch.isEmpty) return
     val tasks = tasksRef() ?: return
-    tasks.document(id).update(patchToDoc(patch, Timestamp.now())).fire("update $id")
+    val now = Timestamp.now()
+    tasks.document(id).update(patchToDoc(patch.withEndSortOrder(id, currentTasks(), now.toInstant()), now))
+      .fire("update $id")
   }
+
+  override fun updateAll(patches: Map<String, TaskPatch>) {
+    val writes = patches.filterValues { !it.isEmpty }
+    if (writes.isEmpty()) return
+    val tasks = tasksRef() ?: return
+    val now = Timestamp.now()
+    val all = currentTasks()
+    val batch = db.batch()
+    writes.forEach { (id, patch) ->
+      batch.update(tasks.document(id), patchToDoc(patch.withEndSortOrder(id, all, now.toInstant()), now))
+    }
+    batch.commit().fire("update ${writes.size} tasks")
+  }
+
+  /** The latest snapshot, for placing a task at the end of its priority. Empty before the first one. */
+  private fun currentTasks(): List<Task> = snapshot.value?.tasks.orEmpty()
 
   private fun tasksRef(): CollectionReference? {
     val uid = uid.value

@@ -86,6 +86,24 @@ describe("TaskService with JSON file", () => {
     expect(existsSync(`${file}.tmp`)).toBe(false);
   });
 
+  test("new tasks and tasks moved to another priority go to its end", async () => {
+    let clock = Date.parse("2026-10-06T09:00:00.000Z");
+    const now = () => new Date((clock += 1000));
+    const service = new TaskService(new JsonFileTaskRepository(join(dir, "store.json")), () => {}, now);
+    const a = await service.add({ name: "A", priority: "NOW", memo: "" });
+    const b = await service.add({ name: "B", priority: "SOMEDAY", memo: "" });
+    expect(b.sortOrder).toBeGreaterThan(a.sortOrder!);
+
+    // B moves into NOW after A, even with a clock that is behind A's position.
+    clock = Date.parse("2026-01-01T00:00:00.000Z");
+    const moved = await service.update(b.id, { priority: "NOW" });
+    expect(moved.sortOrder).toBe(a.sortOrder! + 1000);
+    expect((await service.listIncomplete()).map((t) => t.name)).toEqual(["A", "B"]);
+
+    // Other fields keep the position.
+    expect((await service.update(b.id, { name: "B2" })).sortOrder).toBe(moved.sortOrder);
+  });
+
   test("recordSession appends a session and adds minutes", async () => {
     const file = join(dir, "store.json");
     const service = new TaskService(new JsonFileTaskRepository(file));
