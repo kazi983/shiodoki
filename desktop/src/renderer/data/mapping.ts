@@ -22,6 +22,8 @@ function iso(value: unknown, fallback: string): string {
 
 export function taskToDoc(task: Task, updatedBy: UpdatedBy = "desktop"): Record<string, unknown> {
   return {
+    // Optional in the rules: tasks written before it existed have none.
+    ...(task.sortOrder === undefined ? {} : { sortOrder: task.sortOrder }),
     name: task.name,
     memo: task.memo,
     priority: task.priority,
@@ -67,6 +69,7 @@ export function docToTask(id: string, d: DocumentData): Task {
     createdAt: iso(d.createdAt, now),
     updatedAt: iso(d.updatedAt, now),
     updatedBy,
+    ...(typeof d.sortOrder === "number" && Number.isFinite(d.sortOrder) ? { sortOrder: d.sortOrder } : {}),
   };
 }
 

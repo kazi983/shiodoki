@@ -13,6 +13,7 @@ fun task(
   completed: Boolean = false,
   completedAt: String? = null,
   deleted: Boolean = false,
+  sortOrder: Double? = null,
 ) = Task(
   id = id,
   name = name,
@@ -25,4 +26,5 @@ fun task(
   sessionCount = 0,
   createdAt = Instant.parse(createdAt),
   updatedAt = Instant.parse(createdAt),
+  sortOrder = sortOrder,
 )

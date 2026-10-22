@@ -47,10 +47,17 @@ export interface Task {
   /** ISO 8601 (UTC) */
   updatedAt: string;
   updatedBy: UpdatedBy;
+  /**
+   * Position within its priority (requirements §5.1). Absent on tasks written before it existed: then the
+   * creation time in epoch milliseconds stands in (see orderOf), which keeps their old order.
+   */
+  sortOrder?: number;
 }
 
 /** Fields a client may change on an existing task (updatedAt/updatedBy are set by the repository). */
-export type TaskPatch = Partial<Pick<Task, "name" | "memo" | "priority" | "completed" | "completedAt" | "deleted">>;
+export type TaskPatch = Partial<
+  Pick<Task, "name" | "memo" | "priority" | "completed" | "completedAt" | "deleted" | "sortOrder">
+>;
 
 export interface TaskInput {
   name: string;
@@ -82,10 +89,29 @@ export function normalizeTaskInput(input: TaskInput): TaskInput {
   return { name, memo, priority: input.priority };
 }
 
-/** Sort: priority order (NOW first), then oldest first. */
+/** Gap between neighbors when a task goes to the end of its priority (one second, in sortOrder units). */
+export const SORT_ORDER_STEP = 1000;
+
+/** The position used for sorting: sortOrder, or the creation time for tasks that have none. */
+export function orderOf(task: Pick<Task, "sortOrder" | "createdAt">): number {
+  return task.sortOrder ?? Date.parse(task.createdAt);
+}
+
+/**
+ * sortOrder that puts a task at the end of `priority` (requirements §5.5): after every other task there,
+ * completed ones included so that reopening one keeps its place, and never before `now`.
+ */
+export function endSortOrder(tasks: readonly Task[], priority: Priority, now: Date, excludeId?: string): number {
+  const orders = tasks.filter((t) => !t.deleted && t.priority === priority && t.id !== excludeId).map(orderOf);
+  return Math.max(now.getTime(), ...orders.map((o) => o + SORT_ORDER_STEP));
+}
+
+/** Sort: priority order (NOW first), then sortOrder (orderOf), then oldest first. */
 export function compareTasks(a: Task, b: Task): number {
   const byPriority = PRIORITIES.indexOf(a.priority) - PRIORITIES.indexOf(b.priority);
   if (byPriority !== 0) return byPriority;
+  const byOrder = orderOf(a) - orderOf(b);
+  if (byOrder !== 0) return byOrder;
   return a.createdAt.localeCompare(b.createdAt);
 }
 

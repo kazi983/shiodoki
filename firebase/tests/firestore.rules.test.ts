@@ -109,6 +109,24 @@ describe("tasks", () => {
     );
   });
 
+  test("sortOrder is optional and must be a number", async () => {
+    const db = dbAs(ALICE);
+    await assertSucceeds(setDoc(doc(db, `users/${ALICE}/tasks/t1`), newTask({ sortOrder: 1_790_000_000_000 })));
+    await assertFails(setDoc(doc(db, `users/${ALICE}/tasks/t2`), newTask({ sortOrder: "1" })));
+    await assertFails(setDoc(doc(db, `users/${ALICE}/tasks/t3`), newTask({ sortOrder: null })));
+    const ref = doc(db, `users/${ALICE}/tasks/t1`);
+    // A drop writes the position (a midpoint, so not an integer) together with the new priority.
+    await assertSucceeds(
+      updateDoc(ref, {
+        priority: "SOONER",
+        sortOrder: 1_790_000_000_500.5,
+        updatedAt: serverTimestamp(),
+        updatedBy: "android",
+      }),
+    );
+    await assertFails(updateDoc(ref, { sortOrder: true, updatedAt: serverTimestamp(), updatedBy: "android" }));
+  });
+
   test("updates must refresh updatedAt and keep createdAt", async () => {
     await seedTask(ALICE, "t1");
     const ref = doc(dbAs(ALICE), `users/${ALICE}/tasks/t1`);
