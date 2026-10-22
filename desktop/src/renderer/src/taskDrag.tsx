@@ -20,7 +20,14 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-
 import { CSS } from "@dnd-kit/utilities";
 import { useState, type CSSProperties, type ReactNode } from "react";
 import type { Priority, TaskDrop } from "@shared/task";
-import { dropOf, entriesOf, moved, type PriorityGroup, type TaskListEntry } from "@shared/taskList";
+import {
+  dropOf,
+  entriesOf,
+  moved,
+  withoutEmptyHeadings,
+  type PriorityGroup,
+  type TaskListEntry,
+} from "@shared/taskList";
 import { alertError } from "./errors";
 
 /** Movement before a press becomes a drag; less is a click (the same as the overlay tab). */
@@ -86,8 +93,9 @@ export function useTaskDrag(
     const next = moved(current, indexOf(active.id), Math.max(1, indexOf(over.id)));
     const drop = dropOf(next, String(active.id));
     if (!drop) return;
-    // Keep the dropped order until the tasks reload, so the row does not jump back for a moment.
-    setHeld(next);
+    // Keep the dropped order until the tasks reload, so the row does not jump back for a moment. Only the headings
+    // with tasks stay, as they will after the reload.
+    setHeld(withoutEmptyHeadings(next));
     onDrop(drop)
       .then((wrote) => {
         if (!wrote) setHeld(null);

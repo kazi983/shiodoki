@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { Task } from "@shared/task";
-import { dropOf, entriesOf, groupTasks, moved, stepDrop } from "@shared/taskList";
+import { dropOf, entriesOf, groupTasks, moved, stepDrop, withoutEmptyHeadings } from "@shared/taskList";
 
 function task(id: string, priority: Task["priority"] = "NOW"): Task {
   return {
@@ -54,5 +54,17 @@ describe("task list entries", () => {
     expect(stepDrop(groups, "s1", -1)).toEqual({ taskId: "s1", priority: "ANYTIME", orderedIds: ["s1"] });
     expect(stepDrop(groups, "n1", -1)).toBeNull();
     expect(stepDrop(groups, "s1", 1)).toEqual({ taskId: "s1", priority: "BREAK", orderedIds: ["s1"] });
+  });
+
+  test("after a drop only the headings with tasks stay", () => {
+    const dropped = moved(entriesOf(groups, true), 2, 3);
+    expect(keys(withoutEmptyHeadings(dropped))).toEqual([
+      "heading:NOW",
+      "n1",
+      "heading:ROUTINE",
+      "n2",
+      "heading:SOMEDAY",
+      "s1",
+    ]);
   });
 });

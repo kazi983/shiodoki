@@ -42,6 +42,11 @@ export function moved(entries: readonly TaskListEntry[], from: number, to: numbe
   return next;
 }
 
+/** Without the headings that have no tasks under them: the list as shown when not dragging. */
+export function withoutEmptyHeadings(entries: readonly TaskListEntry[]): TaskListEntry[] {
+  return entries.filter((e, i) => e.kind !== "heading" || entries[i + 1]?.kind === "task");
+}
+
 /** Where `taskId` is: the heading above it and the tasks under that heading. null when it is not listed. */
 export function dropOf(entries: readonly TaskListEntry[], taskId: string): TaskDrop | null {
   const index = entries.findIndex((e) => e.key === taskId);
