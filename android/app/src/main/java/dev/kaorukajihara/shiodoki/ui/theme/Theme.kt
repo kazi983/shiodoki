@@ -38,6 +38,8 @@ object ShiodokiColors {
   /** Dot of "PC で途中終了". */
   val Ended = Color(0xFF8B93A7)
   val OnAccent = Color(0xFF00285D)
+  /** Text on an [OnAccent] pill inside an accent button. */
+  val AccentLight = Color(0xFFC3D5FF)
   val Danger = Color(0xFFFF8F8F)
   val Synced = Color(0xFF4FD1A5)
   val Pending = Color(0xFFF5C451)
