@@ -1,14 +1,21 @@
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { t } from "@shared/i18n";
 import { PRIORITIES, PRIORITY_META, formatDuration, type Priority, type Task } from "@shared/task";
+import { groupTasks, stepDrop, type TaskListEntry } from "@shared/taskList";
 import { alertError } from "../errors";
 import { BackIcon, SearchIcon, TrashIcon } from "../icons";
 import { SyncBadge } from "../SyncBadge";
+import { TaskDragContext, useSortableLine, useTaskDrag, type TaskDrag } from "../taskDrag";
 import { useTaskDraft } from "../useTaskDraft";
 
 function matches(task: Task, query: string): boolean {
   const q = query.trim().toLowerCase();
   return !q || task.name.toLowerCase().includes(q) || task.memo.toLowerCase().includes(q);
+}
+
+/** Completed rows: newest first within each priority, like the completed list on Android. */
+function byCompletedDesc(a: Task, b: Task): number {
+  return (b.completedAt ?? "").localeCompare(a.completedAt ?? "");
 }
 
 /** Add / edit / complete / delete tasks: list on the left, the selected task on the right. */
@@ -35,7 +42,18 @@ export function ManagementPage() {
     return window.api.tasks.onChanged(() => void load());
   }, [load]);
 
-  const visible = tasks.filter((t) => (showCompleted || !t.completed) && matches(t, query));
+  // Open tasks and, below them, completed ones, each under priority headings. A drag moves an open task (and
+  // changes its priority under another heading); a completed one only changes priority. Not while searching, when
+  // only some rows are shown.
+  const searching = query.trim() !== "";
+  const openGroups = useMemo(() => groupTasks(tasks.filter((t) => !t.completed && matches(t, query))), [tasks, query]);
+  const doneGroups = useMemo(
+    () => groupTasks(tasks.filter((t) => showCompleted && t.completed && matches(t, query)).sort(byCompletedDesc)),
+    [tasks, query, showCompleted],
+  );
+  const openDrag = useTaskDrag(openGroups, (drop) => window.api.tasks.move(drop, true), !searching);
+  const doneDrag = useTaskDrag(doneGroups, (drop) => window.api.tasks.move(drop, false), !searching);
+  const visible = [...openDrag.entries, ...doneDrag.entries].flatMap((e) => (e.kind === "task" ? [e.task] : []));
   const selected = tasks.find((t) => t.id === selectedId) ?? null;
   const draft = useTaskDraft(selected);
   const form = draft.form;
@@ -113,9 +131,20 @@ export function ManagementPage() {
       select(null);
     });
 
+  /** Alt+↑/↓: the selected task one line up or down, into the next priority past a heading. */
+  const moveSelected = (step: -1 | 1) =>
+    run(async () => {
+      if (!selected || searching) return;
+      const drop = stepDrop(selected.completed ? doneGroups : openGroups, selected.id, step);
+      if (drop) await window.api.tasks.move(drop, !selected.completed);
+    });
+
   function onTableKeyDown(e: KeyboardEvent<HTMLTableSectionElement>) {
     const index = visible.findIndex((t) => t.id === selectedId);
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    if (e.altKey && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+      e.preventDefault();
+      void moveSelected(e.key === "ArrowDown" ? 1 : -1);
+    } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
       const next = e.key === "ArrowDown" ? Math.min(index + 1, visible.length - 1) : Math.max(index - 1, 0);
       if (visible[next]) select(visible[next]);
@@ -202,45 +231,27 @@ export function ManagementPage() {
                     <td colSpan={5}>{query.trim() ? text.noMatches : text.noTasks}</td>
                   </tr>
                 )}
-                {visible.map((task) => {
-                  const meta = PRIORITY_META[task.priority];
-                  return (
-                    <tr
-                      key={task.id}
-                      aria-selected={task.id === selectedId}
-                      className={task.completed ? "completed" : undefined}
-                      onClick={() => select(task)}
-                    >
-                      <td>
-                        <input
-                          type="checkbox"
-                          className="check"
-                          checked={task.completed}
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={() => void toggleComplete(task)}
-                          aria-label={task.completed ? text.reopenAria(task.name) : text.completeAria(task.name)}
-                        />
-                      </td>
-                      <td>
-                        <span className="prio-chip" style={{ color: meta.chipFg, background: meta.chipBg }}>
-                          {priority[task.priority]}
-                        </span>
-                      </td>
-                      <td>
-                        <span className="cell-name ellipsis" title={task.name}>
-                          {task.name}
-                        </span>
-                        {task.memo && (
-                          <span className="cell-memo ellipsis" title={task.memo}>
-                            {task.memo}
-                          </span>
-                        )}
-                      </td>
-                      <td className="right cell-time">{formatDuration(task.totalMinutes)}</td>
-                      <td className="right cell-date">{t().dates.short(new Date(task.createdAt))}</td>
-                    </tr>
-                  );
-                })}
+                <TaskDragContext drag={openDrag}>
+                  <ManagementLines
+                    drag={openDrag}
+                    selectedId={selectedId}
+                    onSelect={select}
+                    onToggle={toggleComplete}
+                  />
+                </TaskDragContext>
+                {doneDrag.entries.length > 0 && (
+                  <tr className="section-row">
+                    <td colSpan={5}>{text.completedSection}</td>
+                  </tr>
+                )}
+                <TaskDragContext drag={doneDrag}>
+                  <ManagementLines
+                    drag={doneDrag}
+                    selectedId={selectedId}
+                    onSelect={select}
+                    onToggle={toggleComplete}
+                  />
+                </TaskDragContext>
               </tbody>
             </table>
           </div>
@@ -346,5 +357,106 @@ export function ManagementPage() {
         </aside>
       </div>
     </main>
+  );
+}
+
+/** The lines of one TaskDragContext: priority headings and task rows. */
+function ManagementLines({
+  drag,
+  selectedId,
+  onSelect,
+  onToggle,
+}: {
+  drag: TaskDrag;
+  selectedId: string | null;
+  onSelect: (task: Task) => void;
+  onToggle: (task: Task) => void;
+}) {
+  return drag.entries.map((entry, index) => (
+    <ManagementLine
+      key={entry.key}
+      entry={entry}
+      first={index === 0}
+      selected={entry.key === selectedId}
+      dropPriority={entry.key === drag.activeId ? drag.overPriority : null}
+      onSelect={onSelect}
+      onToggle={onToggle}
+    />
+  ));
+}
+
+function ManagementLine({
+  entry,
+  first,
+  selected,
+  dropPriority,
+  onSelect,
+  onToggle,
+}: {
+  entry: TaskListEntry;
+  first: boolean;
+  selected: boolean;
+  /** While dragged: the priority it would land in, shown as a color bar. */
+  dropPriority: Priority | null;
+  onSelect: (task: Task) => void;
+  onToggle: (task: Task) => void;
+}) {
+  const { priority, management: text, picker } = t();
+  const { ref, listeners, style, isDragging } = useSortableLine(entry, first);
+  if (entry.kind === "heading") {
+    return (
+      <tr ref={ref} style={style} className="group-row">
+        <td colSpan={5}>
+          <span className="group-label">
+            <span className="group-dot" style={{ background: PRIORITY_META[entry.priority].dot }} />
+            {PRIORITY_META[entry.priority].shortName}
+            {picker.showPriorityLabel && <span className="jp">{priority[entry.priority]}</span>}
+          </span>
+        </td>
+      </tr>
+    );
+  }
+  const { task } = entry;
+  const meta = PRIORITY_META[task.priority];
+  const classes = [task.completed && "completed", isDragging && "dragging"].filter(Boolean).join(" ");
+  return (
+    <tr
+      ref={ref}
+      style={
+        dropPriority ? { ...style, boxShadow: `inset 4px 0 0 ${PRIORITY_META[dropPriority].dot}, var(--lift)` } : style
+      }
+      aria-selected={selected}
+      className={classes || undefined}
+      onClick={() => onSelect(task)}
+      {...listeners}
+    >
+      <td>
+        <input
+          type="checkbox"
+          className="check"
+          checked={task.completed}
+          onClick={(e) => e.stopPropagation()}
+          onChange={() => onToggle(task)}
+          aria-label={task.completed ? text.reopenAria(task.name) : text.completeAria(task.name)}
+        />
+      </td>
+      <td>
+        <span className="prio-chip" style={{ color: meta.chipFg, background: meta.chipBg }}>
+          {priority[task.priority]}
+        </span>
+      </td>
+      <td>
+        <span className="cell-name ellipsis" title={task.name}>
+          {task.name}
+        </span>
+        {task.memo && (
+          <span className="cell-memo ellipsis" title={task.memo}>
+            {task.memo}
+          </span>
+        )}
+      </td>
+      <td className="right cell-time">{formatDuration(task.totalMinutes)}</td>
+      <td className="right cell-date">{t().dates.short(new Date(task.createdAt))}</td>
+    </tr>
   );
 }
