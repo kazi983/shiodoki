@@ -37,8 +37,12 @@ class LoginViewModel(private val authManager: AuthManager) : ViewModel() {
         null
       } catch (e: CancellationException) {
         throw e
-      } catch (_: GetCredentialCancellationException) {
-        null // The user closed the picker: show nothing (design §5.2).
+      } catch (e: GetCredentialCancellationException) {
+        // The user closed the picker: show nothing (design §5.2). Credential Manager also
+        // reports a misconfigured client (SHA-1 not registered for this package) as a
+        // cancellation ("[16] Account reauth failed"), so log it to tell the two apart.
+        Log.i(TAG, "Sign-in cancelled: ${e.message}")
+        null
       } catch (_: NoCredentialException) {
         LoginError.NoAccount
       } catch (e: Exception) {
