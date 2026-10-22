@@ -59,4 +59,13 @@ class TaskListEntryTest {
     assertEquals(TaskDrop("s1", Priority.SOMEDAY, listOf("s1")), entries.dropOf("s1"))
     assertNull(entries.dropOf("missing"))
   }
+
+  @Test
+  fun `after a drop only the headings with tasks stay`() {
+    val dropped = entriesOf(groups, allHeadings = true).moved(2, 3)
+    assertEquals(
+      listOf("heading:NOW", "n1", "heading:ROUTINE", "n2", "heading:SOMEDAY", "s1"),
+      dropped.withoutEmptyHeadings().keys(),
+    )
+  }
 }

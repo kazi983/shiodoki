@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -21,6 +22,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
@@ -82,6 +84,11 @@ fun entriesOf(groups: List<PriorityGroup>, allHeadings: Boolean): List<TaskListE
 fun List<TaskListEntry>.moved(from: Int, to: Int): List<TaskListEntry> {
   if (from == to || from !in indices || to !in 1..lastIndex) return this
   return toMutableList().apply { add(to, removeAt(from)) }
+}
+
+/** Without the headings that have no rows under them: the list as shown when not dragging. */
+fun List<TaskListEntry>.withoutEmptyHeadings(): List<TaskListEntry> = filterIndexed { i, entry ->
+  entry !is TaskListEntry.Heading || getOrNull(i + 1) is TaskListEntry.Row
 }
 
 /** Where the task [taskId] is: the heading above it and the rows under that heading. null when it is not listed. */
@@ -211,7 +218,9 @@ class TaskDragState internal constructor(
       settle.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
       draggingKey = null
       isDropping = false
-      if (!wrote) entries = null
+      // Until the drop shows up in the next snapshot, show its order with the usual headings only. Not before the
+      // row has settled: removing headings moves the rows under it.
+      entries = if (wrote) entries?.withoutEmptyHeadings() else null
     }
   }
 
@@ -238,8 +247,11 @@ class TaskDragState internal constructor(
     return startOffset + dragDelta - row.offset
   }
 
-  /** Swaps the dragged row with the line under its center. */
-  private fun moveIfNeeded() {
+  /**
+   * Swaps the dragged row with the line under its center. Called on every move and every new layout, so a fast
+   * move followed by a still finger keeps swapping until the order matches where the row is drawn.
+   */
+  internal fun moveIfNeeded() {
     val key = draggingKey ?: return
     val current = entries ?: return
     val info = listState.layoutInfo
@@ -293,6 +305,7 @@ fun rememberTaskDragState(
     state.onDrop = onDrop
     state.onGroups(groups)
   }
+  LaunchedEffect(state) { snapshotFlow { listState.layoutInfo }.collect { state.moveIfNeeded() } }
   return state
 }
 
