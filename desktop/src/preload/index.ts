@@ -20,6 +20,7 @@ const api: DesktopApi = {
     listAll: () => ipcRenderer.invoke(IPC.tasksListAll),
     add: (input) => ipcRenderer.invoke(IPC.tasksAdd, input),
     update: (id, patch) => ipcRenderer.invoke(IPC.tasksUpdate, id, patch),
+    move: (drop, keepPosition) => ipcRenderer.invoke(IPC.tasksMove, drop, keepPosition),
     complete: (id) => ipcRenderer.invoke(IPC.tasksComplete, id),
     reopen: (id) => ipcRenderer.invoke(IPC.tasksReopen, id),
     remove: (id) => ipcRenderer.invoke(IPC.tasksRemove, id),

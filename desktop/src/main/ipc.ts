@@ -1,7 +1,7 @@
 import { dialog, ipcMain, type IpcMainInvokeEvent } from "electron";
 import { getLocale, t } from "@shared/i18n";
 import { IPC, type StartSessionRequest } from "@shared/ipc";
-import type { TaskInput } from "@shared/task";
+import type { TaskDrop, TaskInput } from "@shared/task";
 import type { AppController } from "./appController";
 import type { TaskService } from "./taskService";
 import type { WindowManager } from "./windowManager";
@@ -31,6 +31,7 @@ export function registerIpcHandlers(
   ipcMain.handle(IPC.tasksListAll, () => tasks.listAll());
   ipcMain.handle(IPC.tasksAdd, (_e, input: TaskInput) => tasks.add(input));
   ipcMain.handle(IPC.tasksUpdate, (_e, id: string, patch: Partial<TaskInput>) => tasks.update(id, patch));
+  ipcMain.handle(IPC.tasksMove, (_e, drop: TaskDrop, keepPosition: boolean) => tasks.move(drop, keepPosition));
   ipcMain.handle(IPC.tasksComplete, (_e, id: string) => tasks.complete(id));
   ipcMain.handle(IPC.tasksReopen, (_e, id: string) => tasks.reopen(id));
   ipcMain.handle(IPC.tasksRemove, (_e, id: string) => tasks.remove(id));
