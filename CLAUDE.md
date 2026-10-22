@@ -45,6 +45,8 @@ written in Japanese.
   - `npm run dev` (Firebase), `npm run dev:local` (`TIMER_LOCAL=1`, JSON file only),
     `TASK_MODE=test` shrinks intervals (30 min → 5 s, snooze 5 min → 10 s).
   - `TIMER_FIREBASE_EMULATOR=1` points the app at the emulators with a fake Google account (E2E).
+  - `desktop/linux/` starts the installed app at login and on screen unlock, outside the app (GNOME
+    autostart + a systemd user service); install steps in its README.
   - UI text lives in `src/shared/i18n/` (`ja.ts` defines the keys, `en.ts` is typed by it; terms in
     `docs/i18n/glossary.md`). Never hardcode UI text: `tests/i18n.test.ts` fails on Japanese outside
     the dictionary. Language: `SHIODOKI_LOCALE=en|ja` > the tray setting (`userData/settings.json`,

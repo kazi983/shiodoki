@@ -1,0 +1,13 @@
+[Unit]
+Description=Start Shiodoki when the screen is unlocked
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+ExecStart=%h/.local/bin/shiodoki-relaunch.sh
+# gdbus monitor ends if the session bus connection goes away; start it again.
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target
