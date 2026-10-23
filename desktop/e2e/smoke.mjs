@@ -1,5 +1,5 @@
 // End-to-end smoke test (local mode, TIMER_LOCAL=1): launches the built app with Playwright, loads a
-// seeded local store, adds a task, runs a (5 second) session and checks that the
+// seeded local store, adds a task, runs a session, completes it from the overlay and checks that the
 // picker comes back and the time was recorded. Then relaunches with the language setting
 // (settings.json) set to English and checks the translated UI. Saves screenshots to e2e/screenshots/.
 //
@@ -167,14 +167,16 @@ try {
   await overlay.waitForSelector(".overlay-tab");
   await overlay.screenshot({ path: join(shots, "3-overlay.png") });
 
-  // ---- after the interval the picker returns ----
+  // ---- hover the overlay and complete the session; the picker returns ----
+  await overlay.hover(".overlay-tab");
+  await overlay.click(".overlay-complete");
   const picker3 = await windowFor("picker");
   await picker3.waitForSelector('.leave-row:has-text("23:59")');
   await picker3.screenshot({ path: join(shots, "4-picker-after-session.png") });
 
   const store = JSON.parse(readFileSync(join(dataDir, "store_test.json"), "utf8"));
   assert.equal(store.sessions.length, 1);
-  assert.equal(store.sessions[0].endReason, "interval");
+  assert.equal(store.sessions[0].endReason, "completed");
   assert.equal(store.sessions[0].taskName, "E2Eで追加したタスク");
   assert.equal(store.tasks.find((t) => t.name === "E2Eで追加したタスク").sessionCount, 1);
   assert.equal(store.tasks.find((t) => t.name === "いつかのタスク").memo, "戻るときに保存される");
