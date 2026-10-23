@@ -6,7 +6,7 @@ import type { Locale } from "./i18n";
 import type { LeaveScheduleInput, LeaveScheduleStatus } from "./leave";
 import type { DaySummary } from "./session";
 import type { SyncInfo } from "./sync";
-import type { Task, TaskInput } from "./task";
+import type { Task, TaskDrop, TaskInput } from "./task";
 
 export interface PickerState {
   tasks: Task[];
@@ -62,6 +62,11 @@ export interface DesktopApi {
     add(input: TaskInput): Promise<Task>;
     /** Changes only the given fields. */
     update(id: string, patch: Partial<TaskInput>): Promise<Task>;
+    /**
+     * A row dropped after a drag (TaskService.move). `keepPosition` false changes only the priority. Resolves to
+     * whether anything was written.
+     */
+    move(drop: TaskDrop, keepPosition: boolean): Promise<boolean>;
     complete(id: string): Promise<void>;
     reopen(id: string): Promise<void>;
     remove(id: string): Promise<void>;
@@ -113,6 +118,7 @@ export const IPC = {
   tasksListAll: "tasks:listAll",
   tasksAdd: "tasks:add",
   tasksUpdate: "tasks:update",
+  tasksMove: "tasks:move",
   tasksComplete: "tasks:complete",
   tasksReopen: "tasks:reopen",
   tasksRemove: "tasks:remove",

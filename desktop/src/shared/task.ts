@@ -106,6 +106,59 @@ export function endSortOrder(tasks: readonly Task[], priority: Priority, now: Da
   return Math.max(now.getTime(), ...orders.map((o) => o + SORT_ORDER_STEP));
 }
 
+/** A task dropped into `priority` at its place in `orderedIds`, that priority's rows from top to bottom. */
+export interface TaskDrop {
+  taskId: string;
+  priority: Priority;
+  orderedIds: string[];
+}
+
+/**
+ * The writes for dropping `taskId` into `priority` at its place in `orderedIds` (the moved task included). Ids no
+ * longer in `tasks` are skipped. Usually one patch: the moved task gets a sortOrder between its new neighbors
+ * (requirements §5.5). When no number fits between them, every row is renumbered. Empty when nothing changes.
+ * The same as `reorderPatches` on Android.
+ */
+export function reorderPatches(
+  tasks: readonly Task[],
+  taskId: string,
+  priority: Priority,
+  orderedIds: readonly string[],
+  now: Date,
+): Map<string, TaskPatch> {
+  const byId = new Map(tasks.filter((t) => !t.deleted).map((t) => [t.id, t]));
+  const moved = byId.get(taskId);
+  const rows = orderedIds.flatMap((id) => byId.get(id) ?? []);
+  const index = rows.findIndex((t) => t.id === taskId);
+  if (!moved || index < 0) return new Map();
+  const before = rows[index - 1];
+  const after = rows[index + 1];
+  const newPriority = priority === moved.priority ? undefined : priority;
+  const fits = (value: number) =>
+    (before === undefined || orderOf(before) < value) && (after === undefined || value < orderOf(after));
+
+  // Dropped where it was: nothing to write.
+  if (newPriority === undefined && fits(orderOf(moved))) return new Map();
+  let order: number;
+  if (before === undefined && after === undefined) order = endSortOrder(tasks, priority, now, taskId);
+  else if (before === undefined) order = orderOf(after) - SORT_ORDER_STEP;
+  else if (after === undefined) order = orderOf(before) + SORT_ORDER_STEP;
+  else order = orderOf(before) + (orderOf(after) - orderOf(before)) / 2;
+  if (fits(order)) return new Map([[taskId, { ...(newPriority && { priority: newPriority }), sortOrder: order }]]);
+
+  // Neighbors with equal orders, or so close that no number fits between them: number the rows again.
+  const start = Math.min(...rows.map(orderOf));
+  const patches = new Map<string, TaskPatch>();
+  rows.forEach((task, i) => {
+    const patch: TaskPatch = {};
+    if (task.id === taskId && newPriority) patch.priority = newPriority;
+    const value = start + i * SORT_ORDER_STEP;
+    if (value !== task.sortOrder) patch.sortOrder = value;
+    if (Object.keys(patch).length > 0) patches.set(task.id, patch);
+  });
+  return patches;
+}
+
 /** Sort: priority order (NOW first), then sortOrder (orderOf), then oldest first. */
 export function compareTasks(a: Task, b: Task): number {
   const byPriority = PRIORITIES.indexOf(a.priority) - PRIORITIES.indexOf(b.priority);
