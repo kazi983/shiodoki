@@ -109,13 +109,13 @@ npm run e2e:headless       # 上の 2 つを画面のない Linux 環境で実�
 ## 配布用ファイルの作成
 
 ```bash
-npm run dist:linux   # dist/ に AppImage と .deb を作成
+npm run dist:linux   # dist/ に .deb を作成
 npm run dist:win     # dist/ に Windows インストーラーを作成（Windows 上で実行）
 ```
 
 ### GitHub Actions でのリリース
 
-`v*` のタグを push すると、`.github/workflows/release-desktop.yml` が Ubuntu と Windows でビルドし、.deb・AppImage・Windows インストーラーを付けた **下書き（draft）の GitHub Release** を作ります。中身を確認してから GitHub 上で「Publish release」を押すと公開されます。
+`v*` のタグを push すると、`.github/workflows/release-desktop.yml` が Ubuntu と Windows でビルドし、.deb と Windows インストーラーを付けた **下書き（draft）の GitHub Release** を作ります。中身を確認してから GitHub 上で「Publish release」を押すと公開されます。
 
 1. 最初の 1 回だけ、`oauth-client.json` をリポジトリの secret に登録する：
    `gh secret set OAUTH_CLIENT_JSON < resources/oauth-client.json`
