@@ -7,17 +7,21 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsIgnoringVisibility
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -45,6 +49,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
@@ -158,13 +163,19 @@ private fun ModeBanner() {
  * "PC と同じ" above "スマホで前回", fixed at the bottom within thumb reach. When both are shown,
  * only the top one is filled so the two do not compete; hidden when there is neither.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ShortcutDock(pcTask: PcTask?, previous: Task?, onSelect: (taskId: String, taskName: String) -> Unit) {
   if (pcTask == null && previous == null) return
   Column(Modifier.fillMaxWidth().background(ShiodokiColors.NavBar)) {
     HorizontalDivider(color = ShiodokiColors.Outline)
     Column(
-      modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 20.dp),
+      modifier = Modifier
+        // The navigation bar is hidden (FocusActivity), so navigationBarsPadding() is 0 and a
+        // swipe shows the bar over the cards. Keep its height free anyway; what the screen
+        // already consumed (a visible bar, the keyboard) is not padded twice.
+        .windowInsetsPadding(WindowInsets.navigationBarsIgnoringVisibility)
+        .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 20.dp),
       verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
       pcTask?.let { pc ->
@@ -221,10 +232,12 @@ private fun ShortcutButton(
   onClick: () -> Unit,
 ) {
   val shape = RoundedCornerShape(20.dp)
+  // On a short (landscape) screen two tall cards would leave the task list almost no room.
+  val minHeight = if (LocalConfiguration.current.screenHeightDp < COMPACT_HEIGHT_DP) 76.dp else 114.dp
   Row(
     modifier = Modifier
       .fillMaxWidth()
-      .heightIn(min = 76.dp)
+      .heightIn(min = minHeight)
       .clip(shape)
       .background(if (primary) ShiodokiColors.Accent else ShiodokiColors.SurfaceRaised)
       .then(if (primary) Modifier else Modifier.border(1.5.dp, ShiodokiColors.Accent, shape))
@@ -244,7 +257,8 @@ private fun ShortcutButton(
         fontSize = 17.sp,
         fontWeight = FontWeight.Bold,
         color = if (primary) ShiodokiColors.OnAccent else ShiodokiColors.TextStrong,
-        maxLines = 1,
+        // The taller card has room for a second line, so long names wrap before they are cut.
+        maxLines = 2,
         overflow = TextOverflow.Ellipsis,
       )
     }
@@ -262,6 +276,9 @@ private fun ShortcutButton(
     }
   }
 }
+
+/** Material's compact window height class (< 480dp), typically a phone in landscape. */
+private const val COMPACT_HEIGHT_DP = 480
 
 /** Adds a task with priority NOW without starting it (design §5.7, Q-A3). */
 @Composable
