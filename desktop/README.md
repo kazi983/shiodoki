@@ -109,9 +109,24 @@ npm run e2e:headless       # 上の 2 つを画面のない Linux 環境で実�
 ## 配布用ファイルの作成
 
 ```bash
-npm run dist:linux   # dist/ に AppImage と .deb を作成
+npm run dist:linux   # dist/ に .deb を作成
 npm run dist:win     # dist/ に Windows インストーラーを作成（Windows 上で実行）
 ```
+
+### GitHub Actions でのリリース
+
+`v*` のタグを push すると、`.github/workflows/release-desktop.yml` が Ubuntu と Windows でビルドし、.deb と Windows インストーラーを付けた **下書き（draft）の GitHub Release** を作ります。中身を確認してから GitHub 上で「Publish release」を押すと公開されます。
+
+1. 最初の 1 回だけ、`oauth-client.json` をリポジトリの secret に登録する：
+   `gh secret set OAUTH_CLIENT_JSON < resources/oauth-client.json`
+2. `package.json` の `version` を上げる PR を `main` に merge する（タグと `version` が違うとビルドは失敗する）。
+3. `main` の merge commit にタグを付けて push する：
+   `git tag v2.0.0-alpha.3 origin/main && git push origin v2.0.0-alpha.3`
+
+- `-alpha.3` のように `-` を含むバージョンは pre-release になります。
+- Windows インストーラーには署名していないので、初回は SmartScreen の「Windows によって PC が保護されました」が出ます（「詳細情報」→「実行」）。
+- Android 版は release 用の署名鍵を GitHub に置かないため、手元でビルドします。
+- macOS 版は作っていません（`mac` の target がなく、Apple の署名・公証なしでは Gatekeeper に止められるため）。
 
 ## Ubuntu（Wayland）について
 

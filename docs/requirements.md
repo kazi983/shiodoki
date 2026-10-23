@@ -403,7 +403,7 @@ Android をネイティブアプリにすることで、Firebase のほうが有
 - タイマー: メインプロセスで管理（現行 `TimerService` の役割）
 - Firebase: Web SDK（`persistentLocalCache` でオフライン永続化）
 - Google ログイン: Electron 内のポップアップログインは Google にブロックされるため、**システムのブラウザでログイン → ローカルの一時ポート（ループバック）で結果を受け取る → `signInWithCredential` で Firebase にログイン** する方式にする
-- パッケージ: electron-builder で Ubuntu 向け（AppImage / .deb）と Windows 向け（.exe）を作る
+- パッケージ: electron-builder で Ubuntu 向け（.deb）と Windows 向け（.exe）を作る
 
 **Python を続けたい場合** は C（PySide6）を採用する。その場合は v0.1 の設計（SQLite のキャッシュ＋送信キュー＋Firestore REST）が必要になる。
 
