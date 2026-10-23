@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { t } from "@shared/i18n";
 import type { PickerState } from "@shared/ipc";
 import {
@@ -9,10 +9,12 @@ import {
   formatHHMM,
   normalizeTimeInput,
 } from "@shared/leave";
-import { PRIORITIES, PRIORITY_META, formatDuration, type Task } from "@shared/task";
+import { PRIORITY_META, formatDuration, type Priority, type Task } from "@shared/task";
+import { groupTasks, type TaskListEntry } from "@shared/taskList";
 import { alertError } from "../errors";
 import { ClockIcon, EditIcon, PlayIcon, PlusIcon, PowerIcon, SnoozeIcon } from "../icons";
 import { SyncBadge } from "../SyncBadge";
+import { TaskDragContext, useSortableLine, useTaskDrag } from "../taskDrag";
 import { useNow } from "../useNow";
 
 /** "30分" / "5秒" (TASK_MODE=test uses seconds). */
@@ -41,7 +43,7 @@ export function PickerPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const now = useNow(10_000);
-  const { common, priority, picker: text } = t();
+  const { common, picker: text } = t();
 
   const load = useCallback(async (selectId?: string) => {
     const next = await window.api.picker.getState();
@@ -83,14 +85,14 @@ export function PickerPage() {
     listRef.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
   }, [selectedId]);
 
-  const tasks = state?.tasks ?? [];
+  const tasks = useMemo(() => state?.tasks ?? [], [state]);
   const selected = tasks.find((t) => t.id === selectedId) ?? null;
   const lastTask = tasks.find((t) => t.id === state?.lastSelectedTaskId) ?? null;
   const intervalLabel = durationLabel(state?.intervalMs ?? 30 * 60_000);
   const snoozeLabel = durationLabel(state?.snoozeMs ?? 5 * 60_000);
-  const groups = PRIORITIES.map((p) => ({ priority: p, tasks: tasks.filter((t) => t.priority === p) })).filter(
-    (g) => g.tasks.length > 0,
-  );
+  const groups = useMemo(() => groupTasks(tasks), [tasks]);
+  // A row dragged under another heading changes priority (requirements §5.5).
+  const drag = useTaskDrag(groups, (drop) => window.api.tasks.move(drop, true));
 
   async function run(action: () => Promise<void>) {
     if (busy) return;
@@ -284,30 +286,19 @@ export function PickerPage() {
         onKeyDown={onListKeyDown}
       >
         {tasks.length === 0 && <p className="list-empty">{text.empty}</p>}
-        {groups.map((group) => (
-          <div key={group.priority} className="task-group" role="group" aria-label={priority[group.priority]}>
-            <div className="group-label" aria-hidden>
-              <span className="group-dot" style={{ background: PRIORITY_META[group.priority].dot }} />
-              {PRIORITY_META[group.priority].shortName}
-              {text.showPriorityLabel && <span className="jp">{priority[group.priority]}</span>}
-            </div>
-            {group.tasks.map((task) => (
-              <div
-                key={task.id}
-                className="task-option"
-                role="option"
-                aria-selected={task.id === selectedId}
-                onClick={() => setSelectedId(task.id)}
-                onDoubleClick={() => void startSession(task)}
-              >
-                <span className="task-name ellipsis" title={task.name}>
-                  {task.name}
-                </span>
-                <span className="task-time">{formatDuration(task.totalMinutes)}</span>
-              </div>
-            ))}
-          </div>
-        ))}
+        <TaskDragContext drag={drag}>
+          {drag.entries.map((entry, index) => (
+            <PickerLine
+              key={entry.key}
+              entry={entry}
+              first={index === 0}
+              selected={entry.key === selectedId}
+              dropPriority={entry.key === drag.activeId ? drag.overPriority : null}
+              onSelect={setSelectedId}
+              onStart={(task) => void startSession(task)}
+            />
+          ))}
+        </TaskDragContext>
       </div>
 
       <footer className="picker-actions">
@@ -341,5 +332,55 @@ export function PickerPage() {
         </div>
       </footer>
     </main>
+  );
+}
+
+/** A priority heading or a task option of the picker list; task options can be dragged. */
+function PickerLine({
+  entry,
+  first,
+  selected,
+  dropPriority,
+  onSelect,
+  onStart,
+}: {
+  entry: TaskListEntry;
+  first: boolean;
+  selected: boolean;
+  /** While dragged: the priority it would land in, shown as a color bar. */
+  dropPriority: Priority | null;
+  onSelect: (id: string) => void;
+  onStart: (task: Task) => void;
+}) {
+  const { priority, picker: text } = t();
+  const { ref, listeners, style, isDragging } = useSortableLine(entry, first);
+  if (entry.kind === "heading") {
+    return (
+      <div ref={ref} style={style} className="group-label">
+        <span className="group-dot" style={{ background: PRIORITY_META[entry.priority].dot }} />
+        {PRIORITY_META[entry.priority].shortName}
+        {text.showPriorityLabel && <span className="jp">{priority[entry.priority]}</span>}
+      </div>
+    );
+  }
+  const { task } = entry;
+  return (
+    <div
+      ref={ref}
+      style={
+        dropPriority ? { ...style, boxShadow: `inset 4px 0 0 ${PRIORITY_META[dropPriority].dot}, var(--lift)` } : style
+      }
+      className={isDragging ? "task-option dragging" : "task-option"}
+      role="option"
+      aria-selected={selected}
+      onClick={() => onSelect(task.id)}
+      onDoubleClick={() => onStart(task)}
+      {...listeners}
+    >
+      <span className="task-name ellipsis" title={task.name}>
+        {task.name}
+      </span>
+      <span className="task-time">{formatDuration(task.totalMinutes)}</span>
+    </div>
   );
 }

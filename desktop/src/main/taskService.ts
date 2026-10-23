@@ -5,8 +5,11 @@ import {
   compareTasks,
   compareTasksForManagement,
   endSortOrder,
+  isPriority,
   normalizeTaskInput,
+  reorderPatches,
   type Task,
+  type TaskDrop,
   type TaskInput,
   type TaskPatch,
 } from "@shared/task";
@@ -80,6 +83,26 @@ export class TaskService {
     await this.repo.updateTask(id, write);
     this.onChanged();
     return this.get(id);
+  }
+
+  /**
+   * A task dropped after a drag. With `keepPosition` false (the completed rows of the management table) only the
+   * priority changes, and the task goes to the end of it. Returns whether anything was written.
+   */
+  async move(drop: TaskDrop, keepPosition: boolean): Promise<boolean> {
+    if (!isPriority(drop.priority)) throw new Error(t().validation.invalidPriority);
+    const tasks = await this.repo.listTasks();
+    const task = await this.get(drop.taskId);
+    const now = this.now();
+    let patches = new Map<string, TaskPatch>();
+    if (keepPosition) patches = reorderPatches(tasks, task.id, drop.priority, drop.orderedIds, now);
+    else if (drop.priority !== task.priority) {
+      patches.set(task.id, { priority: drop.priority, sortOrder: endSortOrder(tasks, drop.priority, now, task.id) });
+    }
+    if (patches.size === 0) return false;
+    for (const [id, patch] of patches) await this.repo.updateTask(id, patch);
+    this.onChanged();
+    return true;
   }
 
   async complete(id: string): Promise<void> {

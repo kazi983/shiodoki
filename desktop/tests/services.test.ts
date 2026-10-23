@@ -104,6 +104,33 @@ describe("TaskService with JSON file", () => {
     expect((await service.update(b.id, { name: "B2" })).sortOrder).toBe(moved.sortOrder);
   });
 
+  test("move writes a drop; a completed task only changes priority", async () => {
+    let clock = Date.parse("2026-10-06T09:00:00.000Z");
+    const now = () => new Date((clock += 1000));
+    const changed = vi.fn();
+    const service = new TaskService(new JsonFileTaskRepository(join(dir, "store.json")), changed, now);
+    const a = await service.add({ name: "A", priority: "NOW", memo: "" });
+    const b = await service.add({ name: "B", priority: "NOW", memo: "" });
+    const c = await service.add({ name: "C", priority: "SOMEDAY", memo: "" });
+    changed.mockClear();
+
+    // C dropped between A and B: it moves into NOW.
+    expect(await service.move({ taskId: c.id, priority: "NOW", orderedIds: [a.id, c.id, b.id] }, true)).toBe(true);
+    expect((await service.listIncomplete()).map((t) => t.name)).toEqual(["A", "C", "B"]);
+    expect(changed).toHaveBeenCalledTimes(1);
+    // Dropped where it is: nothing written.
+    expect(await service.move({ taskId: c.id, priority: "NOW", orderedIds: [a.id, c.id, b.id] }, true)).toBe(false);
+
+    // A completed task keeps its place in the completed order; it goes to the end of the new priority.
+    await service.complete(a.id);
+    expect(await service.move({ taskId: a.id, priority: "NOW", orderedIds: [a.id] }, false)).toBe(false);
+    expect(await service.move({ taskId: a.id, priority: "SOONER", orderedIds: [a.id] }, false)).toBe(true);
+    await service.reopen(a.id);
+    expect((await service.get(a.id)).priority).toBe("SOONER");
+
+    await expect(service.move({ taskId: c.id, priority: "HIGH" as never, orderedIds: [] }, true)).rejects.toThrow();
+  });
+
   test("recordSession appends a session and adds minutes", async () => {
     const file = join(dir, "store.json");
     const service = new TaskService(new JsonFileTaskRepository(file));

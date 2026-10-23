@@ -7,6 +7,7 @@ import {
   endSortOrder,
   formatDuration,
   normalizeTaskInput,
+  reorderPatches,
   type Task,
 } from "@shared/task";
 import { centeredBounds, clampOverlayOffset } from "../src/main/geometry";
@@ -123,6 +124,38 @@ describe("task helpers", () => {
     expect(endSortOrder(tasks, "NOW", now)).toBe(late + 6000);
     expect(endSortOrder(tasks, "NOW", now, "done")).toBe(late + 1000);
     expect(endSortOrder(tasks, "ANYTIME", now)).toBe(now.getTime());
+  });
+
+  test("reorderPatches: a drop between two tasks writes only the moved one, halfway", () => {
+    const now = new Date("2026-10-21T00:00:00.000Z");
+    const open = [
+      task({ id: "a", sortOrder: 1000 }),
+      task({ id: "b", sortOrder: 2000 }),
+      task({ id: "c", sortOrder: 3000 }),
+      task({ id: "s1", priority: "SOONER", sortOrder: 1000 }),
+    ];
+    const patches = (id: string, priority: Task["priority"], ids: string[]) =>
+      Object.fromEntries(reorderPatches(open, id, priority, ids, now));
+    expect(patches("c", "NOW", ["a", "c", "b"])).toEqual({ c: { sortOrder: 1500 } });
+    // Top and bottom: one step past the neighbor.
+    expect(patches("c", "NOW", ["c", "a", "b"])).toEqual({ c: { sortOrder: 0 } });
+    expect(patches("a", "NOW", ["b", "c", "a"])).toEqual({ a: { sortOrder: 4000 } });
+    // Under another heading the priority changes too; alone there, at its end.
+    expect(patches("b", "SOONER", ["s1", "b"])).toEqual({ b: { priority: "SOONER", sortOrder: 2000 } });
+    expect(patches("b", "BREAK", ["b"])).toEqual({ b: { priority: "BREAK", sortOrder: now.getTime() } });
+    // Where it already was, or gone: nothing.
+    expect(patches("b", "NOW", ["a", "b", "c"])).toEqual({});
+    expect(patches("missing", "NOW", ["missing"])).toEqual({});
+  });
+
+  test("reorderPatches renumbers when no number fits between the neighbors", () => {
+    // The same creation time and no position: nothing fits between "a" and "b".
+    const tasks = [task({ id: "a" }), task({ id: "b" }), task({ id: "c", sortOrder: 0 })];
+    expect(Object.fromEntries(reorderPatches(tasks, "c", "NOW", ["a", "c", "b"], new Date()))).toEqual({
+      a: { sortOrder: 0 },
+      c: { sortOrder: 1000 },
+      b: { sortOrder: 2000 },
+    });
   });
 
   test("management list puts completed tasks last", () => {
