@@ -3,7 +3,7 @@
 Electron ＋ TypeScript ＋ React で作り直したデスクトップアプリです。
 要件は [`../docs/requirements.md`](../docs/requirements.md) を参照してください。
 
-> **現在の状態（P3）**: Google でログインし、タスクを Firebase（Cloud Firestore）に保存します。オフラインでも使え、オンラインに戻ると自動で同期します。
+> Google でログインし、タスクを Firebase（Cloud Firestore）に保存します。オフラインでも使え、オンラインに戻ると自動で同期します。
 
 ## 必要なもの
 
@@ -110,7 +110,7 @@ npm run e2e:headless       # 上の 2 つを画面のない Linux 環境で実�
 
 ```bash
 npm run dist:linux   # dist/ に AppImage と .deb を作成
-npm run dist:win     # dist/ に Windows インストーラーを作成（Windows 上で実行）
+npm run dist:win     # dist/ に Windows インストーラーを作成（Linux でも作れる。wine を入れた Ubuntu で確認）
 ```
 
 ## Ubuntu（Wayland）について
