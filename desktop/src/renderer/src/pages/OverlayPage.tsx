@@ -46,8 +46,6 @@ export function OverlayPage() {
     if (e.button !== 0) return;
     suppressClick.current = false;
     drag.current = { startY: e.screenY, moving: false };
-    // Keep receiving moves even if the cursor gets ahead of the window.
-    e.currentTarget.setPointerCapture(e.pointerId);
   }
 
   function onPointerMove(e: PointerEvent<HTMLDivElement>) {
@@ -56,6 +54,9 @@ export function OverlayPage() {
     if (!d.moving) {
       if (Math.abs(e.screenY - d.startY) < DRAG_THRESHOLD_PX) return;
       d.moving = true;
+      // Keep receiving moves even if the cursor gets ahead of the window. Only once dragging:
+      // a captured pointer sends the click to this div instead of the button under it.
+      e.currentTarget.setPointerCapture(e.pointerId);
       setDragging(true);
       void window.api.overlay.dragStart();
     }
