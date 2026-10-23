@@ -6,11 +6,15 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.kaorukajihara.shiodoki.data.DesktopStateRepository
+import dev.kaorukajihara.shiodoki.data.TaskMove
 import dev.kaorukajihara.shiodoki.data.TaskRepository
 import dev.kaorukajihara.shiodoki.data.TasksSnapshot
+import dev.kaorukajihara.shiodoki.data.moveTask
+import dev.kaorukajihara.shiodoki.data.undoMove
 import dev.kaorukajihara.shiodoki.model.DesktopState
 import dev.kaorukajihara.shiodoki.model.Priority
 import dev.kaorukajihara.shiodoki.model.Task
+import dev.kaorukajihara.shiodoki.model.TaskDrop
 import dev.kaorukajihara.shiodoki.model.TaskInput
 import dev.kaorukajihara.shiodoki.model.TaskInputError
 import dev.kaorukajihara.shiodoki.model.TaskInputException
@@ -134,4 +138,9 @@ class FocusViewModel(
 
   /** "元に戻す" on the snackbar. Also clears `completedAt`. */
   fun undoComplete(taskId: String) = repository.update(taskId, TaskPatch(completed = false))
+
+  /** A row dropped after a drag (design §5.7): moves the task without closing the screen. */
+  fun move(drop: TaskDrop): TaskMove? = repository.moveTask(drop)
+
+  fun undoMove(move: TaskMove) = repository.undoMove(move)
 }

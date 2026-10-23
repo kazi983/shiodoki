@@ -30,7 +30,7 @@ service cloud.firestore {
                               'createdAt', 'updatedAt', 'updatedBy'])
         && d.keys().hasOnly(['name', 'memo', 'priority', 'completed', 'completedAt',
                              'deleted', 'totalMinutes', 'sessionCount',
-                             'createdAt', 'updatedAt', 'updatedBy'])
+                             'createdAt', 'updatedAt', 'updatedBy', 'sortOrder'])
         && d.name is string && d.name.size() > 0 && d.name.size() <= 200
         && d.memo is string && d.memo.size() <= 5000
         && d.priority in ['NOW', 'ROUTINE', 'SOONER', 'ANYTIME', 'SOMEDAY', 'BREAK']
@@ -40,6 +40,8 @@ service cloud.firestore {
         && isNonNegativeInt(d.totalMinutes)
         && isNonNegativeInt(d.sessionCount)
         && d.createdAt is timestamp
+        // Optional: tasks written before it existed sort by createdAt instead.
+        && d.get('sortOrder', 0) is number
         // Clients must write updatedAt with serverTimestamp().
         && d.updatedAt == request.time
         && d.updatedBy in ['desktop', 'android', 'migration'];

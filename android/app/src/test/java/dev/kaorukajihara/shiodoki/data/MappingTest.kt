@@ -20,11 +20,11 @@ class MappingTest {
 
   @Test
   fun `newTaskDoc has every field the rules require`() {
-    val doc = newTaskDoc(TaskInput(name = "a", priority = Priority.SOONER, memo = "m"), now)
+    val doc = newTaskDoc(TaskInput(name = "a", priority = Priority.SOONER, memo = "m"), now, sortOrder = 1234.5)
     assertEquals(
       setOf(
         "name", "memo", "priority", "completed", "completedAt", "deleted", "totalMinutes",
-        "sessionCount", "createdAt", "updatedAt", "updatedBy",
+        "sessionCount", "createdAt", "updatedAt", "updatedBy", "sortOrder",
       ),
       doc.keys,
     )
@@ -36,6 +36,23 @@ class MappingTest {
     assertEquals(now, doc["createdAt"])
     assertTrue(doc["updatedAt"] is FieldValue)
     assertEquals("android", doc["updatedBy"])
+    assertEquals(1234.5, doc["sortOrder"])
+  }
+
+  @Test
+  fun `patchToDoc writes sortOrder only when it changes`() {
+    assertEquals(2.5, patchToDoc(TaskPatch(priority = Priority.NOW, sortOrder = 2.5), now)["sortOrder"])
+    assertFalse("sortOrder" in patchToDoc(TaskPatch(name = "a"), now))
+  }
+
+  @Test
+  fun `docToTask reads sortOrder, which older documents do not have`() {
+    assertEquals(12.5, docToTask("t1", mapOf("sortOrder" to 12.5)).sortOrder)
+    // A whole number comes back from Firestore as a Long.
+    assertEquals(1000.0, docToTask("t1", mapOf("sortOrder" to 1000L)).sortOrder)
+    assertNull(docToTask("t1", mapOf()).sortOrder)
+    assertNull(docToTask("t1", mapOf("sortOrder" to "1")).sortOrder)
+    assertNull(docToTask("t1", mapOf("sortOrder" to Double.NaN)).sortOrder)
   }
 
   @Test

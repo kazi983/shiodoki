@@ -18,8 +18,11 @@ import java.time.Instant
 
 const val UPDATED_BY = "android"
 
-/** A full document for a new task (design §4.3). `createdAt` is the device time, like desktop. */
-fun newTaskDoc(input: TaskInput, now: Timestamp): Map<String, Any?> = mapOf(
+/**
+ * A full document for a new task (design §4.3). `createdAt` is the device time, like desktop. [sortOrder] puts it
+ * at the end of its priority ([dev.kaorukajihara.shiodoki.model.endSortOrder]).
+ */
+fun newTaskDoc(input: TaskInput, now: Timestamp, sortOrder: Double): Map<String, Any?> = mapOf(
   "name" to input.name,
   "memo" to input.memo,
   "priority" to input.priority.name,
@@ -31,6 +34,7 @@ fun newTaskDoc(input: TaskInput, now: Timestamp): Map<String, Any?> = mapOf(
   "createdAt" to now,
   "updatedAt" to FieldValue.serverTimestamp(),
   "updatedBy" to UPDATED_BY,
+  "sortOrder" to sortOrder,
 )
 
 /** Only the changed fields, plus `updatedAt` / `updatedBy` (rules require both on every write). */
@@ -43,6 +47,7 @@ fun patchToDoc(patch: TaskPatch, now: Timestamp): Map<String, Any?> = buildMap {
     put("completedAt", if (it) now else null)
   }
   patch.deleted?.let { put("deleted", it) }
+  patch.sortOrder?.let { put("sortOrder", it) }
   put("updatedAt", FieldValue.serverTimestamp())
   put("updatedBy", UPDATED_BY)
 }
@@ -88,6 +93,8 @@ fun docToTask(id: String, d: Map<String, Any?>, now: Instant = Instant.now()): T
   sessionCount = (d["sessionCount"] as? Number)?.toLong() ?: 0L,
   createdAt = (d["createdAt"] as? Timestamp)?.toInstant() ?: now,
   updatedAt = (d["updatedAt"] as? Timestamp)?.toInstant() ?: now,
+  // Absent on tasks written before it existed (requirements §5.1).
+  sortOrder = (d["sortOrder"] as? Number)?.toDouble()?.takeIf { it.isFinite() },
 )
 
 /**
