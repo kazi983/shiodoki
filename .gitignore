@@ -1,2 +1,8 @@
 _docs
 node_modules/
+
+# Local-only helper scripts
+/scripts/
+
+# Output of scripts/build-release.sh
+release/
