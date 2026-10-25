@@ -11,6 +11,7 @@ import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.util.Log
+import androidx.compose.ui.graphics.toArgb
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
@@ -19,6 +20,7 @@ import androidx.lifecycle.lifecycleScope
 import dev.kaorukajihara.shiodoki.MainActivity
 import dev.kaorukajihara.shiodoki.R
 import dev.kaorukajihara.shiodoki.ShiodokiApp
+import dev.kaorukajihara.shiodoki.ui.theme.ShiodokiColors
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.flow.combine
@@ -112,6 +114,9 @@ class FocusService : LifecycleService() {
     )
     return NotificationCompat.Builder(this, CHANNEL_ID)
       .setSmallIcon(R.drawable.ic_notification)
+      // The status bar always draws the icon white; the notification shade tints it with this,
+      // the color of the focus screen banner.
+      .setColor(ShiodokiColors.Accent.toArgb())
       .setContentTitle(getString(R.string.focus_screen))
       .setContentText(text)
       .setContentIntent(openApp)
