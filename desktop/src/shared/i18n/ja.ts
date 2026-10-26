@@ -199,6 +199,20 @@ export const ja = {
     alreadyRunning: "Shiodoki はすでに起動しています。",
     bringToFront: "前面に表示",
   },
+  update: {
+    title: "アップデート",
+    available: (version: string, current: string) => `新しいバージョン ${version} があります（現在 ${current}）。`,
+    availableDetail: "ダウンロードはバックグラウンドで進みます。終わったらもう一度お知らせします。",
+    update: "更新する",
+    whatsNew: "変更点を見る",
+    later: "あとで",
+    downloaded: (version: string) => `${version} の準備ができました。今すぐ再起動して更新しますか？`,
+    downloadedDetail:
+      "計測中のタスクは、時間を記録してから終了します。「終了するときに更新」を選ぶと、次にアプリを終了するときに更新します。",
+    restartNow: "今すぐ再起動",
+    onQuit: "終了するときに更新",
+    failed: (reason: string) => `アップデートをダウンロードできませんでした: ${reason}`,
+  },
 };
 
 export type Messages = typeof ja;

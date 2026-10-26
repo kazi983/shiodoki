@@ -1,6 +1,7 @@
 import { hostname } from "node:os";
 import { join } from "node:path";
 import { app, dialog, shell } from "electron";
+import { autoUpdater } from "electron-updater";
 import { EMULATOR_PROJECT_ID, FIREBASE_CONFIG } from "@shared/firebaseConfig";
 import { getLocale, setLocale, t } from "@shared/i18n";
 import { IPC } from "@shared/ipc";
@@ -26,6 +27,7 @@ import { JsonFileTaskRepository, type TaskRepository } from "./taskRepository";
 import { TaskService } from "./taskService";
 import { TimerService } from "./timerService";
 import { createTray } from "./tray";
+import { RELEASES_URL, startUpdateCheck } from "./updater";
 import { WindowManager } from "./windowManager";
 
 /**
@@ -306,6 +308,12 @@ function wire(repo: TaskRepository, syncInfo: () => SyncInfo, firebase?: Firebas
     loadOverlayOffset(settingsFile()),
   );
   const wm = windows;
+  const quitWith = (quit: () => void) => {
+    quitting = true;
+    firebase?.reporter.stop();
+    wm.destroyAll();
+    quit();
+  };
 
   controller = new AppController(
     tasks,
@@ -313,12 +321,14 @@ function wire(repo: TaskRepository, syncInfo: () => SyncInfo, firebase?: Firebas
     timer,
     wm,
     {
-      quit: () => {
-        quitting = true;
-        firebase?.reporter.stop();
-        wm.destroyAll();
-        app.quit();
-      },
+      quit: () => quitWith(() => app.quit()),
+      installUpdate: () =>
+        quitWith(() => {
+          // Silent install, then start the new version. quitAndInstall() quits only when the installer started;
+          // quit anyway so a failed start does not leave the app running without windows.
+          autoUpdater.quitAndInstall(true, true);
+          app.quit();
+        }),
       relaunch: () => {
         quitting = true;
         app.relaunch();
@@ -353,6 +363,31 @@ function wire(repo: TaskRepository, syncInfo: () => SyncInfo, firebase?: Firebas
     },
     TEST_MODE,
   );
+
+  // Windows only: the Linux .deb is updated by hand (_docs/desktop-update.md).
+  // There is no app-update.yml outside the packaged app, so the check would fail in development.
+  if (process.platform === "win32" && app.isPackaged) {
+    startUpdateCheck({
+      updater: autoUpdater,
+      currentVersion: app.getVersion(),
+      ask: async ({ message, detail, buttons }) => {
+        const { response } = await showMessageBox(wm, {
+          type: "info",
+          buttons,
+          defaultId: 0,
+          cancelId: buttons.length - 1,
+          noLink: true,
+          title: t().update.title,
+          message,
+          detail,
+        });
+        return response;
+      },
+      showError: (message) => void showMessageBox(wm, { type: "error", title: t().update.title, message }),
+      openReleasePage: (version) => void shell.openExternal(`${RELEASES_URL}/tag/v${version}`),
+      restartToInstall: () => void controller.installUpdate(),
+    });
+  }
 
   // A second launch: ask whether to bring this instance to front or restart it.
   app.on("second-instance", async () => {
