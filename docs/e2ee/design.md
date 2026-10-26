@@ -85,9 +85,9 @@
 
 - 10 文字以上（コードポイントで数える）、文字種の条件なし（NIST SP 800-63B。`src/shared/passphrase.ts`）。
 - **Unicode NFC に正規化してから** UTF-8 にする（同じ日本語でも OS や IME で合成形・分解形が変わるため）。
-- PBKDF2-HMAC-SHA256、`iterations` 回（新規は 600,000）、出力 32 バイト。Android は
-  `SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")`（`PBEKeySpec` は char 配列を受け取るが、Android の実装は
-  UTF-8 で扱う。実装時にテストベクタで確認すること）。
+- PBKDF2-HMAC-SHA256、`iterations` 回（新規は 600,000）、出力 32 バイト。Android は `SecretKeyFactory`
+  （`PBEKeySpec` は文字の配列を受け取り、バイト列への変換が実装に任される）を使わず、`Mac("HmacSHA256")` で
+  RFC 8018 のとおりに書き、NFC で正規化した UTF-8 のバイト列をそのまま入れる（`android/.../crypto/E2ee.kt`）。
 
 ### 4.4 回復キー → KEK
 
