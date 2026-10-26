@@ -3,6 +3,7 @@ package dev.kaorukajihara.shiodoki.data
 import android.util.Log
 import com.google.firebase.firestore.DocumentSnapshot.ServerTimestampBehavior
 import com.google.firebase.firestore.FirebaseFirestore
+import dev.kaorukajihara.shiodoki.crypto.FieldCipher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose
@@ -10,26 +11,29 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 
 /**
  * [DesktopStateRepository] backed by a snapshot listener on `users/{uid}/state/desktop`. Like
- * [FirestoreTaskRepository], one listener per process follows the signed-in user.
+ * [FirestoreTaskRepository], one listener per process follows the signed-in user, once unlocked (the task name is
+ * encrypted).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class FirestoreDesktopStateRepository(
   private val db: FirebaseFirestore,
   uid: StateFlow<String?>,
+  cipher: StateFlow<FieldCipher?>,
   scope: CoroutineScope,
 ) : DesktopStateRepository {
 
-  override val snapshot: StateFlow<DesktopStateSnapshot?> = uid
-    .flatMapLatest { uid -> if (uid == null) flowOf(null) else snapshots(uid) }
+  override val snapshot: StateFlow<DesktopStateSnapshot?> = combine(uid, cipher, ::Pair)
+    .flatMapLatest { (uid, cipher) -> if (uid == null || cipher == null) flowOf(null) else snapshots(uid, cipher) }
     .stateIn(scope, SharingStarted.Eagerly, null)
 
-  private fun snapshots(uid: String): Flow<DesktopStateSnapshot> = callbackFlow {
+  private fun snapshots(uid: String, cipher: FieldCipher): Flow<DesktopStateSnapshot> = callbackFlow {
     val registration = db.collection("users").document(uid).collection("state").document("desktop")
       .addSnapshotListener { snap, e ->
         if (e != null) {
@@ -38,7 +42,7 @@ class FirestoreDesktopStateRepository(
         }
         if (snap == null) return@addSnapshotListener
         val state = if (snap.exists()) {
-          docToDesktopState(snap.getData(ServerTimestampBehavior.ESTIMATE).orEmpty())
+          docToDesktopState(snap.getData(ServerTimestampBehavior.ESTIMATE).orEmpty(), cipher)
         } else {
           null
         }

@@ -20,6 +20,7 @@ import androidx.lifecycle.lifecycleScope
 import dev.kaorukajihara.shiodoki.MainActivity
 import dev.kaorukajihara.shiodoki.R
 import dev.kaorukajihara.shiodoki.ShiodokiApp
+import dev.kaorukajihara.shiodoki.crypto.KeyState
 import dev.kaorukajihara.shiodoki.ui.theme.ShiodokiColors
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -72,7 +73,8 @@ class FocusService : LifecycleService() {
     // A session left by a killed process (design §6.6).
     controller.recover()
     lifecycleScope.launch {
-      combine(controller.state, container.authManager.account) { _, _ -> }.collect { updateNotification() }
+      combine(controller.state, container.authManager.account, container.encryption.state) { _, _, _ -> }
+        .collect { updateNotification() }
     }
   }
 
@@ -96,6 +98,7 @@ class FocusService : LifecycleService() {
   private fun buildNotification(): Notification {
     val text = when {
       container.authManager.account.value == null -> getString(R.string.notification_sign_in)
+      container.encryption.state.value != KeyState.Unlocked -> getString(R.string.notification_unlock)
       !FocusPermission.OVERLAY.isGranted(this) -> getString(R.string.notification_missing_permission)
       else -> when (val s = controller.state.value) {
         is FocusState.Running -> getString(
