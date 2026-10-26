@@ -25,6 +25,17 @@ service cloud.firestore {
       return v is int && v >= 0;
     }
 
+    // AES-256-GCM output of the apps: "e1:" + base64(iv ‖ ciphertext ‖ tag).
+    function isCiphertext(v) {
+      return v is string && v.matches('^e1:[A-Za-z0-9+/]+={0,2}$');
+    }
+
+    // Size limits for the encrypted form of the apps' 200 / 5000 character limits: up to 3 UTF-8 bytes per UTF-16
+    // unit, + 12 IV + 16 tag, x 4/3 for base64, + the prefix (docs/e2ee/design.md).
+    function isEncryptedName(v) {
+      return isCiphertext(v) && v.size() <= 1000;
+    }
+
     function isValidTask(d) {
       return d.keys().hasAll(['name', 'memo', 'priority', 'completed', 'completedAt',
                               'deleted', 'totalMinutes', 'sessionCount',
@@ -32,8 +43,9 @@ service cloud.firestore {
         && d.keys().hasOnly(['name', 'memo', 'priority', 'completed', 'completedAt',
                              'deleted', 'totalMinutes', 'sessionCount',
                              'createdAt', 'updatedAt', 'updatedBy', 'sortOrder'])
-        && d.name is string && d.name.size() > 0 && d.name.size() <= 200
-        && d.memo is string && d.memo.size() <= 5000
+        // Task names and memos are end-to-end encrypted; an empty memo stays empty.
+        && isEncryptedName(d.name)
+        && (d.memo == '' || (isCiphertext(d.memo) && d.memo.size() <= 21000))
         && d.priority in ['NOW', 'ROUTINE', 'SOONER', 'ANYTIME', 'SOMEDAY', 'BREAK']
         && d.completed is bool
         && isNullOrTimestamp(d.completedAt)
@@ -54,7 +66,7 @@ service cloud.firestore {
         && d.keys().hasAll(['taskId', 'taskName', 'startedAt', 'endedAt',
                             'elapsedMinutes', 'endReason', 'device'])
         && d.taskId is string && d.taskId.size() > 0
-        && d.taskName is string && d.taskName.size() <= 200
+        && isEncryptedName(d.taskName)
         && d.startedAt is timestamp
         && d.endedAt is timestamp
         && d.endedAt >= d.startedAt
@@ -69,7 +81,7 @@ service cloud.firestore {
         && d.keys().hasAll(['status', 'heartbeatAt', 'device'])
         && d.status in ['idle', 'running', 'snoozed', 'leave_blocked', 'stopped']
         && isNullOrString(d.get('currentTaskId', null))
-        && isNullOrString(d.get('currentTaskName', null))
+        && (d.get('currentTaskName', null) == null || isEncryptedName(d.currentTaskName))
         && isNullOrTimestamp(d.get('startedAt', null))
         && isNullOrTimestamp(d.get('nextPromptAt', null))
         && d.heartbeatAt == request.time
@@ -81,11 +93,6 @@ service cloud.firestore {
         && isNullOrString(d.get('lastSelectedTaskId', null))
         && isNullOrString(d.get('nextTaskId', null))
         && d.updatedAt == request.time;
-    }
-
-    // AES-256-GCM output of the apps: "e1:" + base64(iv ‖ ciphertext ‖ tag).
-    function isCiphertext(v) {
-      return v is string && v.matches('^e1:[A-Za-z0-9+/]+={0,2}$');
     }
 
     function isSalt(v) {
