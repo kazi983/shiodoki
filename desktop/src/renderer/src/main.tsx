@@ -12,6 +12,16 @@ import { ManagementPage } from "./pages/ManagementPage";
 import { OverlayPage } from "./pages/OverlayPage";
 import { LeavePage } from "./pages/LeavePage";
 import { LoginPage } from "./pages/LoginPage";
+import { WelcomePage } from "./pages/WelcomePage";
+import { EncryptionSetupPage } from "./pages/EncryptionSetupPage";
+import { UnlockPage } from "./pages/UnlockPage";
+import { EncryptionSettingsPage } from "./pages/EncryptionSettingsPage";
+import {
+  encryptionSettingsPlaceholder,
+  encryptionSetupPlaceholder,
+  unlockPlaceholder,
+  welcomePlaceholder,
+} from "./backendPlaceholders";
 
 setLocale(window.api.locale);
 document.documentElement.lang = window.api.locale;
@@ -28,6 +38,15 @@ function Page() {
       return <LeavePage mode="block" />;
     case "login":
       return <LoginPage />;
+    // TODO(backend): replace the placeholder props with window.api calls.
+    case "welcome":
+      return <WelcomePage {...welcomePlaceholder} />;
+    case "encryption-setup":
+      return <EncryptionSetupPage {...encryptionSetupPlaceholder} />;
+    case "unlock":
+      return <UnlockPage {...unlockPlaceholder} />;
+    case "encryption":
+      return <EncryptionSettingsPage {...encryptionSettingsPlaceholder} />;
     default:
       return <PickerPage />;
   }
