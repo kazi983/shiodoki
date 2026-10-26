@@ -261,4 +261,18 @@ export const en: Messages = {
     alreadyRunning: "Shiodoki is already running.",
     bringToFront: "Bring to front",
   },
+  update: {
+    title: "Update",
+    available: (version, current) => `Version ${version} is available (you have ${current}).`,
+    availableDetail: "It downloads in the background. You will be asked again when it is ready.",
+    update: "Update",
+    whatsNew: "See what's new",
+    later: "Later",
+    downloaded: (version) => `Version ${version} is ready. Restart now to update?`,
+    downloadedDetail:
+      "The running task's time is recorded first. Choose “Update when I quit” to update the next time you quit the app.",
+    restartNow: "Restart now",
+    onQuit: "Update when I quit",
+    failed: (reason) => `Could not download the update: ${reason}`,
+  },
 };

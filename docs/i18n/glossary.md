@@ -106,6 +106,8 @@
 | 終了（アプリ）             | Quit                       | デスクトップアプリの慣習                                      |      |
 | 再起動                     | Restart                    |                                                               |      |
 | 前面に表示                 | Bring to front             | 多重起動時のダイアログ                                        |      |
+| アップデート / 更新する    | Update                     | 新しいバージョンの確認ダイアログ（Windows のみ）              |      |
+| 変更点を見る               | See what's new             | GitHub の Release ページをブラウザで開く                      |      |
 | キャンセル                 | Cancel                     |                                                               |      |
 | 追加 / タスクを追加        | Add / Add task             |                                                               |      |
 | 新しいタスク               | New task                   |                                                               |      |
