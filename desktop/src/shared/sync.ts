@@ -51,7 +51,7 @@ export type DataRequest =
   | { op: "setPreferences"; patch: Partial<PreferencesData> }
   | { op: "setDesktopState"; state: DesktopStateData }
   | { op: "countRemoteTasks" }
-  | { op: "importTasks"; tasks: Task[]; preferences: Partial<PreferencesData> }
+  | { op: "importTasks"; tasks: Task[]; sessions: SessionRecord[]; preferences: Partial<PreferencesData> }
   | { op: "flush"; timeoutMs: number };
 
 export interface DataRequestMessage {

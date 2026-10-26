@@ -10,6 +10,8 @@ export interface TrayActions {
   exit(): void;
   /** Omitted in local mode. */
   logout?: () => void;
+  /** Local mode only (not with TIMER_LOCAL=1). */
+  signInToSync?: () => void;
   language: { current: LanguageSetting; change(value: LanguageSetting): void };
 }
 
@@ -37,6 +39,7 @@ export function createTray(actions: TrayActions, testMode: boolean): Tray | null
           })),
         },
         { type: "separator" },
+        ...(actions.signInToSync ? [{ label: text.signInToSync, click: actions.signInToSync }] : []),
         { label: common.restart, click: actions.restart },
         ...(actions.logout ? [{ label: common.logout, click: actions.logout }] : []),
         { label: common.quit, click: actions.exit },

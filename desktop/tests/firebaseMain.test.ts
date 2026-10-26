@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import type { SessionRecord } from "@shared/session";
 import type { DataRequest } from "@shared/sync";
 import type { Task } from "@shared/task";
 import { DesktopStateReporter } from "../src/main/desktopStateReporter";
@@ -34,6 +35,20 @@ function task(overrides: Partial<Task> = {}): Task {
     createdAt: "2026-10-01T00:00:00.000Z",
     updatedAt: "2026-10-01T00:00:00.000Z",
     updatedBy: "desktop",
+    ...overrides,
+  };
+}
+
+function session(overrides: Partial<SessionRecord> = {}): SessionRecord {
+  return {
+    id: "s1",
+    taskId: "t1",
+    taskName: "Task",
+    startedAt: "2026-10-01T09:00:00.000Z",
+    endedAt: "2026-10-01T09:30:00.000Z",
+    elapsedMinutes: 30,
+    endReason: "interval",
+    device: "pc",
     ...overrides,
   };
 }
@@ -227,9 +242,12 @@ describe("findLocalData (first sign-in migration)", () => {
     await repo.createTask(task({ id: "a" }));
     await repo.createTask(task({ id: "b", deleted: true }));
     await repo.setPreferences({ lastSelectedTaskId: "a" });
+    await repo.recordSession(session({ id: "s1", taskId: "a" }));
+    await repo.recordSession(session({ id: "s2", taskId: "b" }));
 
     const local = await findLocalData(store);
     expect(local?.tasks.map((t) => t.id)).toEqual(["a"]);
+    expect(local?.sessions.map((s) => s.id)).toEqual(["s1", "s2"]);
     expect(local?.lastSelectedTaskId).toBe("a");
     local?.markMigrated();
     expect(existsSync(store)).toBe(false);

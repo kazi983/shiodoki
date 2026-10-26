@@ -1,14 +1,18 @@
-import { dialog, ipcMain, type IpcMainInvokeEvent } from "electron";
+import { dialog, ipcMain, shell, type IpcMainInvokeEvent } from "electron";
 import { getLocale, t } from "@shared/i18n";
-import { IPC, type StartSessionRequest } from "@shared/ipc";
+import { IPC, type GuidePage, type StartSessionRequest } from "@shared/ipc";
 import type { TaskDrop, TaskInput } from "@shared/task";
 import type { AppController } from "./appController";
 import type { TaskService } from "./taskService";
 import type { WindowManager } from "./windowManager";
 
+const GUIDE_URL = "https://github.com/kazi983/shiodoki/blob/main/docs/user-guide";
+
 export interface AuthHooks {
-  /** Google sign-in from the login window. */
+  /** Google sign-in from the welcome window. */
   signIn(): Promise<void>;
+  /** Welcome window: keep the data on this PC only. */
+  useLocal(): Promise<void>;
 }
 
 export function registerIpcHandlers(
@@ -51,6 +55,11 @@ export function registerIpcHandlers(
   ipcMain.handle(IPC.leaveDismissWarning, () => controller.dismissWarning());
 
   ipcMain.handle(IPC.authSignIn, () => auth.signIn());
+  ipcMain.handle(IPC.storageUseLocal, () => auth.useLocal());
+  ipcMain.handle(IPC.shellOpenGuide, (_e, page: GuidePage) => {
+    if (page !== "privacy") throw new Error(`Unknown guide page: ${String(page)}`);
+    return shell.openExternal(`${GUIDE_URL}/${getLocale()}/${page}.md`);
+  });
   ipcMain.handle(IPC.syncGet, () => controller.syncInfo());
 
   ipcMain.handle(IPC.dialogConfirm, async (e, title: string, message: string) => {

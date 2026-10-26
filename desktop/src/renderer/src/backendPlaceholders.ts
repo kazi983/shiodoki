@@ -8,7 +8,6 @@
 import type { EncryptionSettingsPageProps } from "./pages/EncryptionSettingsPage";
 import type { EncryptionSetupPageProps } from "./pages/EncryptionSetupPage";
 import type { UnlockPageProps } from "./pages/UnlockPage";
-import type { WelcomePageProps } from "./pages/WelcomePage";
 
 const FAKE_PASSPHRASE = "correct-passphrase";
 const FAKE_RECOVERY_KEY = "K7QM-2XRT-P9DW-H4NA-VC3E-J8LZ-R6FY-T2GB";
@@ -23,12 +22,6 @@ function log(name: string): void {
 
 const copy = async (recoveryKey: string) => navigator.clipboard.writeText(recoveryKey);
 const saveToFile = async () => log("save the recovery key to a file");
-
-export const welcomePlaceholder: WelcomePageProps = {
-  onUseLocal: async () => log("use local mode"),
-  onSignIn: async () => log("sign in with Google"),
-  onOpenPrivacy: () => log("open the privacy page"),
-};
 
 export const encryptionSetupPlaceholder: EncryptionSetupPageProps = {
   onCreate: () => slow(FAKE_RECOVERY_KEY),

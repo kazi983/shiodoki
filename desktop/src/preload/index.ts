@@ -29,6 +29,12 @@ const api: DesktopApi = {
   auth: {
     signIn: () => ipcRenderer.invoke(IPC.authSignIn),
   },
+  storage: {
+    useLocal: () => ipcRenderer.invoke(IPC.storageUseLocal),
+  },
+  shell: {
+    openGuide: (page) => ipcRenderer.invoke(IPC.shellOpenGuide, page),
+  },
   sync: {
     get: () => ipcRenderer.invoke(IPC.syncGet),
   },

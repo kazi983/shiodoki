@@ -194,15 +194,33 @@ describe("FirestoreStore (rules enforced)", () => {
     off();
   });
 
-  test("importTasks copies tasks with their totals and counts them", async () => {
+  test("importTasks copies tasks with their totals and their sessions, and counts them", async () => {
     const before = await store.countRemoteTasks();
     const imported = Array.from({ length: 3 }, (_, i) =>
       newTask({ name: `Imported ${i}`, totalMinutes: 90, sessionCount: 3, priority: "SOMEDAY" }),
     );
-    await store.importTasks(imported, { lastSelectedTaskId: imported[0].id });
+    const sessionId = randomUUID();
+    await store.importTasks(
+      imported,
+      [
+        {
+          id: sessionId,
+          taskId: imported[0].id,
+          taskName: imported[0].name,
+          startedAt: "2026-10-01T09:00:00.000Z",
+          endedAt: "2026-10-01T09:30:00.000Z",
+          elapsedMinutes: 30,
+          endReason: "interval",
+          device: "pc",
+        },
+      ],
+      { lastSelectedTaskId: imported[0].id },
+    );
     expect(await store.countRemoteTasks()).toBe(before + 3);
     const snap = await getDoc(doc(db, `users/${uid}/tasks/${imported[0].id}`));
     expect(snap.data()).toMatchObject({ totalMinutes: 90, sessionCount: 3, updatedBy: "migration" });
+    const session = await getDoc(doc(db, `users/${uid}/sessions/${sessionId}`));
+    expect(session.data()).toMatchObject({ taskId: imported[0].id, elapsedMinutes: 30 });
   });
 
   test("writes to another user's data are rejected by the rules", async () => {

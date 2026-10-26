@@ -11,17 +11,11 @@ import { PickerPage } from "./pages/PickerPage";
 import { ManagementPage } from "./pages/ManagementPage";
 import { OverlayPage } from "./pages/OverlayPage";
 import { LeavePage } from "./pages/LeavePage";
-import { LoginPage } from "./pages/LoginPage";
 import { WelcomePage } from "./pages/WelcomePage";
 import { EncryptionSetupPage } from "./pages/EncryptionSetupPage";
 import { UnlockPage } from "./pages/UnlockPage";
 import { EncryptionSettingsPage } from "./pages/EncryptionSettingsPage";
-import {
-  encryptionSettingsPlaceholder,
-  encryptionSetupPlaceholder,
-  unlockPlaceholder,
-  welcomePlaceholder,
-} from "./backendPlaceholders";
+import { encryptionSettingsPlaceholder, encryptionSetupPlaceholder, unlockPlaceholder } from "./backendPlaceholders";
 
 setLocale(window.api.locale);
 document.documentElement.lang = window.api.locale;
@@ -36,11 +30,15 @@ function Page() {
       return <LeavePage mode="warning" />;
     case "leave-block":
       return <LeavePage mode="block" />;
-    case "login":
-      return <LoginPage />;
-    // TODO(backend): replace the placeholder props with window.api calls.
     case "welcome":
-      return <WelcomePage {...welcomePlaceholder} />;
+      return (
+        <WelcomePage
+          onUseLocal={() => window.api.storage.useLocal()}
+          onSignIn={() => window.api.auth.signIn()}
+          onOpenPrivacy={() => void window.api.shell.openGuide("privacy")}
+        />
+      );
+    // TODO(backend): replace the placeholder props with window.api calls.
     case "encryption-setup":
       return <EncryptionSetupPage {...encryptionSetupPlaceholder} />;
     case "unlock":

@@ -8,6 +8,8 @@ import type { DaySummary } from "./session";
 import type { SyncInfo } from "./sync";
 import type { Task, TaskDrop, TaskInput } from "./task";
 
+export type GuidePage = "privacy";
+
 export interface PickerState {
   tasks: Task[];
   lastSelectedTaskId: string | null;
@@ -77,6 +79,14 @@ export interface DesktopApi {
     /** Open the system browser for Google sign-in. Resolves when signed in. */
     signIn(): Promise<void>;
   };
+  storage: {
+    /** Welcome page: keep the data on this PC only. Saves the choice and restarts the app. */
+    useLocal(): Promise<void>;
+  };
+  shell: {
+    /** Open a page of the user guide (docs/user-guide/<locale>/<page>.md) in the browser. */
+    openGuide(page: GuidePage): Promise<void>;
+  };
   sync: {
     get(): Promise<SyncInfo>;
   };
@@ -138,5 +148,7 @@ export const IPC = {
   dialogConfirm: "dialog:confirm",
   dialogAlert: "dialog:alert",
   authSignIn: "auth:signIn",
+  storageUseLocal: "storage:useLocal",
+  shellOpenGuide: "shell:openGuide",
   syncGet: "sync:get",
 } as const;

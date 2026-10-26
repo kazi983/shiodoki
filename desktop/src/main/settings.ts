@@ -21,6 +21,20 @@ export function saveLanguageSetting(file: string, language: LanguageSetting): vo
   updateSettings(file, { language });
 }
 
+export const STORAGE_SETTINGS = ["local", "cloud"] as const;
+
+/** Where tasks are kept: this PC only, or Firestore (encrypted). Null until the user chooses (welcome page). */
+export type StorageSetting = (typeof STORAGE_SETTINGS)[number] | null;
+
+export function loadStorageSetting(file: string): StorageSetting {
+  const value = readSettings(file).storage;
+  return (STORAGE_SETTINGS as readonly unknown[]).includes(value) ? (value as StorageSetting) : null;
+}
+
+export function saveStorageSetting(file: string, storage: StorageSetting): void {
+  updateSettings(file, { storage });
+}
+
 /** Overlay tab position: px from the top of the work area. Missing or broken means default. */
 export function loadOverlayOffset(file: string): number | null {
   const value = readSettings(file).overlayOffsetY;

@@ -1,7 +1,7 @@
 // End-to-end test of the Firebase mode against the local emulators
 // (TIMER_FIREBASE_EMULATOR=1 signs in with a fake Google account):
 //
-//   1. first launch shows the sign-in window; signing in copies the local-mode tasks
+//   1. first launch shows the welcome window; signing in copies the local-mode tasks and sessions
 //   2. tasks added on the PC reach Firestore; an "Android" edit reaches the PC
 //   3. a session is recorded and users/{uid}/state/desktop follows the PC
 //   4. after a restart the PC is still signed in (IndexedDB persistence)
@@ -84,7 +84,18 @@ writeFileSync(
       seedTask({ id: "local-1", name: "ローカルのタスク", priority: "SOONER", totalMinutes: 95, sessionCount: 3 }),
       seedTask({ id: "local-2", name: "ローカルのいつか", priority: "SOMEDAY" }),
     ],
-    sessions: [],
+    sessions: [
+      {
+        id: "local-s1",
+        taskId: "local-1",
+        taskName: "ローカルのタスク",
+        startedAt: "2026-09-01T10:00:00.000Z",
+        endedAt: "2026-09-01T10:30:00.000Z",
+        elapsedMinutes: 30,
+        endReason: "interval",
+        device: "old-pc",
+      },
+    ],
     preferences: { lastSelectedTaskId: "local-1", nextTaskId: null },
   }),
 );
@@ -127,10 +138,10 @@ let app;
 try {
   // ---- 1. first launch: sign in and migrate ----
   app = await launch();
-  const login = await windowFor(app, "login");
-  await login.waitForSelector("text=Google でログイン");
-  await login.screenshot({ path: join(shots, "fb-1-login.png") });
-  await login.click("text=Google でログイン");
+  const welcome = await windowFor(app, "welcome");
+  await welcome.waitForSelector("text=Google でログインして同期");
+  await welcome.screenshot({ path: join(shots, "fb-1-welcome.png") });
+  await welcome.click("text=Google でログインして同期");
 
   const picker = await windowFor(app, "picker");
   await picker.waitForSelector('.task-list .task-name:has-text("ローカルのタスク")');
@@ -141,6 +152,12 @@ try {
   assert.equal(first.updatedBy, "migration");
   assert.equal(migrated.find((t) => t.id === "local-2").priority, "SOMEDAY");
   assert.ok(existsSync(join(dataDir, "store_test.json.migrated")), "local store is renamed after the copy");
+  const copiedSession = await poll(
+    async () => (await getDoc(doc(phoneDb, `${base}/sessions/local-s1`))).data(),
+    (s) => s !== undefined,
+    "migrated session",
+  );
+  assert.equal(copiedSession.elapsedMinutes, 30);
 
   // ---- 2. PC -> Firestore ----
   await picker.fill('input[aria-label="新しいタスク"]', "PCで追加");
@@ -177,10 +194,11 @@ try {
   await poll(desktopState, (s) => s?.status === "idle", "idle state");
   const sessions = await poll(
     async () => (await getDocs(collection(phoneDb, `${base}/sessions`))).docs.map((d) => d.data()),
-    (s) => s.length >= 1,
+    (s) => s.length >= 2,
     "session record",
   );
-  assert.equal(sessions.length, 1);
+  assert.equal(sessions.length, 2);
+  sessions.sort((a, b) => b.endedAt.toMillis() - a.endedAt.toMillis());
   assert.equal(sessions[0].taskName, "PCで追加");
   assert.equal(sessions[0].endReason, "interval");
   await poll(
@@ -193,11 +211,11 @@ try {
   app = undefined;
   await poll(desktopState, (s) => s?.status === "stopped", "stopped state");
 
-  // ---- 4. restart: still signed in, no login window ----
+  // ---- 4. restart: still signed in, no welcome window ----
   app = await launch();
   const picker2 = await windowFor(app, "picker");
   await picker2.waitForSelector('.task-list .task-name:has-text("スマホで名前を変更")');
-  assert.ok(!app.windows().some((w) => w.url().endsWith("#login")), "login window must not open");
+  assert.ok(!app.windows().some((w) => w.url().endsWith("#welcome")), "welcome window must not open");
   await picker2.screenshot({ path: join(shots, "fb-3-after-restart.png") });
 
   console.log("Firebase E2E test passed. Screenshots:", shots);

@@ -159,15 +159,7 @@ export const ja = {
     quitApp: "アプリを終了",
   },
   login: {
-    windowTitle: "Shiodoki - ログイン",
-    description: <T>(br: T): (string | T)[] => [
-      "タスクを Google アカウントに保存して、",
-      br,
-      "スマホからも確認・編集できるようにします。",
-    ],
     waiting: "ブラウザでログインしてください…",
-    signIn: "Google でログイン",
-    hint: "ログインが終わると、この画面は自動で閉じます。",
     cancelled: "ログインがキャンセルされました",
     timedOut: "ログインがタイムアウトしました",
     pageFailed: "ログインできませんでした",

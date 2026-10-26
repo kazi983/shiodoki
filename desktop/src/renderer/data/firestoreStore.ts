@@ -128,13 +128,19 @@ export class FirestoreStore {
     return snap.data().count;
   }
 
-  /** One-time copy of local tasks (requirements D-07). Waits for the server. */
-  async importTasks(tasks: Task[], preferences: Partial<PreferencesData>): Promise<void> {
-    for (let i = 0; i < tasks.length; i += BATCH_LIMIT) {
+  /**
+   * One-time copy of local tasks and sessions (requirements D-07). Waits for the server. Sessions are written without
+   * increment(): the copied tasks already carry their totals.
+   */
+  async importTasks(tasks: Task[], sessions: SessionRecord[], preferences: Partial<PreferencesData>): Promise<void> {
+    const writes = [
+      ...tasks.map((task) => [`tasks/${task.id}`, taskToDoc(task, "migration")] as const),
+      ...sessions.map((session) => [`sessions/${session.id}`, sessionToDoc(session)] as const),
+    ];
+    for (let i = 0; i < writes.length; i += BATCH_LIMIT) {
       const batch = writeBatch(this.db);
-      for (const task of tasks.slice(i, i + BATCH_LIMIT)) {
-        batch.set(doc(this.db, `${this.base}/tasks/${task.id}`), taskToDoc(task, "migration"));
-      }
+      for (const [path, data] of writes.slice(i, i + BATCH_LIMIT))
+        batch.set(doc(this.db, `${this.base}/${path}`), data);
       await batch.commit();
     }
     if (Object.keys(preferences).length > 0) {

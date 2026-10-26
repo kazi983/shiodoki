@@ -158,11 +158,7 @@ export const en: Messages = {
     quitApp: "Quit Shiodoki",
   },
   login: {
-    windowTitle: "Shiodoki - Sign in",
-    description: (br) => ["Save your tasks to your Google account", br, "to view and edit them from your phone too."],
     waiting: "Sign in in your browser…",
-    signIn: "Sign in with Google",
-    hint: "This window closes automatically after you sign in.",
     cancelled: "Sign-in was canceled",
     timedOut: "Sign-in timed out",
     pageFailed: "Could not sign in",
