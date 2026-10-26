@@ -1,5 +1,6 @@
 # Builds the desktop installers on Linux and Windows. A `v*` tag push also attaches them to a
-# draft GitHub Release; publish it by hand after checking the files. Android is built locally
+# draft GitHub Release; publish it by hand after checking the files. Publishing is what sends
+# the update to installed Windows apps (electron-updater does not see drafts). Android is built locally
 # (scripts/build-release.sh) so the release keystore never leaves Kazi's machine.
 name: release-desktop
 
@@ -26,7 +27,13 @@ jobs:
             files: desktop/dist/*.deb
           - os: windows-latest
             dist: dist:win
-            files: desktop/dist/*.exe
+            # The update metadata (latest.yml) and block map let installed apps find and download the update
+            # once the release is published. builder-debug.yml is a local build log.
+            files: |
+              desktop/dist/*.exe
+              desktop/dist/*.exe.blockmap
+              desktop/dist/*.yml
+              !desktop/dist/builder-debug.yml
     runs-on: ${{ matrix.os }}
     defaults:
       run:
