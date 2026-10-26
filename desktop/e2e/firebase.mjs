@@ -6,7 +6,8 @@
 //   2. tasks added on the PC reach Firestore encrypted; an encrypted "Android" edit reaches the PC
 //   3. a session is recorded and users/{uid}/state/desktop follows the PC
 //   4. after a restart the PC is still signed in and unlocked (IndexedDB persistence, safeStorage)
-//   5. another PC unlocks with the recovery key after a wrong passphrase
+//   5. another PC unlocks with the recovery key after a wrong passphrase, then changes the passphrase and creates a
+//      new recovery key in the encryption window
 //
 // The "Android" side decrypts with its own few lines of node:crypto, as the Android app will (docs/e2ee/design.md).
 //
@@ -65,17 +66,15 @@ async function poll(read, ok, what) {
 const PASSPHRASE = "e2e-passphrase-潮時";
 let phoneKey = null;
 
-async function dataKey() {
-  if (phoneKey) return phoneKey;
+/** Unwrap the data key from state/keys with the passphrase, as the Android app does on unlock. */
+async function unwrapWith(secret) {
   const { passphrase } = (await getDoc(doc(phoneDb, `${base}/state/keys`))).data();
-  const kek = pbkdf2Sync(
-    PASSPHRASE.normalize("NFC"),
-    Buffer.from(passphrase.salt, "base64"),
-    passphrase.iterations,
-    32,
-    "sha256",
-  );
-  phoneKey = open(kek, passphrase.wrappedKey);
+  const salt = Buffer.from(passphrase.salt, "base64");
+  return open(pbkdf2Sync(secret.normalize("NFC"), salt, passphrase.iterations, 32, "sha256"), passphrase.wrappedKey);
+}
+
+async function dataKey() {
+  phoneKey ??= await unwrapWith(PASSPHRASE);
   return phoneKey;
 }
 
@@ -306,6 +305,37 @@ try {
   const picker3 = await windowFor(app, "picker");
   await picker3.waitForSelector('.task-list .task-name:has-text("スマホで名前を変更")');
   await picker3.waitForSelector('.task-list .task-name:has-text("PCで追加")');
+
+  // The tray cannot be clicked from Playwright: open the tray's "暗号化…" page with the app's own preload.
+  await app.evaluate(
+    ({ BrowserWindow }, { preload, html }) => {
+      const win = new BrowserWindow({
+        width: 560,
+        height: 720,
+        webPreferences: { preload, contextIsolation: true, nodeIntegration: false, sandbox: true },
+      });
+      void win.loadFile(html, { hash: "encryption" });
+    },
+    { preload: join(root, "out/preload/index.js"), html: join(root, "out/renderer/index.html") },
+  );
+  const settings = await windowFor(app, "encryption");
+  await settings.waitForSelector("text=e2e@example.com");
+  const NEW_PASSPHRASE = "e2e-new-passphrase";
+  await settings.locator("input").nth(0).fill(PASSPHRASE);
+  await settings.locator("input").nth(1).fill(NEW_PASSPHRASE);
+  await settings.locator("input").nth(2).fill(NEW_PASSPHRASE);
+  await settings.click('button[type=submit]:has-text("変更")');
+  await settings.waitForSelector("text=パスフレーズを変更しました");
+  await settings.screenshot({ path: join(shots, "fb-5-encryption-settings.png") });
+  // Same data key, new wrapping: the old passphrase no longer unwraps it.
+  assert.deepEqual(await unwrapWith(NEW_PASSPHRASE), await dataKey());
+  await assert.rejects(unwrapWith(PASSPHRASE));
+
+  // Reissue the recovery key (the native confirmation answers OK).
+  await settings.click("text=回復キーを再発行…");
+  await settings.waitForSelector(".recovery-groups");
+  const newRecoveryKey = (await settings.locator(".recovery-groups span").allTextContents()).join("-");
+  assert.notEqual(newRecoveryKey, recoveryKey);
 
   console.log("Firebase E2E test passed. Screenshots:", shots);
 } finally {
