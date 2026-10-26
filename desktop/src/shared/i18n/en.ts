@@ -230,6 +230,12 @@ export const en: Messages = {
     newRecoveryKeyConfirm: "Create a new recovery key?\nYour current recovery key will stop working.",
     howItWorks: "How encryption works",
     close: "Close",
+    passphraseTooShort: (min) => `The passphrase must be at least ${min} characters.`,
+    keysExist: "Encryption was already set up on another PC. Restart the app and unlock with your passphrase.",
+    needsConnection:
+      "Setting up encryption and unlocking for the first time need an internet connection. Connect, then choose Retry.",
+    retry: "Retry",
+    unreadable: "(Can't be read)",
   },
   tray: {
     pickTask: "Pick a task",

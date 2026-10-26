@@ -1,6 +1,9 @@
-import { dialog, ipcMain, shell, type IpcMainInvokeEvent } from "electron";
+import { writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { app, clipboard, dialog, ipcMain, shell, type IpcMainInvokeEvent } from "electron";
 import { getLocale, t } from "@shared/i18n";
 import { IPC, type GuidePage, type StartSessionRequest } from "@shared/ipc";
+import type { SecretKind } from "@shared/passphrase";
 import type { TaskDrop, TaskInput } from "@shared/task";
 import type { AppController } from "./appController";
 import type { TaskService } from "./taskService";
@@ -15,11 +18,22 @@ export interface AuthHooks {
   useLocal(): Promise<void>;
 }
 
+/** Cloud mode only. Everything that needs the data key runs in the main process (EncryptionService). */
+export interface EncryptionHooks {
+  create(passphrase: string): Promise<string>;
+  finishSetup(): Promise<void>;
+  unlock(kind: SecretKind, secret: string): Promise<boolean>;
+  changePassphrase(kind: SecretKind, secret: string, newPassphrase: string): Promise<boolean>;
+  createRecoveryKey(): Promise<string>;
+  signOut(): Promise<void>;
+}
+
 export function registerIpcHandlers(
   controller: AppController,
   tasks: TaskService,
   windows: WindowManager,
   auth: AuthHooks,
+  encryption?: EncryptionHooks,
 ): void {
   const parentOf = (e: IpcMainInvokeEvent) => windows.fromWebContentsId(e.sender.id);
 
@@ -61,6 +75,31 @@ export function registerIpcHandlers(
     return shell.openExternal(`${GUIDE_URL}/${getLocale()}/${page}.md`);
   });
   ipcMain.handle(IPC.syncGet, () => controller.syncInfo());
+
+  if (encryption) {
+    ipcMain.handle(IPC.encryptionCreate, (_e, passphrase: string) => encryption.create(passphrase));
+    ipcMain.handle(IPC.encryptionFinishSetup, () => encryption.finishSetup());
+    ipcMain.handle(IPC.encryptionUnlock, (_e, kind: SecretKind, secret: string) => encryption.unlock(kind, secret));
+    ipcMain.handle(IPC.encryptionChangePassphrase, (_e, kind: SecretKind, secret: string, passphrase: string) =>
+      encryption.changePassphrase(kind, secret, passphrase),
+    );
+    ipcMain.handle(IPC.encryptionCreateRecoveryKey, () => encryption.createRecoveryKey());
+    ipcMain.handle(IPC.encryptionSignOut, () => encryption.signOut());
+  }
+  ipcMain.handle(IPC.encryptionCopyRecoveryKey, (_e, recoveryKey: string) => clipboard.writeText(recoveryKey));
+  ipcMain.handle(IPC.encryptionSaveRecoveryKey, async (e, recoveryKey: string) => {
+    const options = {
+      defaultPath: join(app.getPath("documents"), "shiodoki-recovery-key.txt"),
+      filters: [{ name: "Text", extensions: ["txt"] }],
+    };
+    const parent = parentOf(e);
+    const result = parent ? await dialog.showSaveDialog(parent, options) : await dialog.showSaveDialog(options);
+    if (result.canceled || !result.filePath) return;
+    const account = controller.syncInfo().email ?? "";
+    await writeFile(result.filePath, `Shiodoki ${t().encryption.recoveryKey}\n${account}\n\n${recoveryKey}\n`, {
+      mode: 0o600,
+    });
+  });
 
   ipcMain.handle(IPC.dialogConfirm, async (e, title: string, message: string) => {
     const options = {

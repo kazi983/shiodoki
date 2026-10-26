@@ -12,6 +12,8 @@ export interface TrayActions {
   logout?: () => void;
   /** Local mode only (not with TIMER_LOCAL=1). */
   signInToSync?: () => void;
+  /** Cloud mode only: change the passphrase, create a new recovery key. */
+  openEncryption?: () => void;
   language: { current: LanguageSetting; change(value: LanguageSetting): void };
 }
 
@@ -40,6 +42,7 @@ export function createTray(actions: TrayActions, testMode: boolean): Tray | null
         },
         { type: "separator" },
         ...(actions.signInToSync ? [{ label: text.signInToSync, click: actions.signInToSync }] : []),
+        ...(actions.openEncryption ? [{ label: text.encryption, click: actions.openEncryption }] : []),
         { label: common.restart, click: actions.restart },
         ...(actions.logout ? [{ label: common.logout, click: actions.logout }] : []),
         { label: common.quit, click: actions.exit },

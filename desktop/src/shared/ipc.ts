@@ -4,6 +4,7 @@
 
 import type { Locale } from "./i18n";
 import type { LeaveScheduleInput, LeaveScheduleStatus } from "./leave";
+import type { SecretKind } from "./passphrase";
 import type { DaySummary } from "./session";
 import type { SyncInfo } from "./sync";
 import type { Task, TaskDrop, TaskInput } from "./task";
@@ -87,6 +88,24 @@ export interface DesktopApi {
     /** Open a page of the user guide (docs/user-guide/<locale>/<page>.md) in the browser. */
     openGuide(page: GuidePage): Promise<void>;
   };
+  /** End-to-end encryption (cloud mode). The data key never leaves the main process. */
+  encryption: {
+    /** First cloud sign-in: create and store the keys, resolve to the recovery key ("XXXX-XXXX-…") to show once. */
+    create(passphrase: string): Promise<string>;
+    /** After "I've saved my recovery key": close the setup and start syncing. */
+    finishSetup(): Promise<void>;
+    /** Another PC: false when the secret is wrong; on success the window closes and syncing starts. */
+    unlock(kind: SecretKind, secret: string): Promise<boolean>;
+    /** False when the current passphrase or the recovery key is wrong. */
+    changePassphrase(kind: SecretKind, secret: string, newPassphrase: string): Promise<boolean>;
+    /** The old recovery key stops working. */
+    createRecoveryKey(): Promise<string>;
+    copyRecoveryKey(recoveryKey: string): Promise<void>;
+    /** Native save dialog; resolves without saving when canceled. */
+    saveRecoveryKeyToFile(recoveryKey: string): Promise<void>;
+    /** Leave the setup or unlock: sign out and go back to the welcome page. */
+    signOut(): Promise<void>;
+  };
   sync: {
     get(): Promise<SyncInfo>;
   };
@@ -150,5 +169,13 @@ export const IPC = {
   authSignIn: "auth:signIn",
   storageUseLocal: "storage:useLocal",
   shellOpenGuide: "shell:openGuide",
+  encryptionCreate: "encryption:create",
+  encryptionFinishSetup: "encryption:finishSetup",
+  encryptionUnlock: "encryption:unlock",
+  encryptionChangePassphrase: "encryption:changePassphrase",
+  encryptionCreateRecoveryKey: "encryption:createRecoveryKey",
+  encryptionCopyRecoveryKey: "encryption:copyRecoveryKey",
+  encryptionSaveRecoveryKey: "encryption:saveRecoveryKey",
+  encryptionSignOut: "encryption:signOut",
   syncGet: "sync:get",
 } as const;

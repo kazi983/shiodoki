@@ -7,12 +7,14 @@ import { getLocale, setLocale, t } from "@shared/i18n";
 import { IPC } from "@shared/ipc";
 import type { DataEvent, SyncInfo } from "@shared/sync";
 import { AppController } from "./appController";
-import { APP_DIR_NAME, INTERVAL_MS, SNOOZE_MS, STORE_FILE_NAME, TEST_MODE } from "./config";
+import { APP_DIR_NAME, DEK_FILE_NAME, INTERVAL_MS, SNOOZE_MS, STORE_FILE_NAME, TEST_MODE } from "./config";
 import { DataBridge } from "./dataBridge";
 import { DesktopStateReporter } from "./desktopStateReporter";
 import { FirestoreTaskRepository } from "./firestoreTaskRepository";
 import { loadOAuthClient, signInWithGoogle } from "./googleOAuth";
-import { registerIpcHandlers } from "./ipc";
+import { EncryptionService } from "./encryptionService";
+import { registerIpcHandlers, type EncryptionHooks } from "./ipc";
+import { safeKeyStore } from "./keyStore";
 import { findLocalData } from "./localMigration";
 import { SessionService } from "./sessionService";
 import {
@@ -152,7 +154,50 @@ function startFirebase(): void {
     },
   );
 
-  repo = new FirestoreTaskRepository(bridge, () => broadcastChanged());
+  const encryption = new EncryptionService(bridge, safeKeyStore(join(app.getPath("userData"), DEK_FILE_NAME)));
+  repo = new FirestoreTaskRepository(bridge, () => broadcastChanged(), encryption);
+
+  /** Signed in: use the key this PC kept, or set up / unlock the encryption first (no syncing without a key). */
+  async function openAccount(uid: string): Promise<void> {
+    if (encryption.restore(uid)) return startSyncing(false);
+    for (;;) {
+      try {
+        wired.windows.showFlow((await encryption.hasKeys()) ? "unlock" : "encryption-setup");
+        return;
+      } catch (error) {
+        // The keys document is not cached yet and the PC is offline.
+        console.error("Could not read the encryption keys:", error);
+        const { common, encryption: text } = t();
+        const { response } = await showMessageBox(wired.windows, {
+          type: "warning",
+          buttons: [text.retry, common.logout, common.quit],
+          defaultId: 0,
+          cancelId: 2,
+          noLink: true,
+          title: "Shiodoki",
+          message: text.needsConnection,
+        });
+        if (response === 1) return signOut();
+        if (response === 2) return wired.controller.exit();
+      }
+    }
+  }
+
+  async function startSyncing(firstOnThisPc: boolean): Promise<void> {
+    repo.unlocked();
+    wired.windows.closeFlow();
+    if (firstOnThisPc) await offerMigration(bridge, repo);
+    wired.controller.start();
+  }
+
+  function signOut(): Promise<void> {
+    return wired.controller.restart(async () => {
+      await bridge.request({ op: "signOut" }, 15_000).catch((e) => console.error(e));
+      encryption.forget();
+      // Back to the welcome page (plan Q2).
+      saveStorageSetting(settingsFile(), null);
+    });
+  }
 
   const wired = wire(repo, () => ({ status: repo.status, email }), {
     firebase: {
@@ -165,14 +210,13 @@ function startFirebase(): void {
         const idToken = EMULATOR_MODE
           ? JSON.stringify({ sub: "e2e-user", email: "e2e@example.com", email_verified: true })
           : await googleIdToken();
-        await bridge.request({ op: "signIn", idToken }, 30_000);
+        const user = await bridge.request<{ uid: string; email: string | null }>({ op: "signIn", idToken }, 30_000);
+        email = user.email;
         saveStorageSetting(settingsFile(), "cloud");
-        await offerMigration(bridge);
-        wired.windows.closeFlow();
-        wired.controller.start();
+        await openAccount(user.uid);
       },
       useLocal: () => switchStorage("local", wired.controller),
-      onFlowClosed: () => void wired.controller.exit(),
+      onFlowClosed: (route) => void (route === "welcome" ? wired.controller.exit() : signOut()),
       logout: async () => {
         const { common, dialogs } = t();
         const ok = await showMessageBox(wired.windows, {
@@ -184,12 +228,19 @@ function startFirebase(): void {
           title: common.logout,
           message: dialogs.logoutConfirm(email ?? ""),
         });
-        if (ok.response !== 0) return;
-        await wired.controller.restart(async () => {
-          await bridge.request({ op: "signOut" }, 15_000).catch((e) => console.error(e));
-          // Back to the welcome page (plan Q2).
-          saveStorageSetting(settingsFile(), null);
-        });
+        if (ok.response === 0) await signOut();
+      },
+      encryption: {
+        create: (passphrase) => encryption.create(passphrase),
+        finishSetup: () => startSyncing(true),
+        unlock: async (kind, secret) => {
+          const ok = await encryption.unlock(kind, secret);
+          if (ok) void startSyncing(true);
+          return ok;
+        },
+        changePassphrase: (kind, secret, passphrase) => encryption.changePassphrase(kind, secret, passphrase),
+        createRecoveryKey: () => encryption.createRecoveryKey(),
+        signOut,
       },
     },
   });
@@ -199,7 +250,7 @@ function startFirebase(): void {
   let authKnown = false;
   void firstAuth.then((uid) => {
     authKnown = true;
-    if (uid) wired.controller.start();
+    if (uid) void openAccount(uid);
     else wired.windows.showFlow("welcome");
   });
 
@@ -238,8 +289,8 @@ async function googleIdToken(): Promise<string> {
   return signInWithGoogle(client, (url) => shell.openExternal(url));
 }
 
-/** First sign-in: copy tasks from this PC if the account has none yet (requirements D-07). */
-async function offerMigration(bridge: DataBridge): Promise<void> {
+/** First sign-in on this PC: copy its local tasks and sessions if the account has no tasks yet (requirements D-07). */
+async function offerMigration(bridge: DataBridge, repo: FirestoreTaskRepository): Promise<void> {
   const local = await findLocalData(storeFile());
   if (!local) return;
   const remoteCount = await bridge.request<number>({ op: "countRemoteTasks" }, 30_000).catch(() => -1);
@@ -258,15 +309,7 @@ async function offerMigration(bridge: DataBridge): Promise<void> {
   });
   if (response !== 0) return;
   try {
-    await bridge.request(
-      {
-        op: "importTasks",
-        tasks: local.tasks,
-        sessions: local.sessions,
-        preferences: { lastSelectedTaskId: local.lastSelectedTaskId },
-      },
-      120_000,
-    );
+    await repo.importData(local.tasks, local.sessions, { lastSelectedTaskId: local.lastSelectedTaskId });
     local.markMigrated();
   } catch (error) {
     await dialog.showMessageBox({
@@ -316,6 +359,7 @@ interface FirebaseHooks {
   /** The user closed a window shown before the picker (welcome, encryption setup, unlock). */
   onFlowClosed(route: FlowRoute): void;
   logout(): Promise<void>;
+  encryption: EncryptionHooks;
 }
 
 interface WireHooks {
@@ -380,10 +424,16 @@ function wire(repo: TaskRepository, syncInfo: () => SyncInfo, { firebase, signIn
     },
   );
 
-  registerIpcHandlers(controller, tasks, wm, {
-    signIn: firebase?.signIn ?? (async () => {}),
-    useLocal: firebase?.useLocal ?? (async () => {}),
-  });
+  registerIpcHandlers(
+    controller,
+    tasks,
+    wm,
+    {
+      signIn: firebase?.signIn ?? (async () => {}),
+      useLocal: firebase?.useLocal ?? (async () => {}),
+    },
+    firebase?.encryption,
+  );
 
   createTray(
     {
@@ -392,6 +442,7 @@ function wire(repo: TaskRepository, syncInfo: () => SyncInfo, { firebase, signIn
       restart: () => void controller.restart(),
       exit: () => void controller.exit(),
       logout: firebase ? () => void firebase.logout() : undefined,
+      openEncryption: firebase ? () => wm.showEncryption() : undefined,
       signInToSync,
       language: {
         current: loadLanguageSetting(settingsFile()),

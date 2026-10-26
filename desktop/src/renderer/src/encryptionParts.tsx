@@ -5,8 +5,7 @@ import { t } from "@shared/i18n";
 import { checkPassphrase, MIN_PASSPHRASE_LENGTH, recoveryKeyGroups } from "@shared/passphrase";
 import { CheckIcon, CopyIcon, DownloadIcon, ErrorIcon, EyeIcon, WarningIcon } from "./icons";
 
-/** How the user proves who they are: the passphrase or the recovery key. */
-export type SecretKind = "passphrase" | "recoveryKey";
+export type { SecretKind } from "@shared/passphrase";
 
 export function PasswordField({
   label,

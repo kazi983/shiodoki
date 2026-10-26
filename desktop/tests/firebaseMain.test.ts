@@ -53,16 +53,34 @@ function session(overrides: Partial<SessionRecord> = {}): SessionRecord {
   };
 }
 
+/** Readable stand-in for the real cipher: "enc(…)". */
+function fakeCipher(ready = true) {
+  return {
+    ready,
+    encrypt: (plain: string) => `enc(${plain})`,
+    decrypt: (value: string) => {
+      if (value === "broken") throw new Error("bad tag");
+      return value.startsWith("enc(") ? value.slice(4, -1) : value;
+    },
+  };
+}
+
 describe("FirestoreTaskRepository", () => {
-  function setup(timeoutMs = 50) {
+  function setup(timeoutMs = 50, cipher = fakeCipher(), response: unknown = undefined) {
     const requests: DataRequest[] = [];
     const changed = vi.fn();
     const repo = new FirestoreTaskRepository(
-      { request: async (r: DataRequest) => void requests.push(r) as never },
+      {
+        request: async (r: DataRequest) => {
+          requests.push(r);
+          return response as never;
+        },
+      },
       changed,
+      cipher,
       timeoutMs,
     );
-    return { repo, requests, changed };
+    return { repo, requests, changed, cipher };
   }
 
   test("reads come from snapshots, writes update the cache and are forwarded", async () => {
@@ -112,6 +130,81 @@ describe("FirestoreTaskRepository", () => {
     const started = Date.now();
     expect(await repo.listTasks()).toEqual([]);
     expect(Date.now() - started).toBeGreaterThanOrEqual(25);
+  });
+
+  test("names, memos and session task names leave encrypted; an empty memo stays empty", async () => {
+    const { repo, requests } = setup();
+    repo.handleEvent({ type: "tasks", tasks: [], status: "synced" });
+    await repo.createTask(task({ id: "t1", name: "Plan", memo: "" }));
+    await repo.createTask(task({ id: "t2", name: "Write", memo: "notes" }));
+    await repo.updateTask("t2", { memo: "", priority: "SOMEDAY" });
+    await repo.updateTask("t2", { name: "Rewrite" });
+    await repo.recordSession(session({ taskId: "t2", taskName: "Rewrite" }));
+    await repo.setDesktopState({
+      status: "running",
+      currentTaskId: "t2",
+      currentTaskName: "Rewrite",
+      startedAt: null,
+      nextPromptAt: null,
+      device: "pc",
+    });
+    await repo.setDesktopState({
+      status: "idle",
+      currentTaskId: null,
+      currentTaskName: null,
+      startedAt: null,
+      nextPromptAt: null,
+      device: "pc",
+    });
+
+    expect(requests).toMatchObject([
+      { op: "createTask", task: { name: "enc(Plan)", memo: "" } },
+      { op: "createTask", task: { name: "enc(Write)", memo: "enc(notes)" } },
+      { op: "updateTask", patch: { memo: "", priority: "SOMEDAY" } },
+      { op: "updateTask", patch: { name: "enc(Rewrite)" } },
+      { op: "recordSession", session: { taskName: "enc(Rewrite)" } },
+      { op: "setDesktopState", state: { currentTaskName: "enc(Rewrite)" } },
+      { op: "setDesktopState", state: { currentTaskName: null } },
+    ]);
+    expect((requests[2] as { patch: object }).patch).not.toHaveProperty("name");
+    // The cache keeps plain text.
+    expect(await repo.getTask("t2")).toMatchObject({ name: "Rewrite", memo: "" });
+  });
+
+  test("snapshots and sessions are decrypted; unreadable values become a placeholder", async () => {
+    const { repo } = setup(50, fakeCipher(), [session({ taskName: "enc(Plan)" }), session({ taskName: "broken" })]);
+    repo.handleEvent({
+      type: "tasks",
+      tasks: [task({ name: "enc(Plan)", memo: "enc(Memo)" }), task({ id: "t2", name: "broken", memo: "" })],
+      status: "synced",
+    });
+    expect(await repo.getTask("t1")).toMatchObject({ name: "Plan", memo: "Memo" });
+    expect((await repo.getTask("t2"))?.name).toBe("（読み取れません）");
+    expect((await repo.listSessionsSince(new Date(0))).map((s) => s.taskName)).toEqual(["Plan", "（読み取れません）"]);
+  });
+
+  test("snapshots wait for the data key, then become readable", async () => {
+    const cipher = fakeCipher(false);
+    const { repo, changed } = setup(30, cipher);
+    repo.handleEvent({ type: "tasks", tasks: [task({ name: "enc(Plan)" })], status: "synced" });
+    expect(changed).not.toHaveBeenCalled();
+    cipher.ready = true;
+    repo.unlocked();
+    expect(changed).toHaveBeenCalledOnce();
+    expect((await repo.getTask("t1"))?.name).toBe("Plan");
+  });
+
+  test("importData encrypts the copied tasks and sessions", async () => {
+    const { repo, requests } = setup();
+    await repo.importData([task({ name: "Local", memo: "m" })], [session({ taskName: "Local" })], {
+      lastSelectedTaskId: "t1",
+    });
+    expect(requests[0]).toMatchObject({
+      op: "importTasks",
+      tasks: [{ name: "enc(Local)", memo: "enc(m)" }],
+      sessions: [{ taskName: "enc(Local)" }],
+      preferences: { lastSelectedTaskId: "t1" },
+    });
   });
 
   test("updating an unknown task fails", async () => {

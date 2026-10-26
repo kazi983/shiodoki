@@ -230,6 +230,13 @@ export const ja = {
     newRecoveryKeyConfirm: "回復キーを再発行しますか？\n今の回復キーは使えなくなります。",
     howItWorks: "暗号化のしくみ",
     close: "閉じる",
+    passphraseTooShort: (min: number) => `パスフレーズは ${min} 文字以上にしてください。`,
+    keysExist: "ほかの PC で暗号化の設定が済んでいます。アプリを再起動して、パスフレーズでロックを解除してください。",
+    needsConnection:
+      "暗号化の設定とはじめてのロック解除には、インターネット接続が必要です。接続してから「再試行」を押してください。",
+    retry: "再試行",
+    /** Shown instead of a task name or memo that cannot be decrypted. */
+    unreadable: "（読み取れません）",
   },
   tray: {
     pickTask: "タスクを選ぶ",

@@ -76,7 +76,8 @@ export function docToTask(id: string, d: DocumentData): Task {
 export function sessionToDoc(s: SessionRecord): Record<string, unknown> {
   return {
     taskId: s.taskId,
-    taskName: s.taskName.slice(0, 200),
+    // Ciphertext: cutting it would make it unreadable (the apps limit the plain text).
+    taskName: s.taskName,
     startedAt: ts(s.startedAt),
     endedAt: ts(s.endedAt),
     elapsedMinutes: s.elapsedMinutes,
@@ -103,7 +104,7 @@ export function desktopStateToDoc(s: DesktopStateData): Record<string, unknown |
   return {
     status: s.status,
     currentTaskId: s.currentTaskId,
-    currentTaskName: s.currentTaskName ? s.currentTaskName.slice(0, 200) : null,
+    currentTaskName: s.currentTaskName,
     startedAt: tsOrNull(s.startedAt),
     nextPromptAt: tsOrNull(s.nextPromptAt),
     heartbeatAt: serverTimestamp(),
