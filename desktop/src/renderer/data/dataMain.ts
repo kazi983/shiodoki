@@ -91,6 +91,12 @@ async function main(): Promise<void> {
         return requireStore().importTasks(request.tasks, request.sessions, request.preferences);
       case "flush":
         return store ? store.flush(request.timeoutMs) : true;
+      case "getKeys":
+        return requireStore().getKeys();
+      case "createKeys":
+        return requireStore().createKeys(request.keys);
+      case "updateKeys":
+        return requireStore().updateKeys(request.patch);
     }
   }
 

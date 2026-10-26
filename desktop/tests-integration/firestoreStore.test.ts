@@ -20,7 +20,7 @@ import {
 } from "firebase/firestore";
 import { EMULATOR_PROJECT_ID } from "@shared/firebaseConfig";
 import type { Task } from "@shared/task";
-import type { PreferencesData } from "@shared/sync";
+import { KEYS_EXIST, type KeysData, type PreferencesData } from "@shared/sync";
 import { FirestoreStore } from "../src/renderer/data/firestoreStore";
 
 let app: FirebaseApp;
@@ -221,6 +221,24 @@ describe("FirestoreStore (rules enforced)", () => {
     expect(snap.data()).toMatchObject({ totalMinutes: 90, sessionCount: 3, updatedBy: "migration" });
     const session = await getDoc(doc(db, `users/${uid}/sessions/${sessionId}`));
     expect(session.data()).toMatchObject({ taskId: imported[0].id, elapsedMinutes: 30 });
+  });
+
+  test("keys: created once, read back, re-wrapped, never replaced", async () => {
+    const wrapped = "e1:" + Buffer.alloc(60, 1).toString("base64");
+    const keys: KeysData = {
+      v: 1,
+      passphrase: { kdf: "PBKDF2-SHA256", iterations: 600000, salt: "c2FsdA==", wrappedKey: wrapped },
+      recovery: { kdf: "HKDF-SHA256", salt: "cmVjb3Zlcnk=", wrappedKey: wrapped },
+    };
+    expect(await store.getKeys()).toBeNull();
+    await store.createKeys(keys);
+    expect(await store.getKeys()).toEqual(keys);
+    await expect(store.createKeys(keys)).rejects.toThrow(KEYS_EXIST);
+
+    const other = "e1:" + Buffer.alloc(60, 2).toString("base64");
+    await store.updateKeys({ recovery: { ...keys.recovery, wrappedKey: other } });
+    expect((await store.getKeys())?.recovery.wrappedKey).toBe(other);
+    expect((await store.getKeys())?.passphrase).toEqual(keys.passphrase);
   });
 
   test("writes to another user's data are rejected by the rules", async () => {

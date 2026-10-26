@@ -239,6 +239,37 @@ describe("state", () => {
     await assertFails(setDoc(ref, { lastSelectedTaskId: 1, updatedAt: serverTimestamp() }));
   });
 
+  // A wrapped 32-byte key: "e1:" + base64(12 + 32 + 16 bytes).
+  const wrapped = "e1:" + Buffer.alloc(60, 7).toString("base64");
+  const keys = {
+    v: 1,
+    passphrase: { kdf: "PBKDF2-SHA256", iterations: 600000, salt: "c2FsdHNhbHRzYWx0c2FsdA==", wrappedKey: wrapped },
+    recovery: { kdf: "HKDF-SHA256", salt: "cmVjb3ZlcnlyZWNvdmVyeQ==", wrappedKey: wrapped },
+    updatedAt: serverTimestamp(),
+  };
+
+  test("the owner can create, read and re-wrap the keys, but never delete them", async () => {
+    const ref = doc(dbAs(ALICE), `users/${ALICE}/state/keys`);
+    await assertSucceeds(setDoc(ref, keys));
+    await assertSucceeds(getDoc(ref));
+    await assertSucceeds(
+      updateDoc(ref, { passphrase: { ...keys.passphrase, salt: "bmV3c2FsdA==" }, updatedAt: serverTimestamp() }),
+    );
+    await assertFails(deleteDoc(ref));
+    await assertFails(getDoc(doc(dbAs(BOB), `users/${ALICE}/state/keys`)));
+    await assertFails(setDoc(doc(dbAs(BOB), `users/${ALICE}/state/keys`), keys));
+  });
+
+  test("rejects keys that are not wrapped, a weak KDF or unknown fields", async () => {
+    const ref = doc(dbAs(ALICE), `users/${ALICE}/state/keys`);
+    await assertFails(setDoc(ref, { ...keys, recovery: { ...keys.recovery, wrappedKey: "plain key" } }));
+    await assertFails(setDoc(ref, { ...keys, passphrase: { ...keys.passphrase, iterations: 1000 } }));
+    await assertFails(setDoc(ref, { ...keys, passphrase: { ...keys.passphrase, kdf: "MD5" } }));
+    await assertFails(setDoc(ref, { ...keys, v: 2 }));
+    await assertFails(setDoc(ref, { ...keys, dek: wrapped }));
+    await assertFails(setDoc(ref, { ...keys, updatedAt: Timestamp.now() }));
+  });
+
   test("other state documents are denied", async () => {
     await assertFails(setDoc(doc(dbAs(ALICE), `users/${ALICE}/state/other`), { a: 1 }));
   });

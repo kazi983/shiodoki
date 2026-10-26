@@ -5,6 +5,7 @@ rules_version = '2';
 //   users/{uid}/sessions/{sessionId}   (append-only)
 //   users/{uid}/state/desktop
 //   users/{uid}/state/preferences
+//   users/{uid}/state/keys             (wrapped data key for end-to-end encryption, docs/e2ee/design.md)
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -82,6 +83,36 @@ service cloud.firestore {
         && d.updatedAt == request.time;
     }
 
+    // AES-256-GCM output of the apps: "e1:" + base64(iv ‖ ciphertext ‖ tag).
+    function isCiphertext(v) {
+      return v is string && v.matches('^e1:[A-Za-z0-9+/]+={0,2}$');
+    }
+
+    function isSalt(v) {
+      return v is string && v.size() > 0 && v.size() <= 64;
+    }
+
+    // The data key wrapped twice: by a passphrase key (PBKDF2) and by the recovery key (HKDF).
+    function isValidKeys(d) {
+      return d.keys().hasOnly(['v', 'passphrase', 'recovery', 'updatedAt'])
+        && d.keys().hasAll(['v', 'passphrase', 'recovery', 'updatedAt'])
+        && d.v == 1
+        && d.passphrase is map
+        && d.passphrase.keys().hasOnly(['kdf', 'iterations', 'salt', 'wrappedKey'])
+        && d.passphrase.keys().hasAll(['kdf', 'iterations', 'salt', 'wrappedKey'])
+        && d.passphrase.kdf == 'PBKDF2-SHA256'
+        && d.passphrase.iterations is int && d.passphrase.iterations >= 100000
+        && isSalt(d.passphrase.salt)
+        && isCiphertext(d.passphrase.wrappedKey) && d.passphrase.wrappedKey.size() <= 200
+        && d.recovery is map
+        && d.recovery.keys().hasOnly(['kdf', 'salt', 'wrappedKey'])
+        && d.recovery.keys().hasAll(['kdf', 'salt', 'wrappedKey'])
+        && d.recovery.kdf == 'HKDF-SHA256'
+        && isSalt(d.recovery.salt)
+        && isCiphertext(d.recovery.wrappedKey) && d.recovery.wrappedKey.size() <= 200
+        && d.updatedAt == request.time;
+    }
+
     match /users/{uid} {
       allow read: if isOwner(uid);
 
@@ -110,6 +141,13 @@ service cloud.firestore {
       match /state/preferences {
         allow read: if isOwner(uid);
         allow create, update: if isOwner(uid) && isValidPreferences(request.resource.data);
+        allow delete: if false;
+      }
+
+      // Never deleted: losing it makes every encrypted value unreadable.
+      match /state/keys {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) && isValidKeys(request.resource.data);
         allow delete: if false;
       }
     }

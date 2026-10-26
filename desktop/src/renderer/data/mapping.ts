@@ -5,7 +5,7 @@
 
 import { Timestamp, serverTimestamp, type DocumentData, type FieldValue } from "firebase/firestore";
 import type { SessionRecord } from "@shared/session";
-import type { DesktopStateData, PreferencesData } from "@shared/sync";
+import type { DesktopStateData, KeysData, PreferencesData } from "@shared/sync";
 import { isPriority, type Task, type TaskPatch, type UpdatedBy } from "@shared/task";
 
 function ts(iso: string): Timestamp {
@@ -115,5 +115,19 @@ export function docToPreferences(d: DocumentData | undefined): PreferencesData {
   return {
     lastSelectedTaskId: typeof d?.lastSelectedTaskId === "string" ? d.lastSelectedTaskId : null,
     nextTaskId: typeof d?.nextTaskId === "string" ? d.nextTaskId : null,
+  };
+}
+
+/** The rules guarantee the shape; only the fields the app knows are kept (updatedAt is dropped). */
+export function docToKeys(d: DocumentData): KeysData {
+  return {
+    v: 1,
+    passphrase: {
+      kdf: "PBKDF2-SHA256",
+      iterations: d.passphrase.iterations,
+      salt: d.passphrase.salt,
+      wrappedKey: d.passphrase.wrappedKey,
+    },
+    recovery: { kdf: "HKDF-SHA256", salt: d.recovery.salt, wrappedKey: d.recovery.wrappedKey },
   };
 }
