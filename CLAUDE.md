@@ -37,12 +37,13 @@ app are written in both Japanese and English; change both together.
   runs both. `.claude/settings.json` formats every file Claude edits. The whole-tree format
   commit is listed in `.git-blame-ignore-revs` (`git config blame.ignoreRevsFile .git-blame-ignore-revs`).
 - `firebase/` — `firestore.rules`, emulator config, rules tests. `npm test` runs the rules tests
-  on the Firestore emulator (Java 21+). `npm run deploy:rules` deploys to project
+  on the Firestore emulator (Java 21+). Emulator scripts go through `scripts/firebase.mjs`, which picks a
+  JDK 21+ even when the shell's `java` is older (`FIREBASE_JAVA_HOME` overrides). `npm run deploy:rules` deploys to project
   `shiodoki-e4e8f` (`.firebaserc`). `npm run backup` (`scripts/backup.mjs`) reads one user's data from production
   with the Admin SDK and Application Default Credentials, read-only (steps in `firebase/README.md`).
 - `desktop/` — Electron + TypeScript + React (electron-vite). Before committing, run in
   `desktop/`: `npm run typecheck`, `npm test`, `npm run test:integration`, `npm run e2e:headless`.
-  Integration and Firebase E2E tests start the emulators via `../firebase/node_modules/.bin/firebase`,
+  Integration and Firebase E2E tests start the emulators via `../firebase/scripts/firebase.mjs`,
   so `npm install` in `firebase/` first. Tests never touch the real Firebase project.
   - `npm run dev` (Firebase), `npm run dev:local` (`TIMER_LOCAL=1`, JSON file only),
     `TASK_MODE=test` shrinks intervals (30 min → 5 s, snooze 5 min → 10 s).
