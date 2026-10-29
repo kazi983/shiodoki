@@ -109,6 +109,24 @@
   <string name="login_no_account">No Google account on this device</string>
   <string name="login_failed">Could not sign in: %1$s</string>
 
+  <!-- Unlock (end-to-end encryption, docs/e2ee/design.md). Terms: docs/i18n/glossary.md -->
+  <string name="unlock_title">Unlock your data</string>
+  <string name="unlock_body">To start syncing on this phone, enter the passphrase or the recovery key you set on your PC. You only do this once on this phone.</string>
+  <string name="unlock_passphrase">Passphrase</string>
+  <string name="unlock_recovery_key">Recovery key</string>
+  <string name="unlock_button">Unlock</string>
+  <string name="unlock_show">Show</string>
+  <string name="unlock_hide">Hide</string>
+  <string name="unlock_wrong_passphrase">That passphrase isn\'t correct. If you forgot it, unlock with your recovery key.</string>
+  <string name="unlock_wrong_recovery_key">That recovery key isn\'t correct. Check the key you saved and try again.</string>
+  <string name="unlock_no_keys_title">Encryption isn\'t set up yet</string>
+  <string name="unlock_no_keys_body">Sign in with the same account in the PC app and set up encryption there first, then tap Retry.</string>
+  <string name="unlock_offline_title">No connection</string>
+  <string name="unlock_offline_body">Unlocking for the first time needs an internet connection. Connect, then tap Retry.</string>
+  <string name="retry">Retry</string>
+  <!-- Shown instead of a task name or memo that cannot be decrypted. -->
+  <string name="unreadable">(Can\'t be read)</string>
+
   <!-- PC status card. %1$s is a styled time inserted by the code. -->
   <string name="pc_running">Running on PC</string>
   <string name="pc_started_at">Started %1$s</string>
@@ -132,6 +150,7 @@
   <!-- Focus service notification -->
   <string name="notification_channel">Focus screen standby</string>
   <string name="notification_sign_in">Sign in to use the focus screen</string>
+  <string name="notification_unlock">Unlock in the app to use the focus screen</string>
   <string name="notification_missing_permission">Missing permissions</string>
   <string name="notification_running">%1$s running (since %2$s)</string>
   <string name="notification_idle">Standing by</string>
