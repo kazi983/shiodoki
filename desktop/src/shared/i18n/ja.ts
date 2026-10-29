@@ -159,15 +159,7 @@ export const ja = {
     quitApp: "アプリを終了",
   },
   login: {
-    windowTitle: "Shiodoki - ログイン",
-    description: <T>(br: T): (string | T)[] => [
-      "タスクを Google アカウントに保存して、",
-      br,
-      "スマホからも確認・編集できるようにします。",
-    ],
     waiting: "ブラウザでログインしてください…",
-    signIn: "Google でログイン",
-    hint: "ログインが終わると、この画面は自動で閉じます。",
     cancelled: "ログインがキャンセルされました",
     timedOut: "ログインがタイムアウトしました",
     pageFailed: "ログインできませんでした",
@@ -238,6 +230,13 @@ export const ja = {
     newRecoveryKeyConfirm: "回復キーを再発行しますか？\n今の回復キーは使えなくなります。",
     howItWorks: "暗号化のしくみ",
     close: "閉じる",
+    passphraseTooShort: (min: number) => `パスフレーズは ${min} 文字以上にしてください。`,
+    keysExist: "ほかの PC で暗号化の設定が済んでいます。アプリを再起動して、パスフレーズでロックを解除してください。",
+    needsConnection:
+      "暗号化の設定とはじめてのロック解除には、インターネット接続が必要です。接続してから「再試行」を押してください。",
+    retry: "再試行",
+    /** Shown instead of a task name or memo that cannot be decrypted. */
+    unreadable: "（読み取れません）",
   },
   tray: {
     pickTask: "タスクを選ぶ",
@@ -265,6 +264,20 @@ export const ja = {
     migrateFailed: (reason: string) => `タスクをコピーできませんでした: ${reason}`,
     alreadyRunning: "Shiodoki はすでに起動しています。",
     bringToFront: "前面に表示",
+  },
+  update: {
+    title: "アップデート",
+    available: (version: string, current: string) => `新しいバージョン ${version} があります（現在 ${current}）。`,
+    availableDetail: "ダウンロードはバックグラウンドで進みます。終わったらもう一度お知らせします。",
+    update: "更新する",
+    whatsNew: "変更点を見る",
+    later: "あとで",
+    downloaded: (version: string) => `${version} の準備ができました。今すぐ再起動して更新しますか？`,
+    downloadedDetail:
+      "計測中のタスクは、時間を記録してから終了します。「終了するときに更新」を選ぶと、次にアプリを終了するときに更新します。",
+    restartNow: "今すぐ再起動",
+    onQuit: "終了するときに更新",
+    failed: (reason: string) => `アップデートをダウンロードできませんでした: ${reason}`,
   },
 };
 

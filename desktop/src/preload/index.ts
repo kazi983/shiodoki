@@ -29,6 +29,23 @@ const api: DesktopApi = {
   auth: {
     signIn: () => ipcRenderer.invoke(IPC.authSignIn),
   },
+  storage: {
+    useLocal: () => ipcRenderer.invoke(IPC.storageUseLocal),
+  },
+  shell: {
+    openGuide: (page) => ipcRenderer.invoke(IPC.shellOpenGuide, page),
+  },
+  encryption: {
+    create: (passphrase) => ipcRenderer.invoke(IPC.encryptionCreate, passphrase),
+    finishSetup: () => ipcRenderer.invoke(IPC.encryptionFinishSetup),
+    unlock: (kind, secret) => ipcRenderer.invoke(IPC.encryptionUnlock, kind, secret),
+    changePassphrase: (kind, secret, newPassphrase) =>
+      ipcRenderer.invoke(IPC.encryptionChangePassphrase, kind, secret, newPassphrase),
+    createRecoveryKey: () => ipcRenderer.invoke(IPC.encryptionCreateRecoveryKey),
+    copyRecoveryKey: (recoveryKey) => ipcRenderer.invoke(IPC.encryptionCopyRecoveryKey, recoveryKey),
+    saveRecoveryKeyToFile: (recoveryKey) => ipcRenderer.invoke(IPC.encryptionSaveRecoveryKey, recoveryKey),
+    signOut: () => ipcRenderer.invoke(IPC.encryptionSignOut),
+  },
   sync: {
     get: () => ipcRenderer.invoke(IPC.syncGet),
   },

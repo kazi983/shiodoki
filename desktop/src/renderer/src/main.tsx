@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+import { StrictMode, useEffect, useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { setLocale } from "@shared/i18n";
 import "@fontsource/noto-sans-jp/400.css";
@@ -11,20 +11,24 @@ import { PickerPage } from "./pages/PickerPage";
 import { ManagementPage } from "./pages/ManagementPage";
 import { OverlayPage } from "./pages/OverlayPage";
 import { LeavePage } from "./pages/LeavePage";
-import { LoginPage } from "./pages/LoginPage";
 import { WelcomePage } from "./pages/WelcomePage";
 import { EncryptionSetupPage } from "./pages/EncryptionSetupPage";
 import { UnlockPage } from "./pages/UnlockPage";
 import { EncryptionSettingsPage } from "./pages/EncryptionSettingsPage";
-import {
-  encryptionSettingsPlaceholder,
-  encryptionSetupPlaceholder,
-  unlockPlaceholder,
-  welcomePlaceholder,
-} from "./backendPlaceholders";
 
 setLocale(window.api.locale);
 document.documentElement.lang = window.api.locale;
+
+const encryption = window.api.encryption;
+
+/** The signed-in account, which the unlock and encryption pages show. */
+function WithEmail({ children }: { children: (email: string) => ReactNode }) {
+  const [email, setEmail] = useState<string | null>(null);
+  useEffect(() => {
+    void window.api.sync.get().then((info) => setEmail(info.email ?? ""));
+  }, []);
+  return email === null ? null : children(email);
+}
 
 function Page() {
   switch (window.location.hash.slice(1)) {
@@ -36,17 +40,52 @@ function Page() {
       return <LeavePage mode="warning" />;
     case "leave-block":
       return <LeavePage mode="block" />;
-    case "login":
-      return <LoginPage />;
-    // TODO(backend): replace the placeholder props with window.api calls.
     case "welcome":
-      return <WelcomePage {...welcomePlaceholder} />;
+      return (
+        <WelcomePage
+          onUseLocal={() => window.api.storage.useLocal()}
+          onSignIn={() => window.api.auth.signIn()}
+          onOpenPrivacy={() => void window.api.shell.openGuide("privacy")}
+        />
+      );
     case "encryption-setup":
-      return <EncryptionSetupPage {...encryptionSetupPlaceholder} />;
+      return (
+        <EncryptionSetupPage
+          onCreate={(passphrase) => encryption.create(passphrase)}
+          onCopy={(key) => encryption.copyRecoveryKey(key)}
+          onSaveToFile={(key) => encryption.saveRecoveryKeyToFile(key)}
+          onDone={() => void encryption.finishSetup()}
+          onSignOut={() => encryption.signOut()}
+        />
+      );
     case "unlock":
-      return <UnlockPage {...unlockPlaceholder} />;
+      return (
+        <WithEmail>
+          {(email) => (
+            <UnlockPage
+              email={email}
+              onUnlock={(kind, secret) => encryption.unlock(kind, secret)}
+              onSignOut={() => encryption.signOut()}
+            />
+          )}
+        </WithEmail>
+      );
     case "encryption":
-      return <EncryptionSettingsPage {...encryptionSettingsPlaceholder} />;
+      return (
+        <WithEmail>
+          {(email) => (
+            <EncryptionSettingsPage
+              email={email}
+              onChangePassphrase={(kind, secret, passphrase) => encryption.changePassphrase(kind, secret, passphrase)}
+              onCreateRecoveryKey={() => encryption.createRecoveryKey()}
+              onCopy={(key) => encryption.copyRecoveryKey(key)}
+              onSaveToFile={(key) => encryption.saveRecoveryKeyToFile(key)}
+              onOpenHowItWorks={() => void window.api.shell.openGuide("privacy")}
+              onClose={() => window.close()}
+            />
+          )}
+        </WithEmail>
+      );
     default:
       return <PickerPage />;
   }

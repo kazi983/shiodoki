@@ -23,6 +23,8 @@ export interface WindowPort {
 export interface LifecyclePort {
   quit(): void;
   relaunch(): void;
+  /** Quits and runs the downloaded update installer, which starts the new version. */
+  installUpdate(): void;
 }
 
 /** none -> warned (5 minutes left) -> blocked (stop time reached) */
@@ -294,6 +296,12 @@ export class AppController {
     await this.shutdown();
     await beforeRelaunch?.();
     this.lifecycle.relaunch();
+  }
+
+  /** Like exit(), but the installer of a downloaded update runs after the session is recorded. */
+  async installUpdate(): Promise<void> {
+    await this.shutdown();
+    this.lifecycle.installUpdate();
   }
 
   private async shutdown(): Promise<void> {

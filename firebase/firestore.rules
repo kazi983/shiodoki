@@ -5,6 +5,7 @@ rules_version = '2';
 //   users/{uid}/sessions/{sessionId}   (append-only)
 //   users/{uid}/state/desktop
 //   users/{uid}/state/preferences
+//   users/{uid}/state/keys             (wrapped data key for end-to-end encryption, docs/e2ee/design.md)
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -24,6 +25,17 @@ service cloud.firestore {
       return v is int && v >= 0;
     }
 
+    // AES-256-GCM output of the apps: "e1:" + base64(iv ‖ ciphertext ‖ tag).
+    function isCiphertext(v) {
+      return v is string && v.matches('^e1:[A-Za-z0-9+/]+={0,2}$');
+    }
+
+    // Size limits for the encrypted form of the apps' 200 / 5000 character limits: up to 3 UTF-8 bytes per UTF-16
+    // unit, + 12 IV + 16 tag, x 4/3 for base64, + the prefix (docs/e2ee/design.md).
+    function isEncryptedName(v) {
+      return isCiphertext(v) && v.size() <= 1000;
+    }
+
     function isValidTask(d) {
       return d.keys().hasAll(['name', 'memo', 'priority', 'completed', 'completedAt',
                               'deleted', 'totalMinutes', 'sessionCount',
@@ -31,8 +43,9 @@ service cloud.firestore {
         && d.keys().hasOnly(['name', 'memo', 'priority', 'completed', 'completedAt',
                              'deleted', 'totalMinutes', 'sessionCount',
                              'createdAt', 'updatedAt', 'updatedBy', 'sortOrder'])
-        && d.name is string && d.name.size() > 0 && d.name.size() <= 200
-        && d.memo is string && d.memo.size() <= 5000
+        // Task names and memos are end-to-end encrypted; an empty memo stays empty.
+        && isEncryptedName(d.name)
+        && (d.memo == '' || (isCiphertext(d.memo) && d.memo.size() <= 21000))
         && d.priority in ['NOW', 'ROUTINE', 'SOONER', 'ANYTIME', 'SOMEDAY', 'BREAK']
         && d.completed is bool
         && isNullOrTimestamp(d.completedAt)
@@ -53,7 +66,7 @@ service cloud.firestore {
         && d.keys().hasAll(['taskId', 'taskName', 'startedAt', 'endedAt',
                             'elapsedMinutes', 'endReason', 'device'])
         && d.taskId is string && d.taskId.size() > 0
-        && d.taskName is string && d.taskName.size() <= 200
+        && isEncryptedName(d.taskName)
         && d.startedAt is timestamp
         && d.endedAt is timestamp
         && d.endedAt >= d.startedAt
@@ -68,7 +81,7 @@ service cloud.firestore {
         && d.keys().hasAll(['status', 'heartbeatAt', 'device'])
         && d.status in ['idle', 'running', 'snoozed', 'leave_blocked', 'stopped']
         && isNullOrString(d.get('currentTaskId', null))
-        && isNullOrString(d.get('currentTaskName', null))
+        && (d.get('currentTaskName', null) == null || isEncryptedName(d.currentTaskName))
         && isNullOrTimestamp(d.get('startedAt', null))
         && isNullOrTimestamp(d.get('nextPromptAt', null))
         && d.heartbeatAt == request.time
@@ -79,6 +92,31 @@ service cloud.firestore {
       return d.keys().hasOnly(['lastSelectedTaskId', 'nextTaskId', 'updatedAt'])
         && isNullOrString(d.get('lastSelectedTaskId', null))
         && isNullOrString(d.get('nextTaskId', null))
+        && d.updatedAt == request.time;
+    }
+
+    function isSalt(v) {
+      return v is string && v.size() > 0 && v.size() <= 64;
+    }
+
+    // The data key wrapped twice: by a passphrase key (PBKDF2) and by the recovery key (HKDF).
+    function isValidKeys(d) {
+      return d.keys().hasOnly(['v', 'passphrase', 'recovery', 'updatedAt'])
+        && d.keys().hasAll(['v', 'passphrase', 'recovery', 'updatedAt'])
+        && d.v == 1
+        && d.passphrase is map
+        && d.passphrase.keys().hasOnly(['kdf', 'iterations', 'salt', 'wrappedKey'])
+        && d.passphrase.keys().hasAll(['kdf', 'iterations', 'salt', 'wrappedKey'])
+        && d.passphrase.kdf == 'PBKDF2-SHA256'
+        && d.passphrase.iterations is int && d.passphrase.iterations >= 100000
+        && isSalt(d.passphrase.salt)
+        && isCiphertext(d.passphrase.wrappedKey) && d.passphrase.wrappedKey.size() <= 200
+        && d.recovery is map
+        && d.recovery.keys().hasOnly(['kdf', 'salt', 'wrappedKey'])
+        && d.recovery.keys().hasAll(['kdf', 'salt', 'wrappedKey'])
+        && d.recovery.kdf == 'HKDF-SHA256'
+        && isSalt(d.recovery.salt)
+        && isCiphertext(d.recovery.wrappedKey) && d.recovery.wrappedKey.size() <= 200
         && d.updatedAt == request.time;
     }
 
@@ -110,6 +148,13 @@ service cloud.firestore {
       match /state/preferences {
         allow read: if isOwner(uid);
         allow create, update: if isOwner(uid) && isValidPreferences(request.resource.data);
+        allow delete: if false;
+      }
+
+      // Never deleted: losing it makes every encrypted value unreadable.
+      match /state/keys {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) && isValidKeys(request.resource.data);
         allow delete: if false;
       }
     }

@@ -49,7 +49,7 @@ class FakeWindows implements WindowPort {
 let dir: string;
 let file: string;
 let windows: FakeWindows;
-let lifecycle: { quit: Mock<() => void>; relaunch: Mock<() => void> };
+let lifecycle: { quit: Mock<() => void>; relaunch: Mock<() => void>; installUpdate: Mock<() => void> };
 let tasks: TaskService;
 let controller: AppController;
 
@@ -64,7 +64,7 @@ beforeEach(async () => {
   dir = mkdtempSync(join(tmpdir(), "controller-test-"));
   file = join(dir, "store.json");
   windows = new FakeWindows();
-  lifecycle = { quit: vi.fn<() => void>(), relaunch: vi.fn<() => void>() };
+  lifecycle = { quit: vi.fn<() => void>(), relaunch: vi.fn<() => void>(), installUpdate: vi.fn<() => void>() };
   tasks = new TaskService(new JsonFileTaskRepository(file));
   controller = new AppController(tasks, new SessionService("pc"), new TimerService(), windows, lifecycle, {
     intervalMs: INTERVAL,
@@ -354,6 +354,19 @@ describe("lifecycle", () => {
     await controller.restart();
     expect(storedSessions()).toMatchObject([{ elapsedMinutes: 3, endReason: "app_exit" }]);
     expect(lifecycle.relaunch).toHaveBeenCalledOnce();
+  });
+
+  test("installing an update records the session before the installer runs", async () => {
+    const t = await addTask();
+    await controller.startSession({ taskId: t.id, leave: LEAVE });
+    await vi.advanceTimersByTimeAsync(4 * MIN);
+    lifecycle.installUpdate.mockImplementation(() => {
+      expect(storedSessions()).toMatchObject([{ elapsedMinutes: 4, endReason: "app_exit" }]);
+    });
+    await controller.installUpdate();
+    expect(lifecycle.installUpdate).toHaveBeenCalledOnce();
+    expect(lifecycle.quit).not.toHaveBeenCalled();
+    expect(controller.isShuttingDown).toBe(true);
   });
 
   test("management back button returns to the picker", () => {

@@ -88,9 +88,15 @@ async function main(): Promise<void> {
       case "countRemoteTasks":
         return requireStore().countRemoteTasks();
       case "importTasks":
-        return requireStore().importTasks(request.tasks, request.preferences);
+        return requireStore().importTasks(request.tasks, request.sessions, request.preferences);
       case "flush":
         return store ? store.flush(request.timeoutMs) : true;
+      case "getKeys":
+        return requireStore().getKeys();
+      case "createKeys":
+        return requireStore().createKeys(request.keys);
+      case "updateKeys":
+        return requireStore().updateKeys(request.patch);
     }
   }
 

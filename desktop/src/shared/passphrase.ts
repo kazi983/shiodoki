@@ -5,6 +5,9 @@
 
 export const MIN_PASSPHRASE_LENGTH = 10;
 
+/** How the user proves who they are: the passphrase or the recovery key. */
+export type SecretKind = "passphrase" | "recoveryKey";
+
 export interface PassphraseChecks {
   longEnough: boolean;
   matches: boolean;

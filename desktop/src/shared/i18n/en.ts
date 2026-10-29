@@ -158,11 +158,7 @@ export const en: Messages = {
     quitApp: "Quit Shiodoki",
   },
   login: {
-    windowTitle: "Shiodoki - Sign in",
-    description: (br) => ["Save your tasks to your Google account", br, "to view and edit them from your phone too."],
     waiting: "Sign in in your browser…",
-    signIn: "Sign in with Google",
-    hint: "This window closes automatically after you sign in.",
     cancelled: "Sign-in was canceled",
     timedOut: "Sign-in timed out",
     pageFailed: "Could not sign in",
@@ -234,6 +230,12 @@ export const en: Messages = {
     newRecoveryKeyConfirm: "Create a new recovery key?\nYour current recovery key will stop working.",
     howItWorks: "How encryption works",
     close: "Close",
+    passphraseTooShort: (min) => `The passphrase must be at least ${min} characters.`,
+    keysExist: "Encryption was already set up on another PC. Restart the app and unlock with your passphrase.",
+    needsConnection:
+      "Setting up encryption and unlocking for the first time need an internet connection. Connect, then choose Retry.",
+    retry: "Retry",
+    unreadable: "(Can't be read)",
   },
   tray: {
     pickTask: "Pick a task",
@@ -260,5 +262,19 @@ export const en: Messages = {
     migrateFailed: (reason) => `Could not copy the tasks: ${reason}`,
     alreadyRunning: "Shiodoki is already running.",
     bringToFront: "Bring to front",
+  },
+  update: {
+    title: "Update",
+    available: (version, current) => `Version ${version} is available (you have ${current}).`,
+    availableDetail: "It downloads in the background. You will be asked again when it is ready.",
+    update: "Update",
+    whatsNew: "See what's new",
+    later: "Later",
+    downloaded: (version) => `Version ${version} is ready. Restart now to update?`,
+    downloadedDetail:
+      "The running task's time is recorded first. Choose “Update when I quit” to update the next time you quit the app.",
+    restartNow: "Restart now",
+    onQuit: "Update when I quit",
+    failed: (reason) => `Could not download the update: ${reason}`,
   },
 };

@@ -5,7 +5,10 @@ import { centeredBounds, clampOverlayOffset } from "./geometry";
 import { t } from "@shared/i18n";
 import { IPC } from "@shared/ipc";
 
-export type Route = "picker" | "management" | "overlay" | "leave-warning" | "leave-block" | "login";
+export type Route = "picker" | "management" | "overlay" | "leave-warning" | "leave-block" | FlowRoute | "encryption";
+
+/** Before the picker can open: choose the storage, then (cloud) set up or unlock the encryption. One at a time. */
+export type FlowRoute = "welcome" | "encryption-setup" | "unlock";
 
 /** Collapsed: timer ring tab. Expanded (hover): task name, remaining time and the complete button. */
 const OVERLAY_SIZE = {
@@ -20,8 +23,8 @@ export interface WindowHandlers {
   onManagementClosedByUser(): void;
   /** Warning closed by the user. */
   onWarningClosedByUser(): void;
-  /** Sign-in window closed before signing in -> quit. */
-  onLoginClosedByUser(): void;
+  /** Welcome closed -> quit; encryption setup or unlock closed -> sign out (no signed-in state without a key). */
+  onFlowClosedByUser(route: FlowRoute): void;
   /** The user dropped the overlay tab: px from the top of the work area, to persist. */
   onOverlayMoved(offsetY: number): void;
   isQuitting(): boolean;
@@ -41,7 +44,8 @@ export class WindowManager implements WindowPort {
   /** While dragging: cursor y minus the overlay top when the drag started. */
   private overlayGrabOffset = 0;
   private leave: BrowserWindow | null = null;
-  private login: BrowserWindow | null = null;
+  private flow: { route: FlowRoute; win: BrowserWindow } | null = null;
+  private encryption: BrowserWindow | null = null;
   private lastDisplayId: number | null = null;
   /** Set while closing a window from code, so "closed by user" handlers do not fire. */
   private closingProgrammatically = new WeakSet<BrowserWindow>();
@@ -177,26 +181,56 @@ export class WindowManager implements WindowPort {
     if (this.overlayOffset !== null) this.handlers.onOverlayMoved(this.overlayOffset);
   }
 
-  showLogin(): void {
-    if (this.login && !this.login.isDestroyed()) {
-      this.focus(this.login);
-      return;
+  /** Opens the given step, replacing the step shown before. */
+  showFlow(route: FlowRoute): void {
+    if (this.flow && !this.flow.win.isDestroyed()) {
+      if (this.flow.route === route) {
+        this.focus(this.flow.win);
+        return;
+      }
+      this.closeQuietly(this.flow.win);
     }
-    this.login = this.create("login", {
-      title: t().login.windowTitle,
+    const { welcome, encryption } = t();
+    const titles: Record<FlowRoute, string> = {
+      welcome: welcome.windowTitle,
+      "encryption-setup": encryption.setupWindowTitle,
+      unlock: encryption.unlockWindowTitle,
+    };
+    const win = this.create(route, {
+      title: titles[route],
       width: 520,
       height: 560,
       minWidth: 420,
       minHeight: 480,
     });
-    this.login.on("close", () => {
-      if (!this.isProgrammatic(this.login)) this.handlers.onLoginClosedByUser();
+    win.on("close", () => {
+      if (!this.isProgrammatic(win)) this.handlers.onFlowClosedByUser(route);
     });
-    this.login.on("closed", () => (this.login = null));
+    win.on("closed", () => {
+      if (this.flow?.win === win) this.flow = null;
+    });
+    this.flow = { route, win };
   }
 
-  closeLogin(): void {
-    this.closeQuietly(this.login);
+  closeFlow(): void {
+    this.closeQuietly(this.flow?.win ?? null);
+  }
+
+  /** Tray "Encryption…": change the passphrase, create a new recovery key. */
+  showEncryption(): void {
+    if (this.encryption && !this.encryption.isDestroyed()) {
+      this.focus(this.encryption);
+      return;
+    }
+    this.encryption = this.create("encryption", {
+      title: t().encryption.settingsWindowTitle,
+      width: 560,
+      height: 720,
+      minWidth: 480,
+      minHeight: 560,
+      alwaysOnTop: true,
+    });
+    this.encryption.on("closed", () => (this.encryption = null));
   }
 
   showLeave(mode: "warning" | "block"): void {
@@ -250,7 +284,9 @@ export class WindowManager implements WindowPort {
    */
   dialogParent(): BrowserWindow | null {
     return (
-      [this.leave, this.login, this.picker, this.management].find((w) => w && !w.isDestroyed() && w.isVisible()) ?? null
+      [this.leave, this.flow?.win ?? null, this.encryption, this.picker, this.management].find(
+        (w) => w && !w.isDestroyed() && w.isVisible(),
+      ) ?? null
     );
   }
 
