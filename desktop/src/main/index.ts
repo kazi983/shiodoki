@@ -448,11 +448,11 @@ function wire(repo: TaskRepository, syncInfo: () => SyncInfo, { firebase, signIn
       openEncryption: firebase ? () => wm.showEncryption() : undefined,
       signInToSync,
       language: {
-        current: loadLanguageSetting(settingsFile()),
+        current: () => loadLanguageSetting(settingsFile()),
         change: (value) => void changeLanguage(value, controller, wm),
       },
       leaveDefaults: {
-        current: loadLeaveDefaults(settingsFile()),
+        current: () => loadLeaveDefaults(settingsFile()),
         change: (patch) => saveLeaveDefaults(settingsFile(), patch),
       },
     },

@@ -15,9 +15,9 @@ export interface TrayActions {
   signInToSync?: () => void;
   /** Cloud mode only: change the passphrase, create a new recovery key. */
   openEncryption?: () => void;
-  language: { current: LanguageSetting; change(value: LanguageSetting): void };
+  language: { current(): LanguageSetting; change(value: LanguageSetting): void };
   /** Initial leave inputs of the next picker; a running leave schedule is not changed. */
-  leaveDefaults: { current: LeaveDefaults; change(patch: Partial<LeaveDefaults>): void };
+  leaveDefaults: { current(): LeaveDefaults; change(patch: Partial<LeaveDefaults>): void };
 }
 
 /**
@@ -30,8 +30,12 @@ export function createTray(actions: TrayActions, testMode: boolean): Tray | null
     const tray = new Tray(icon);
     tray.setToolTip(testMode ? "Shiodoki (TEST)" : "Shiodoki");
     const { common, tray: text } = t();
-    tray.setContextMenu(
-      Menu.buildFromTemplate([
+    // AppIndicator (Linux) does not redraw radio items after a click, so the menu is rebuilt after each choice.
+    const refresh = () => tray.setContextMenu(buildMenu());
+    const buildMenu = (): Menu => {
+      const leave = actions.leaveDefaults.current();
+      const language = actions.language.current();
+      return Menu.buildFromTemplate([
         { label: text.pickTask, click: actions.openPicker },
         { label: common.manageTasks, click: actions.openManagement },
         {
@@ -42,8 +46,11 @@ export function createTray(actions: TrayActions, testMode: boolean): Tray | null
               submenu: [null, ...LEAVE_TIME_PRESETS].map((value) => ({
                 label: value ?? text.noLeaveTime,
                 type: "radio" as const,
-                checked: value === actions.leaveDefaults.current.leaveTime,
-                click: () => actions.leaveDefaults.change({ leaveTime: value }),
+                checked: value === leave.leaveTime,
+                click: () => {
+                  actions.leaveDefaults.change({ leaveTime: value });
+                  refresh();
+                },
               })),
             },
             {
@@ -51,8 +58,11 @@ export function createTray(actions: TrayActions, testMode: boolean): Tray | null
               submenu: BUFFER_OPTIONS.map((minutes) => ({
                 label: text.bufferOption(minutes),
                 type: "radio" as const,
-                checked: minutes === actions.leaveDefaults.current.bufferMinutes,
-                click: () => actions.leaveDefaults.change({ bufferMinutes: minutes }),
+                checked: minutes === leave.bufferMinutes,
+                click: () => {
+                  actions.leaveDefaults.change({ bufferMinutes: minutes });
+                  refresh();
+                },
               })),
             },
           ],
@@ -62,8 +72,11 @@ export function createTray(actions: TrayActions, testMode: boolean): Tray | null
           submenu: LANGUAGE_SETTINGS.map((value) => ({
             label: value === "system" ? t().language.system : LANGUAGE_NAMES[value],
             type: "radio" as const,
-            checked: value === actions.language.current,
-            click: () => actions.language.change(value),
+            checked: value === language,
+            click: () => {
+              actions.language.change(value);
+              refresh();
+            },
           })),
         },
         { type: "separator" },
@@ -72,8 +85,9 @@ export function createTray(actions: TrayActions, testMode: boolean): Tray | null
         { label: common.restart, click: actions.restart },
         ...(actions.logout ? [{ label: common.logout, click: actions.logout }] : []),
         { label: common.quit, click: actions.exit },
-      ]),
-    );
+      ]);
+    };
+    refresh();
     return tray;
   } catch (error) {
     console.warn("Tray icon is not available:", error);
