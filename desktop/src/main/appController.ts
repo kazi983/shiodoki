@@ -58,6 +58,7 @@ export interface AppControllerOptions {
  *   picker --start--> running (overlay) --30 min / overlay click--> picker
  *   picker --snooze (Esc / close)--> snoozed --5 min--> picker
  *   any --leave warning--> warning window; --leave stop--> block window
+ *   any --screen off--> session recorded, nothing scheduled --screen on--> picker
  *
  * Every path that ends a session goes through finishSession(), which
  * records the session exactly once.
@@ -68,6 +69,8 @@ export class AppController {
   private intervalTimer: string | null = null;
   private snoozeTimer: string | null = null;
   private shuttingDown = false;
+  private started = false;
+  private screenOff = false;
   private nextPromptAt: Date | null = null;
   private readonly leave: LeaveScheduleService;
   private readonly now: () => Date;
@@ -92,6 +95,7 @@ export class AppController {
   }
 
   start(): void {
+    this.started = true;
     this.showPicker();
   }
 
@@ -238,7 +242,8 @@ export class AppController {
   // -------------------------
 
   private onLeaveWarning(): void {
-    if (this.leavePhase !== "none") return;
+    // While the screen is off, onScreenOn() checks the times instead.
+    if (this.screenOff || this.leavePhase !== "none") return;
     this.leavePhase = "warned";
     this.windows.closePicker();
     this.windows.showLeave("warning");
@@ -249,6 +254,7 @@ export class AppController {
   }
 
   private async onLeaveStop(): Promise<void> {
+    if (this.screenOff) return;
     this.leavePhase = "blocked";
     this.timer.cancel(this.intervalTimer);
     this.intervalTimer = null;
@@ -260,6 +266,55 @@ export class AppController {
     this.windows.closeManagement();
     this.windows.closeLeave();
     this.windows.showLeave("block");
+  }
+
+  // -------------------------
+  // screen off / on
+  // -------------------------
+
+  /**
+   * The screen blanked or locked, or the system is suspending: the user has
+   * left. The running session ends here and nothing is shown until the
+   * screen is back (like Android's focus screen).
+   */
+  async onScreenOff(): Promise<void> {
+    if (!this.started || this.screenOff || this.shuttingDown) return;
+    this.screenOff = true;
+    this.timer.cancel(this.intervalTimer);
+    this.intervalTimer = null;
+    this.cancelSnooze();
+    await this.finishSession("screen_off");
+    if (this.status === "snoozed") {
+      this.nextPromptAt = null;
+      this.setStatus("idle");
+    }
+  }
+
+  /** The screen is back (unlocked, or resumed without a lock): ask what to work on next. */
+  onScreenOn(): void {
+    if (!this.screenOff || this.shuttingDown) return;
+    this.screenOff = false;
+    if (this.leavePhase === "blocked") return;
+
+    const schedule = this.leave.current;
+    const now = this.now();
+    if (schedule && schedule.stopAt.getTime() <= now.getTime()) {
+      // The stop time passed while away: the user stopped in time, so start over without a schedule.
+      this.leave.cancel();
+      this.leavePhase = "none";
+      this.windows.closeLeave();
+    } else if (schedule) {
+      this.leave.rearm(now);
+      if (schedule.warnAt.getTime() <= now.getTime()) this.leavePhase = "warned";
+    }
+
+    // Same as the 30-minute mark: after the warning, show it again instead of the picker.
+    if (this.leavePhase === "warned") {
+      this.windows.closePicker();
+      this.windows.showLeave("warning");
+      return;
+    }
+    this.showPicker();
   }
 
   // -------------------------

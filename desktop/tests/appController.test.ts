@@ -257,6 +257,145 @@ describe("leave schedule", () => {
   });
 });
 
+describe("screen off / on", () => {
+  test("screen off records the running session; screen on shows the picker", async () => {
+    const t = await addTask();
+    await controller.startSession({ taskId: t.id, leave: LEAVE });
+    await vi.advanceTimersByTimeAsync(12 * MIN);
+
+    await controller.onScreenOff();
+    expect(storedSessions()).toMatchObject([{ elapsedMinutes: 12, endReason: "screen_off" }]);
+    expect(windows.overlay).toBe(false);
+    expect(controller.currentStatus).toBe("idle");
+
+    // Locked for an hour: the 30-minute mark does not fire.
+    windows.calls = [];
+    await vi.advanceTimersByTimeAsync(60 * MIN);
+    expect(windows.calls).toEqual([]);
+
+    controller.onScreenOn();
+    expect(windows.calls).toEqual(["showPicker"]);
+    expect(controller.currentStatus).toBe("idle");
+    expect(storedSessions()).toHaveLength(1);
+  });
+
+  test("screen off cancels the snooze", async () => {
+    controller.snooze();
+    await controller.onScreenOff();
+    expect(controller.currentStatus).toBe("idle");
+    windows.calls = [];
+    await vi.advanceTimersByTimeAsync(SNOOZE);
+    expect(windows.calls).toEqual([]);
+    controller.onScreenOn();
+    expect(windows.calls).toEqual(["showPicker"]);
+  });
+
+  test("repeated or unmatched events do nothing", async () => {
+    const t = await addTask();
+    await controller.startSession({ taskId: t.id, leave: LEAVE });
+    windows.calls = [];
+    controller.onScreenOn();
+    expect(windows.calls).toEqual([]);
+    expect(controller.currentStatus).toBe("running");
+
+    await controller.onScreenOff();
+    await controller.onScreenOff();
+    expect(storedSessions()).toHaveLength(1);
+  });
+
+  test("stop time passed while locked: no block, the schedule is cleared and the picker is shown", async () => {
+    const t = await addTask();
+    vi.setSystemTime(new Date(2026, 9, 6, 22, 50));
+    await controller.startSession({ taskId: t.id, leave: LEAVE });
+    await vi.advanceTimersByTimeAsync(10 * MIN);
+    await controller.onScreenOff();
+
+    // 23:10 warning and 23:15 stop pass while locked
+    await vi.advanceTimersByTimeAsync(30 * MIN);
+    expect(windows.leave).toBeNull();
+    expect(controller.currentStatus).toBe("idle");
+
+    controller.onScreenOn();
+    expect(windows.leave).toBeNull();
+    expect(windows.picker).toBe(true);
+    expect((await controller.getPickerState()).leave).toBeNull();
+    expect(storedSessions()).toMatchObject([{ elapsedMinutes: 10, endReason: "screen_off" }]);
+    // A new session asks for the leave time again
+    await expect(controller.startSession({ taskId: t.id })).rejects.toThrow();
+  });
+
+  test("stop time passed while suspended (timers paused): the picker is shown", async () => {
+    const t = await addTask();
+    vi.setSystemTime(new Date(2026, 9, 6, 22, 50));
+    await controller.startSession({ taskId: t.id, leave: LEAVE });
+    await controller.onScreenOff();
+    // Suspended: the clock moves but no timer runs
+    vi.setSystemTime(new Date(2026, 9, 6, 23, 40));
+    controller.onScreenOn();
+    expect(windows.picker).toBe(true);
+    expect((await controller.getPickerState()).leave).toBeNull();
+    await vi.advanceTimersByTimeAsync(60 * MIN);
+    expect(windows.leave).toBeNull();
+  });
+
+  test("warning time passed while suspended: the warning is shown and the stop follows the wall clock", async () => {
+    const t = await addTask();
+    vi.setSystemTime(new Date(2026, 9, 6, 22, 50));
+    await controller.startSession({ taskId: t.id, leave: LEAVE });
+    await controller.onScreenOff();
+    windows.calls = [];
+    vi.setSystemTime(new Date(2026, 9, 6, 23, 12));
+    controller.onScreenOn();
+    expect(windows.leave).toBe("warning");
+    expect(windows.calls).toEqual([]);
+
+    // 23:15 stop, 3 minutes later by the wall clock
+    await vi.advanceTimersByTimeAsync(3 * MIN);
+    expect(windows.leave).toBe("block");
+    expect(controller.currentStatus).toBe("leave_blocked");
+  });
+
+  test("before the warning time, the leave timers are rearmed from the wall clock", async () => {
+    const t = await addTask();
+    vi.setSystemTime(new Date(2026, 9, 6, 22, 0));
+    await controller.startSession({ taskId: t.id, leave: LEAVE });
+    await controller.onScreenOff();
+    // Suspended from 22:00 to 23:00: the timers did not move
+    vi.setSystemTime(new Date(2026, 9, 6, 23, 0));
+    controller.onScreenOn();
+    expect(windows.picker).toBe(true);
+    await vi.advanceTimersByTimeAsync(10 * MIN);
+    expect(windows.leave).toBe("warning");
+    await vi.advanceTimersByTimeAsync(5 * MIN);
+    expect(windows.leave).toBe("block");
+  });
+
+  test("the block stays through screen off and on", async () => {
+    const t = await addTask();
+    vi.setSystemTime(new Date(2026, 9, 6, 23, 0));
+    await controller.startSession({ taskId: t.id, leave: LEAVE });
+    await vi.advanceTimersByTimeAsync(15 * MIN);
+    expect(windows.leave).toBe("block");
+    await controller.onScreenOff();
+    controller.onScreenOn();
+    expect(windows.leave).toBe("block");
+    expect(windows.picker).toBe(false);
+    expect(controller.currentStatus).toBe("leave_blocked");
+  });
+
+  test("ignored before start (e.g. on the login screen)", async () => {
+    const c = new AppController(tasks, new SessionService("pc"), new TimerService(), windows, lifecycle, {
+      intervalMs: INTERVAL,
+      snoozeMs: SNOOZE,
+      testMode: false,
+    });
+    windows.calls = [];
+    await c.onScreenOff();
+    c.onScreenOn();
+    expect(windows.calls).toEqual([]);
+  });
+});
+
 describe("status reporting (state/desktop)", () => {
   test("the session is recorded before idle is reported", async () => {
     const order: string[] = [];

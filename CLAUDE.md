@@ -86,6 +86,9 @@ written in Japanese.
   resolve once the server acknowledges, which never happens offline).
 - Google sign-in uses the system browser (loopback + PKCE, `googleOAuth.ts`), then
   `signInWithCredential` with the Google ID token.
+- Screen off (idle blank, lock, suspend) ends the running session as `screen_off` and screen on shows
+  the picker (`screenStateMonitor.ts`: `powerMonitor` plus, on Linux, GNOME's `ActiveChanged` via
+  `gdbus monitor`). Timers stop during suspend, so leave times are rechecked by the wall clock.
 - `desktopStateReporter.ts` writes `users/{uid}/state/desktop` on every status change plus a
   5-minute heartbeat.
 - Renderer pages (`src/renderer/src/pages/`) only call `window.api` (preload, typed by

@@ -25,6 +25,7 @@ import {
 import { JsonFileTaskRepository, type TaskRepository } from "./taskRepository";
 import { TaskService } from "./taskService";
 import { TimerService } from "./timerService";
+import { watchScreenState } from "./screenStateMonitor";
 import { createTray } from "./tray";
 import { WindowManager } from "./windowManager";
 
@@ -306,6 +307,7 @@ function wire(repo: TaskRepository, syncInfo: () => SyncInfo, firebase?: Firebas
     loadOverlayOffset(settingsFile()),
   );
   const wm = windows;
+  let stopScreenWatch = (): void => {};
 
   controller = new AppController(
     tasks,
@@ -315,12 +317,14 @@ function wire(repo: TaskRepository, syncInfo: () => SyncInfo, firebase?: Firebas
     {
       quit: () => {
         quitting = true;
+        stopScreenWatch();
         firebase?.reporter.stop();
         wm.destroyAll();
         app.quit();
       },
       relaunch: () => {
         quitting = true;
+        stopScreenWatch();
         app.relaunch();
         app.exit(0);
       },
@@ -334,6 +338,11 @@ function wire(repo: TaskRepository, syncInfo: () => SyncInfo, firebase?: Firebas
       beforeQuit: firebase?.beforeQuit,
     },
   );
+
+  stopScreenWatch = watchScreenState({
+    onOff: () => void controller.onScreenOff(),
+    onOn: () => controller.onScreenOn(),
+  });
 
   registerIpcHandlers(controller, tasks, wm, {
     signIn: firebase?.signIn ?? (async () => {}),

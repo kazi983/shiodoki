@@ -1,4 +1,5 @@
-export type EndReason = "completed" | "interval" | "leave_stop" | "app_exit";
+/** `screen_off`: the screen blanked or locked, or the system suspended (Android: screen turned off). */
+export type EndReason = "completed" | "interval" | "leave_stop" | "app_exit" | "screen_off";
 
 /** One finished work session. Mirrors users/{uid}/sessions/{sessionId}. */
 export interface SessionRecord {
