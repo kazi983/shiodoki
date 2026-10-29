@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "emulators": "firebase emulators:start --project demo-shiodoki",
-    "test": "firebase emulators:exec --only firestore --project demo-shiodoki \"vitest run\"",
+    "emulators": "node scripts/firebase.mjs emulators:start --project demo-shiodoki",
+    "test": "node scripts/firebase.mjs emulators:exec --only firestore --project demo-shiodoki \"vitest run\"",
     "deploy:rules": "firebase deploy --only firestore:rules,firestore:indexes",
     "backup": "node scripts/backup.mjs"
   },
