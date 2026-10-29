@@ -34,46 +34,49 @@ export function WelcomePage({ onUseLocal, onSignIn, onOpenPrivacy }: WelcomePage
   return (
     <main className="flow">
       <header className="flow-header">
-        <span className="brand mono">SHIODOKI</span>
         <h1>{text.title}</h1>
-        <p className="sub">{text.subtitle}</p>
+        <p className="sub">{text.intro}</p>
       </header>
 
-      <div className="choice-list">
-        <button
-          type="button"
-          className="choice choice-primary"
-          disabled={busy !== null}
-          onClick={() => void run("local", onUseLocal)}
-        >
-          <span className="choice-icon">
-            <MonitorIcon />
-          </span>
-          <span className="choice-text">
-            <span className="choice-title">
-              {text.localTitle}
-              <span className="badge-ok">{text.recommended}</span>
-            </span>
-            <span className="choice-body">{text.localBody}</span>
-          </span>
-        </button>
+      <section className="storage-choice">
+        <div className="storage-choice-header">
+          <h2>{text.storageTitle}</h2>
+          <p className="sub">{text.subtitle}</p>
+        </div>
 
-        <button
-          type="button"
-          className="choice"
-          disabled={busy !== null}
-          aria-busy={busy === "cloud"}
-          onClick={() => void run("cloud", onSignIn)}
-        >
-          <span className="choice-icon">
-            <CloudLockIcon />
-          </span>
-          <span className="choice-text">
-            <span className="choice-title">{text.cloudTitle}</span>
-            <span className="choice-body">{busy === "cloud" ? t().login.waiting : text.cloudBody}</span>
-          </span>
-        </button>
-      </div>
+        <div className="choice-list">
+          <button
+            type="button"
+            className="choice choice-primary"
+            disabled={busy !== null}
+            onClick={() => void run("local", onUseLocal)}
+          >
+            <span className="choice-icon">
+              <MonitorIcon />
+            </span>
+            <span className="choice-text">
+              <span className="choice-title">{text.localTitle}</span>
+              <span className="choice-body">{text.localBody}</span>
+            </span>
+          </button>
+
+          <button
+            type="button"
+            className="choice"
+            disabled={busy !== null}
+            aria-busy={busy === "cloud"}
+            onClick={() => void run("cloud", onSignIn)}
+          >
+            <span className="choice-icon">
+              <CloudLockIcon />
+            </span>
+            <span className="choice-text">
+              <span className="choice-title">{text.cloudTitle}</span>
+              <span className="choice-body">{busy === "cloud" ? t().login.waiting : text.cloudBody}</span>
+            </span>
+          </button>
+        </div>
+      </section>
 
       <footer className="flow-footer flow-footer-note">
         <span>{text.changeLater}</span>
