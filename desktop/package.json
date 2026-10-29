@@ -1,7 +1,7 @@
 {
   "name": "shiodoki",
   "productName": "Shiodoki",
-  "version": "2.0.0-alpha.2",
+  "version": "2.0.0-alpha.3",
   "description": "Desktop app that asks what to work on every 30 minutes and tracks time per task",
   "private": true,
   "main": "./out/main/index.js",
@@ -16,9 +16,9 @@
     "dist:linux": "electron-vite build && electron-builder --linux",
     "dist:win": "electron-vite build && electron-builder --win",
     "e2e": "electron-vite build && node e2e/smoke.mjs",
-    "e2e:headless": "electron-vite build && xvfb-run -a -s \"-screen 0 1920x1080x24\" node e2e/smoke.mjs && ../firebase/node_modules/.bin/firebase emulators:exec --config ../firebase/firebase.json --only auth,firestore --project demo-shiodoki \"xvfb-run -a -s '-screen 0 1920x1080x24' node e2e/firebase.mjs\"",
-    "test:integration": "../firebase/node_modules/.bin/firebase emulators:exec --config ../firebase/firebase.json --only auth,firestore --project demo-shiodoki \"vitest run --config vitest.integration.config.ts\"",
-    "e2e:firebase": "electron-vite build && ../firebase/node_modules/.bin/firebase emulators:exec --config ../firebase/firebase.json --only auth,firestore --project demo-shiodoki \"node e2e/firebase.mjs\"",
+    "e2e:headless": "electron-vite build && xvfb-run -a -s \"-screen 0 1920x1080x24\" node e2e/smoke.mjs && node ../firebase/scripts/firebase.mjs emulators:exec --config ../firebase/firebase.json --only auth,firestore --project demo-shiodoki \"xvfb-run -a -s '-screen 0 1920x1080x24' node e2e/firebase.mjs\"",
+    "test:integration": "node ../firebase/scripts/firebase.mjs emulators:exec --config ../firebase/firebase.json --only auth,firestore --project demo-shiodoki \"vitest run --config vitest.integration.config.ts\"",
+    "e2e:firebase": "electron-vite build && node ../firebase/scripts/firebase.mjs emulators:exec --config ../firebase/firebase.json --only auth,firestore --project demo-shiodoki \"node e2e/firebase.mjs\"",
     "dev:local": "cross-env TIMER_LOCAL=1 electron-vite dev -- --ozone-platform=x11",
     "setup:linux-sandbox": "bash scripts/setup-linux-sandbox.sh"
   },
@@ -70,11 +70,22 @@
         "nsis"
       ],
       "icon": "resources/icon.png"
+    },
+    "nsis": {
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "kazi983",
+      "repo": "shiodoki"
     }
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/kazi983/shiodoki.git"
   },
-  "author": "Kaoru Kajihara <kaoru.kajihara.mail@gmail.com>"
+  "author": "Kaoru Kajihara <kaoru.kajihara.mail@gmail.com>",
+  "dependencies": {
+    "electron-updater": "^6.8.11"
+  }
 }

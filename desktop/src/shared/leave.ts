@@ -8,9 +8,22 @@
 import { t } from "./i18n";
 
 export const WARNING_LEAD_MINUTES = 5;
-export const BUFFER_OPTIONS = [5, 10, 15, 20, 25, 30] as const;
-export const DEFAULT_LEAVE_TIME = "23:30";
-export const DEFAULT_BUFFER_MINUTES = 15;
+/** 0 stops work at the leave time itself; the warning still comes 5 minutes before. */
+export const BUFFER_OPTIONS = [0, 5, 10, 15, 20, 25, 30] as const;
+/** Leave times offered as the tray default: every 30 minutes. */
+export const LEAVE_TIME_PRESETS: readonly string[] = Array.from(
+  { length: 48 },
+  (_, i) => `${String(Math.floor(i / 2)).padStart(2, "0")}:${i % 2 ? "30" : "00"}`,
+);
+/** Picker defaults until the user picks others in the tray. */
+export const DEFAULT_LEAVE_TIME = "23:00";
+export const DEFAULT_BUFFER_MINUTES = 0;
+
+/** Initial leave inputs of the picker. A null time means no leave schedule. */
+export interface LeaveDefaults {
+  leaveTime: string | null;
+  bufferMinutes: number;
+}
 
 export interface LeaveScheduleInput {
   /** "HH:MM" */

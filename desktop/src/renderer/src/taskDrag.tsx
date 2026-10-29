@@ -7,6 +7,7 @@
 import {
   DndContext,
   MeasuringStrategy,
+  Modifier,
   PointerSensor,
   closestCenter,
   useSensor,
@@ -129,6 +130,8 @@ export function useTaskDrag(
 export function TaskDragContext({ drag, children }: { drag: TaskDrag; children: ReactNode }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: DRAG_THRESHOLD_PX } }));
   const { enabled, ids, ...handlers } = drag.context;
+  const verticalOnly: Modifier = ({ transform }) => ({ ...transform, x: 0 });
+
   return (
     <DndContext
       sensors={enabled ? sensors : []}
@@ -136,6 +139,7 @@ export function TaskDragContext({ drag, children }: { drag: TaskDrag; children: 
       // Headings appear when the drag starts; measure them as they do.
       measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
       {...handlers}
+      modifiers={[verticalOnly]}
     >
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
         {children}

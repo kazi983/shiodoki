@@ -49,7 +49,7 @@ class FakeWindows implements WindowPort {
 let dir: string;
 let file: string;
 let windows: FakeWindows;
-let lifecycle: { quit: Mock<() => void>; relaunch: Mock<() => void> };
+let lifecycle: { quit: Mock<() => void>; relaunch: Mock<() => void>; installUpdate: Mock<() => void> };
 let tasks: TaskService;
 let controller: AppController;
 
@@ -64,7 +64,7 @@ beforeEach(async () => {
   dir = mkdtempSync(join(tmpdir(), "controller-test-"));
   file = join(dir, "store.json");
   windows = new FakeWindows();
-  lifecycle = { quit: vi.fn<() => void>(), relaunch: vi.fn<() => void>() };
+  lifecycle = { quit: vi.fn<() => void>(), relaunch: vi.fn<() => void>(), installUpdate: vi.fn<() => void>() };
   tasks = new TaskService(new JsonFileTaskRepository(file));
   controller = new AppController(tasks, new SessionService("pc"), new TimerService(), windows, lifecycle, {
     intervalMs: INTERVAL,
@@ -104,14 +104,49 @@ describe("session flow", () => {
     expect((await tasks.get(t.id)).totalMinutes).toBe(30);
   });
 
-  test("the first session requires a leave time", async () => {
+  test("once scheduled, later sessions keep the leave schedule", async () => {
     const t = await addTask();
-    await expect(controller.startSession({ taskId: t.id })).rejects.toThrow("離席時刻");
+    expect((await controller.getPickerState()).leaveInput.leaveTime).not.toBeNull();
     await controller.startSession({ taskId: t.id, leave: LEAVE });
     await controller.completeFromOverlay();
-    // Already scheduled: no leave input needed any more
     await controller.startSession({ taskId: t.id });
     expect(controller.currentStatus).toBe("running");
+    expect((await controller.getPickerState()).leave?.bufferMinutes).toBe(15);
+  });
+
+  test("the picker starts from the tray defaults, read each time it loads", async () => {
+    let defaults = { leaveTime: "18:00" as string | null, bufferMinutes: 10 };
+    const c = new AppController(tasks, new SessionService("pc"), new TimerService(), windows, lifecycle, {
+      intervalMs: INTERVAL,
+      snoozeMs: SNOOZE,
+      testMode: false,
+      leaveDefaults: () => defaults,
+    });
+    expect((await c.getPickerState()).leaveInput).toEqual({ leaveTime: "18:00", bufferMinutes: 10 });
+    defaults = { leaveTime: null, bufferMinutes: 0 };
+    expect((await c.getPickerState()).leaveInput).toEqual({ leaveTime: null, bufferMinutes: 0 });
+
+    // Starting without a time keeps the default buffer but empties the time.
+    defaults = { leaveTime: "18:00", bufferMinutes: 10 };
+    const t = await addTask();
+    await c.startSession({ taskId: t.id });
+    expect((await c.getPickerState()).leaveInput).toEqual({ leaveTime: null, bufferMinutes: 10 });
+  });
+
+  test("without a leave time: no warning or block, and later pickers open with an empty time", async () => {
+    const t = await addTask();
+    await controller.startSession({ taskId: t.id });
+    expect(controller.currentStatus).toBe("running");
+    const state = await controller.getPickerState();
+    expect(state.leave).toBeNull();
+    expect(state.leaveInput.leaveTime).toBeNull();
+
+    await vi.advanceTimersByTimeAsync(24 * 60 * MIN);
+    expect(windows.leave).toBeNull();
+
+    // A time entered in a later picker sets the schedule.
+    await controller.startSession({ taskId: t.id, leave: LEAVE });
+    expect((await controller.getPickerState()).leave).not.toBeNull();
   });
 
   test("completing early cancels the 30-minute timer (v1 bug)", async () => {
@@ -318,10 +353,11 @@ describe("screen off / on", () => {
     controller.onScreenOn();
     expect(windows.leave).toBeNull();
     expect(windows.picker).toBe(true);
-    expect((await controller.getPickerState()).leave).toBeNull();
+    const picker = await controller.getPickerState();
+    expect(picker.leave).toBeNull();
+    // The picker offers a leave time again (not the empty one of a skipped schedule)
+    expect(picker.leaveInput.leaveTime).not.toBeNull();
     expect(storedSessions()).toMatchObject([{ elapsedMinutes: 10, endReason: "screen_off" }]);
-    // A new session asks for the leave time again
-    await expect(controller.startSession({ taskId: t.id })).rejects.toThrow();
   });
 
   test("stop time passed while suspended (timers paused): the picker is shown", async () => {
@@ -493,6 +529,19 @@ describe("lifecycle", () => {
     await controller.restart();
     expect(storedSessions()).toMatchObject([{ elapsedMinutes: 3, endReason: "app_exit" }]);
     expect(lifecycle.relaunch).toHaveBeenCalledOnce();
+  });
+
+  test("installing an update records the session before the installer runs", async () => {
+    const t = await addTask();
+    await controller.startSession({ taskId: t.id, leave: LEAVE });
+    await vi.advanceTimersByTimeAsync(4 * MIN);
+    lifecycle.installUpdate.mockImplementation(() => {
+      expect(storedSessions()).toMatchObject([{ elapsedMinutes: 4, endReason: "app_exit" }]);
+    });
+    await controller.installUpdate();
+    expect(lifecycle.installUpdate).toHaveBeenCalledOnce();
+    expect(lifecycle.quit).not.toHaveBeenCalled();
+    expect(controller.isShuttingDown).toBe(true);
   });
 
   test("management back button returns to the picker", () => {

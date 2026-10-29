@@ -3,15 +3,20 @@
  */
 
 import type { Locale } from "./i18n";
-import type { LeaveScheduleInput, LeaveScheduleStatus } from "./leave";
+import type { LeaveDefaults, LeaveScheduleInput, LeaveScheduleStatus } from "./leave";
+import type { SecretKind } from "./passphrase";
 import type { DaySummary } from "./session";
 import type { SyncInfo } from "./sync";
 import type { Task, TaskDrop, TaskInput } from "./task";
+
+export type GuidePage = "privacy";
 
 export interface PickerState {
   tasks: Task[];
   lastSelectedTaskId: string | null;
   leave: LeaveScheduleStatus | null;
+  /** Initial leave inputs while no schedule is set. */
+  leaveInput: LeaveDefaults;
   testMode: boolean;
   /** Length of one session (30 minutes; 5 seconds in TASK_MODE=test). */
   intervalMs: number;
@@ -42,7 +47,7 @@ export interface LeaveInfo {
 
 export interface StartSessionRequest {
   taskId: string;
-  /** Required when no leave schedule is active yet. */
+  /** Sets the leave schedule when none is active yet; omitted means working without one. */
   leave?: LeaveScheduleInput;
 }
 
@@ -76,6 +81,32 @@ export interface DesktopApi {
   auth: {
     /** Open the system browser for Google sign-in. Resolves when signed in. */
     signIn(): Promise<void>;
+  };
+  storage: {
+    /** Welcome page: keep the data on this PC only. Saves the choice and restarts the app. */
+    useLocal(): Promise<void>;
+  };
+  shell: {
+    /** Open a page of the user guide (docs/user-guide/<locale>/<page>.md) in the browser. */
+    openGuide(page: GuidePage): Promise<void>;
+  };
+  /** End-to-end encryption (cloud mode). The data key never leaves the main process. */
+  encryption: {
+    /** First cloud sign-in: create and store the keys, resolve to the recovery key ("XXXX-XXXX-…") to show once. */
+    create(passphrase: string): Promise<string>;
+    /** After "I've saved my recovery key": close the setup and start syncing. */
+    finishSetup(): Promise<void>;
+    /** Another PC: false when the secret is wrong; on success the window closes and syncing starts. */
+    unlock(kind: SecretKind, secret: string): Promise<boolean>;
+    /** False when the current passphrase or the recovery key is wrong. */
+    changePassphrase(kind: SecretKind, secret: string, newPassphrase: string): Promise<boolean>;
+    /** The old recovery key stops working. */
+    createRecoveryKey(): Promise<string>;
+    copyRecoveryKey(recoveryKey: string): Promise<void>;
+    /** Native save dialog; resolves without saving when canceled. */
+    saveRecoveryKeyToFile(recoveryKey: string): Promise<void>;
+    /** Leave the setup or unlock: sign out and go back to the welcome page. */
+    signOut(): Promise<void>;
   };
   sync: {
     get(): Promise<SyncInfo>;
@@ -138,5 +169,15 @@ export const IPC = {
   dialogConfirm: "dialog:confirm",
   dialogAlert: "dialog:alert",
   authSignIn: "auth:signIn",
+  storageUseLocal: "storage:useLocal",
+  shellOpenGuide: "shell:openGuide",
+  encryptionCreate: "encryption:create",
+  encryptionFinishSetup: "encryption:finishSetup",
+  encryptionUnlock: "encryption:unlock",
+  encryptionChangePassphrase: "encryption:changePassphrase",
+  encryptionCreateRecoveryKey: "encryption:createRecoveryKey",
+  encryptionCopyRecoveryKey: "encryption:copyRecoveryKey",
+  encryptionSaveRecoveryKey: "encryption:saveRecoveryKey",
+  encryptionSignOut: "encryption:signOut",
   syncGet: "sync:get",
 } as const;

@@ -3,7 +3,7 @@
 Electron ＋ TypeScript ＋ React で作り直したデスクトップアプリです。
 要件は [`../docs/requirements.md`](../docs/requirements.md) を参照してください。
 
-> **現在の状態（P3）**: Google でログインし、タスクを Firebase（Cloud Firestore）に保存します。オフラインでも使え、オンラインに戻ると自動で同期します。
+> Google でログインし、タスクを Firebase（Cloud Firestore）に保存します。オフラインでも使え、オンラインに戻ると自動で同期します。
 
 ## 必要なもの
 
@@ -93,7 +93,7 @@ npm run dev:local   # Firebase を使わず、PC 内の JSON ファイルだけ�
 ## テスト
 
 Firebase を使うテストは Firebase Emulator（PC 上で動く Firebase の模擬環境）で行い、本番のデータには触れません。
-Emulator には Java 21 以上と、`firebase` での `npm install` が必要です。
+Emulator には Java 21 以上と、`firebase` での `npm install` が必要です（Java の選び方は `firebase/README.md`）。
 
 ```bash
 npm run typecheck          # 型チェック
@@ -122,6 +122,18 @@ npm run dist:win     # dist/ に Windows インストーラーを作成（Window
 2. `package.json` の `version` を上げる PR を `main` に merge する（タグと `version` が違うとビルドは失敗する）。
 3. `main` の merge commit にタグを付けて push する：
    `git tag v2.0.0-alpha.3 origin/main && git push origin v2.0.0-alpha.3`
+4. 下書きの Release を確認する：`Shiodoki-Setup-<version>.exe`、`.exe.blockmap`、`latest.yml`、.deb が揃っていること。本文に変更点を書く（アプリの「変更点を見る」から開くページになる）。
+5. 「Publish release」を押す。**この時点で、インストール済みの Windows 版に更新が届きます。**
+
+### Windows 版の更新通知
+
+Windows 版（インストールしたもの）は、起動時に GitHub Releases の最新版を確認します（`electron-updater`）。新しいバージョンがあれば、「更新する / 変更点を見る / あとで」を選ぶダイアログを出します。
+
+- 「更新する」を選ぶまでダウンロードしません。ダウンロードが終わると「今すぐ再起動 / 終了するときに更新」を選べます。
+- 「今すぐ再起動」は、計測中のセッションを記録してからインストーラーを動かし、新しいバージョンを起動します。
+- 下書き（draft）の Release は見えないので、Publish するまで誰にも届きません。
+- インストーラーに署名していないため、更新ファイルの確認は `latest.yml` の `sha512` だけです。これは「途中で壊れていないか」の確認で、「誰が作ったか」は保証しません。GitHub アカウントを守ること（2 段階認証）が前提です。
+- Ubuntu（.deb）はこれまでどおり手で更新します。
 
 - `-alpha.3` のように `-` を含むバージョンは pre-release になります。
 - Windows インストーラーには署名していないので、初回は SmartScreen の「Windows によって PC が保護されました」が出ます（「詳細情報」→「実行」）。

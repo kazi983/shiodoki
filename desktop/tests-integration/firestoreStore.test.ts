@@ -2,6 +2,9 @@
  * FirestoreStore against the Auth + Firestore emulators with the real
  * security rules (firebase/firestore.rules), so every write the app makes
  * is checked by the rules.
+ *
+ * The store only ever sees what the main process sends: names are already encrypted there, so the tests use
+ * stand-ins of the same form ("e1:" + base64).
  */
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
@@ -20,7 +23,7 @@ import {
 } from "firebase/firestore";
 import { EMULATOR_PROJECT_ID } from "@shared/firebaseConfig";
 import type { Task } from "@shared/task";
-import type { PreferencesData } from "@shared/sync";
+import { KEYS_EXIST, type KeysData, type PreferencesData } from "@shared/sync";
 import { FirestoreStore } from "../src/renderer/data/firestoreStore";
 
 let app: FirebaseApp;
@@ -29,11 +32,16 @@ let uid: string;
 let store: FirestoreStore;
 const writeErrors: Error[] = [];
 
+/** Looks like a value encrypted by the main process; `tag` makes it distinct. */
+function cipher(tag: string): string {
+  return "e1:" + Buffer.from(`iv-iv-iv-iv-${tag}-tag-tag-tag-tag`).toString("base64");
+}
+
 function newTask(overrides: Partial<Task> = {}): Task {
   const now = new Date().toISOString();
   return {
     id: randomUUID(),
-    name: "Integration task",
+    name: cipher("Integration task"),
     memo: "",
     priority: "NOW",
     completed: false,
@@ -80,7 +88,7 @@ describe("FirestoreStore (rules enforced)", () => {
   test("create, update and soft delete a task", async () => {
     const task = newTask({ completedAt: null });
     store.createTask(task);
-    store.updateTask(task.id, { name: "Renamed", priority: "SOONER", memo: "note" });
+    store.updateTask(task.id, { name: cipher("Renamed"), priority: "SOONER", memo: cipher("note") });
     store.updateTask(task.id, { completed: true, completedAt: new Date().toISOString() });
     store.updateTask(task.id, { completed: false, completedAt: null });
     store.updateTask(task.id, { deleted: true });
@@ -88,9 +96,9 @@ describe("FirestoreStore (rules enforced)", () => {
 
     const snap = await getDoc(doc(db, `users/${uid}/tasks/${task.id}`));
     expect(snap.data()).toMatchObject({
-      name: "Renamed",
+      name: cipher("Renamed"),
       priority: "SOONER",
-      memo: "note",
+      memo: cipher("note"),
       completed: false,
       completedAt: null,
       deleted: true,
@@ -149,7 +157,7 @@ describe("FirestoreStore (rules enforced)", () => {
     store.setDesktopState({
       status: "running",
       currentTaskId: "abc",
-      currentTaskName: "Task",
+      currentTaskName: cipher("Task"),
       startedAt: new Date().toISOString(),
       nextPromptAt: new Date(Date.now() + 30 * 60000).toISOString(),
       device: "test-pc",
@@ -181,11 +189,11 @@ describe("FirestoreStore (rules enforced)", () => {
       onPreferences: (p) => (prefs = p),
       onError: (e) => writeErrors.push(e),
     });
-    const task = newTask({ name: "Live" });
+    const task = newTask({ name: cipher("Live") });
     store.createTask(task);
     await until(
       async () => tasks,
-      (t) => t.some((x) => x.id === task.id && x.name === "Live"),
+      (t) => t.some((x) => x.id === task.id && x.name === cipher("Live")),
     );
     await until(
       async () => prefs,
@@ -194,15 +202,51 @@ describe("FirestoreStore (rules enforced)", () => {
     off();
   });
 
-  test("importTasks copies tasks with their totals and counts them", async () => {
+  test("importTasks copies tasks with their totals and their sessions, and counts them", async () => {
     const before = await store.countRemoteTasks();
     const imported = Array.from({ length: 3 }, (_, i) =>
-      newTask({ name: `Imported ${i}`, totalMinutes: 90, sessionCount: 3, priority: "SOMEDAY" }),
+      newTask({ name: cipher(`Imported ${i}`), totalMinutes: 90, sessionCount: 3, priority: "SOMEDAY" }),
     );
-    await store.importTasks(imported, { lastSelectedTaskId: imported[0].id });
+    const sessionId = randomUUID();
+    await store.importTasks(
+      imported,
+      [
+        {
+          id: sessionId,
+          taskId: imported[0].id,
+          taskName: imported[0].name,
+          startedAt: "2026-10-01T09:00:00.000Z",
+          endedAt: "2026-10-01T09:30:00.000Z",
+          elapsedMinutes: 30,
+          endReason: "interval",
+          device: "pc",
+        },
+      ],
+      { lastSelectedTaskId: imported[0].id },
+    );
     expect(await store.countRemoteTasks()).toBe(before + 3);
     const snap = await getDoc(doc(db, `users/${uid}/tasks/${imported[0].id}`));
     expect(snap.data()).toMatchObject({ totalMinutes: 90, sessionCount: 3, updatedBy: "migration" });
+    const session = await getDoc(doc(db, `users/${uid}/sessions/${sessionId}`));
+    expect(session.data()).toMatchObject({ taskId: imported[0].id, elapsedMinutes: 30 });
+  });
+
+  test("keys: created once, read back, re-wrapped, never replaced", async () => {
+    const wrapped = "e1:" + Buffer.alloc(60, 1).toString("base64");
+    const keys: KeysData = {
+      v: 1,
+      passphrase: { kdf: "PBKDF2-SHA256", iterations: 600000, salt: "c2FsdA==", wrappedKey: wrapped },
+      recovery: { kdf: "HKDF-SHA256", salt: "cmVjb3Zlcnk=", wrappedKey: wrapped },
+    };
+    expect(await store.getKeys()).toBeNull();
+    await store.createKeys(keys);
+    expect(await store.getKeys()).toEqual(keys);
+    await expect(store.createKeys(keys)).rejects.toThrow(KEYS_EXIST);
+
+    const other = "e1:" + Buffer.alloc(60, 2).toString("base64");
+    await store.updateKeys({ recovery: { ...keys.recovery, wrappedKey: other } });
+    expect((await store.getKeys())?.recovery.wrappedKey).toBe(other);
+    expect((await store.getKeys())?.passphrase).toEqual(keys.passphrase);
   });
 
   test("writes to another user's data are rejected by the rules", async () => {

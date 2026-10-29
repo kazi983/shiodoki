@@ -14,8 +14,9 @@ daily use until v2 replaces it. The repository is kazi983/shiodoki, the Firebase
 local-mode store is offered for upload on first sign-in.
 
 `docs/requirements.md` is the source of truth for scope, the Firestore data model (§5) and the
-phase plan (§9). Update it when decisions change. User-facing docs (READMEs, requirements) are
-written in Japanese.
+phase plan (§9). Update it when decisions change. Developer docs (READMEs, requirements) are
+written in Japanese, except `android/README.md` (English). Guides for people who only install the
+app are written in both Japanese and English; change both together.
 
 ## Coding conventions
 
@@ -36,11 +37,13 @@ written in Japanese.
   runs both. `.claude/settings.json` formats every file Claude edits. The whole-tree format
   commit is listed in `.git-blame-ignore-revs` (`git config blame.ignoreRevsFile .git-blame-ignore-revs`).
 - `firebase/` — `firestore.rules`, emulator config, rules tests. `npm test` runs the rules tests
-  on the Firestore emulator (Java 21+). `npm run deploy:rules` deploys to project
-  `shiodoki-e4e8f` (`.firebaserc`).
+  on the Firestore emulator (Java 21+). Emulator scripts go through `scripts/firebase.mjs`, which picks a
+  JDK 21+ even when the shell's `java` is older (`FIREBASE_JAVA_HOME` overrides). `npm run deploy:rules` deploys to project
+  `shiodoki-e4e8f` (`.firebaserc`). `npm run backup` (`scripts/backup.mjs`) reads one user's data from production
+  with the Admin SDK and Application Default Credentials, read-only (steps in `firebase/README.md`).
 - `desktop/` — Electron + TypeScript + React (electron-vite). Before committing, run in
   `desktop/`: `npm run typecheck`, `npm test`, `npm run test:integration`, `npm run e2e:headless`.
-  Integration and Firebase E2E tests start the emulators via `../firebase/node_modules/.bin/firebase`,
+  Integration and Firebase E2E tests start the emulators via `../firebase/scripts/firebase.mjs`,
   so `npm install` in `firebase/` first. Tests never touch the real Firebase project.
   - `npm run dev` (Firebase), `npm run dev:local` (`TIMER_LOCAL=1`, JSON file only),
     `TASK_MODE=test` shrinks intervals (30 min → 5 s, snooze 5 min → 10 s).
@@ -86,6 +89,11 @@ written in Japanese.
   resolve once the server acknowledges, which never happens offline).
 - Google sign-in uses the system browser (loopback + PKCE, `googleOAuth.ts`), then
   `signInWithCredential` with the Google ID token.
+- Storage is chosen on the welcome page (`settings.json` `storage`: `local` | `cloud`; `TIMER_LOCAL=1` overrides).
+  Cloud mode is end-to-end encrypted (`docs/e2ee/design.md`): `EncryptionService` holds the data key in the main
+  process only (kept with `safeStorage` in `userData/dek.bin`), and `FirestoreTaskRepository` encrypts task names,
+  memos and session / desktop-state task names before they reach the data window and decrypts snapshots. Never log
+  plain task names or secrets (the data window's console warnings are forwarded to the terminal).
 - Screen off (idle blank, lock, suspend) ends the running session as `screen_off` and screen on shows
   the picker (`screenStateMonitor.ts`: `powerMonitor` plus, on Linux, GNOME's `ActiveChanged` via
   `gdbus monitor`). Timers stop during suspend, so leave times are rechecked by the wall clock.
@@ -95,7 +103,8 @@ written in Japanese.
   `src/shared/ipc.ts`). Confirmation dialogs are native (`api.dialog.confirm`) before any
   destructive action.
 - Firestore rules require `updatedAt == request.time` (always write `serverTimestamp()`), fixed
-  priorities `NOW | SOONER | ANYTIME | SOMEDAY`, append-only sessions, soft delete only. When the
+  priorities `NOW | SOONER | ANYTIME | SOMEDAY`, append-only sessions, soft delete only, and ciphertext
+  (`e1:` + base64) for names, memos and session task names. When the
   data model changes, update `firebase/firestore.rules`, its tests, `src/renderer/data/mapping.ts`
   and `docs/requirements.md` §5 together.
 - On Linux the app runs through XWayland so always-on-top and window placement work. The npm

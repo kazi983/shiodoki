@@ -190,7 +190,8 @@ try {
   const picker2 = await windowFor("picker");
   await picker2.waitForSelector('.task-list [role=option]:has-text("E2Eで追加したタスク")');
   await picker2.click('.task-list [role=option]:has-text("E2Eで追加したタスク")');
-  await picker2.fill('input[aria-label="次の予定の時刻"]', "2359");
+  assert.equal(await picker2.inputValue('input[aria-label="離席時刻"]'), "23:00", "the built-in default");
+  await picker2.fill('input[aria-label="離席時刻"]', "2359");
   await picker2.click(".start-btn");
   const overlay = await windowFor("overlay");
   await waitClosed("picker");

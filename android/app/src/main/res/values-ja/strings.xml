@@ -100,6 +100,23 @@
   <string name="login_no_account">この端末に Google アカウントがありません</string>
   <string name="login_failed">ログインできませんでした: %1$s</string>
 
+  <!-- ロック解除（エンドツーエンド暗号化） -->
+  <string name="unlock_title">データのロックを解除</string>
+  <string name="unlock_body">この端末で同期を始めるには、PC で設定したパスフレーズか回復キーを入力してください。この端末では次回から入力不要です。</string>
+  <string name="unlock_passphrase">パスフレーズ</string>
+  <string name="unlock_recovery_key">回復キー</string>
+  <string name="unlock_button">解除</string>
+  <string name="unlock_show">表示</string>
+  <string name="unlock_hide">隠す</string>
+  <string name="unlock_wrong_passphrase">パスフレーズが正しくありません。忘れた場合は「回復キー」で解除できます。</string>
+  <string name="unlock_wrong_recovery_key">回復キーが正しくありません。保存した回復キーをもう一度確認してください。</string>
+  <string name="unlock_no_keys_title">暗号化がまだ設定されていません</string>
+  <string name="unlock_no_keys_body">先に PC の Shiodoki で同じアカウントにログインし、暗号化を設定してから「再試行」を押してください。</string>
+  <string name="unlock_offline_title">接続できません</string>
+  <string name="unlock_offline_body">はじめてのロック解除には、インターネット接続が必要です。接続してから「再試行」を押してください。</string>
+  <string name="retry">再試行</string>
+  <string name="unreadable">（読み取れません）</string>
+
   <!-- PC status card. %1$s is a styled time inserted by the code. -->
   <string name="pc_running">PC で実行中</string>
   <string name="pc_started_at">%1$s 開始</string>
@@ -123,6 +140,7 @@
   <!-- Focus service notification -->
   <string name="notification_channel">フォーカス画面の待機</string>
   <string name="notification_sign_in">ログインしてください</string>
+  <string name="notification_unlock">アプリでロックを解除してください</string>
   <string name="notification_missing_permission">権限が不足しています</string>
   <string name="notification_running">%1$s 実行中（%2$s〜）</string>
   <string name="notification_idle">待機中</string>

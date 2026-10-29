@@ -45,11 +45,11 @@
 | 未完了                     | Open                         | `3 open · 5 completed`。操作「未完了に戻す」は `Reopen`                                                                             |      |
 | メモ                       | Note                         | `Memo` は和製英語寄りのため `Note`                                                                                                  |      |
 | 前回の続き                 | Continue last task           |                                                                                                                                     | ✅   |
-| 離席時刻                   | Leave time                   | 作業の終わりではなく「席を立つ時刻」                                                                                                | ✅   |
+| 離席時刻                   | Leave at                     | 席を立つ時刻。UI は動詞句 `Leave at 23:30`。名詞 `leave time` は休暇と読まれるので避ける                                            | ✅   |
 | 離席スケジュール           | Leave schedule               |                                                                                                                                     |      |
 | 作業ストップ               | Wrap up                      | 離席時刻の N 分前、作業がブロックされる時刻（コードの `stopAt`）。離席時刻（`leaveAt`）とは別の時刻                                 | ✅   |
-| 次の予定                   | Next plan                    | 外出・就寝などを含むため `appointment`（会う約束の意味が強い）は避ける。代案だった `Next event` は不採用                            | ✅   |
-| 何分前に止めるか           | Stop how many minutes before | 入力欄のラベル。表示は `Stop 5 min before` → OK                                                                                     |      |
+| 次の予定                   | Next plan                    | 外出・就寝も含むので `appointment` は避ける。時刻のラベルには使わず「離席時刻」とする                                               | ✅   |
+| 何分前に止めるか           | Stop how many minutes before | 画面は `Leave at [23:00] wrap up [5 min before]`、トレイは `Wrap up ▸ When I leave`                                                 |      |
 | スヌーズ                   | Snooze                       |                                                                                                                                     |      |
 | フォーカス画面             | Focus screen                 | Android                                                                                                                             |      |
 | PC と同じ                  | Same as PC                   | フォーカス画面の選択肢                                                                                                              |      |
@@ -66,6 +66,25 @@
 | Quick Start                | Quick Start                  | デスクトップのタスク選択画面。既に英語                                                                                              |      |
 | タスク管理                 | Manage tasks                 | 画面タイトル・メニュー                                                                                                              |      |
 | 集計                       | Stats                        | Android の下部ナビ                                                                                                                  |      |
+
+### ローカルモードと暗号化（2026-10-23 追加）
+
+| 日本語                        | English 案                                          | 補足                                                                                             | 確認 |
+| ----------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ---- |
+| データの保存先                | Where to keep your data                             | 起動時の選択画面の見出し                                                                         |      |
+| この PC だけで使う            | Use on this PC only                                 | ローカルモードを選ぶボタン。同期表示の「この PC のみ / This PC only」と揃える                    |      |
+| Google でログインして同期     | Sign in with Google to sync                         | 起動時の選択画面。トレイでは末尾に「…」（次の画面がある）                                        |      |
+| 暗号化                        | Encryption                                          | トレイ項目は `Encryption…`                                                                       |      |
+| パスフレーズ                  | Passphrase                                          | `password` にしない（Google のパスワードと区別する）                                             |      |
+| パスフレーズを設定            | Set a passphrase                                    | 見出し                                                                                           |      |
+| パスフレーズ（確認）          | Confirm passphrase                                  | 入力欄のラベル                                                                                   |      |
+| 現在のパスフレーズ            | Current passphrase                                  |                                                                                                  |      |
+| 回復キー                      | Recovery key                                        | Proton / 1Password と同じ語                                                                      |      |
+| 回復キーを保存 / 保存しました | Save your recovery key / I've saved my recovery key | 見出し / 必須のチェックボックス                                                                  |      |
+| 回復キーの再発行              | New recovery key                                    | ボタンは `Create new recovery key…`（確認ダイアログが出るので「…」）。`reissue` は硬いので避ける |      |
+| データのロックを解除 / 解除   | Unlock your data / Unlock                           | ほかの PC でのはじめてのログイン。`decrypt` は使わない                                           |      |
+| 本人確認                      | Verify it's you                                     | パスフレーズ変更の前の確認                                                                       |      |
+| ファイルに保存                | Save to file                                        |                                                                                                  |      |
 
 ### 作業ストップと離席時刻（訂正）
 
@@ -87,6 +106,8 @@
 | 終了（アプリ）             | Quit                       | デスクトップアプリの慣習                                      |      |
 | 再起動                     | Restart                    |                                                               |      |
 | 前面に表示                 | Bring to front             | 多重起動時のダイアログ                                        |      |
+| アップデート / 更新する    | Update                     | 新しいバージョンの確認ダイアログ（Windows のみ）              |      |
+| 変更点を見る               | See what's new             | GitHub の Release ページをブラウザで開く                      |      |
 | キャンセル                 | Cancel                     |                                                               |      |
 | 追加 / タスクを追加        | Add / Add task             |                                                               |      |
 | 新しいタスク               | New task                   |                                                               |      |
@@ -138,7 +159,7 @@
 | アプリを終了しますか？                                               | Quit Shiodoki?                                             |      |
 | 残り 12 分 · 23:15 に作業ストップ                                    | 12 min left · Wrap up at 23:15                             |      |
 | あと 5 分で作業ストップです                                          | Wrap up in 5 min                                           |      |
-| 次の予定の時間です                                                   | Time for your next plan                                    |      |
+| 離席時刻です                                                         | Time to leave                                              |      |
 | 累計 1h 35m · 3 セッション                                           | Total 1h 35m · 3 sessions                                  |      |
 | 未完了 3 件 · 完了 5 件                                              | 3 open · 5 completed                                       |      |
 | タスク名を入力してください                                           | Enter a task name                                          |      |

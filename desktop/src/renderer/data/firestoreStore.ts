@@ -11,10 +11,12 @@ import {
   collection,
   doc,
   getCountFromServer,
+  getDoc,
   getDocs,
   increment,
   onSnapshot,
   query,
+  runTransaction,
   serverTimestamp,
   setDoc,
   Timestamp,
@@ -25,10 +27,11 @@ import {
   type Firestore,
 } from "firebase/firestore";
 import type { SessionRecord } from "@shared/session";
-import type { DesktopStateData, PreferencesData, SyncStatus } from "@shared/sync";
+import { KEYS_EXIST, type DesktopStateData, type KeysData, type PreferencesData, type SyncStatus } from "@shared/sync";
 import type { Task, TaskPatch } from "@shared/task";
 import {
   desktopStateToDoc,
+  docToKeys,
   docToPreferences,
   docToSession,
   docToTask,
@@ -128,13 +131,19 @@ export class FirestoreStore {
     return snap.data().count;
   }
 
-  /** One-time copy of local tasks (requirements D-07). Waits for the server. */
-  async importTasks(tasks: Task[], preferences: Partial<PreferencesData>): Promise<void> {
-    for (let i = 0; i < tasks.length; i += BATCH_LIMIT) {
+  /**
+   * One-time copy of local tasks and sessions (requirements D-07). Waits for the server. Sessions are written without
+   * increment(): the copied tasks already carry their totals.
+   */
+  async importTasks(tasks: Task[], sessions: SessionRecord[], preferences: Partial<PreferencesData>): Promise<void> {
+    const writes = [
+      ...tasks.map((task) => [`tasks/${task.id}`, taskToDoc(task, "migration")] as const),
+      ...sessions.map((session) => [`sessions/${session.id}`, sessionToDoc(session)] as const),
+    ];
+    for (let i = 0; i < writes.length; i += BATCH_LIMIT) {
       const batch = writeBatch(this.db);
-      for (const task of tasks.slice(i, i + BATCH_LIMIT)) {
-        batch.set(doc(this.db, `${this.base}/tasks/${task.id}`), taskToDoc(task, "migration"));
-      }
+      for (const [path, data] of writes.slice(i, i + BATCH_LIMIT))
+        batch.set(doc(this.db, `${this.base}/${path}`), data);
       await batch.commit();
     }
     if (Object.keys(preferences).length > 0) {
@@ -144,6 +153,30 @@ export class FirestoreStore {
         { merge: true },
       );
     }
+  }
+
+  async getKeys(): Promise<KeysData | null> {
+    const snap = await getDoc(this.keysRef);
+    return snap.exists() ? docToKeys(snap.data()) : null;
+  }
+
+  /**
+   * A transaction runs on the server, so it needs a connection and sees the real document: a PC whose cache says
+   * "no keys" can never replace keys another PC created (that would make all data unreadable).
+   */
+  async createKeys(keys: KeysData): Promise<void> {
+    await runTransaction(this.db, async (tx) => {
+      if ((await tx.get(this.keysRef)).exists()) throw new Error(KEYS_EXIST);
+      tx.set(this.keysRef, { ...keys, updatedAt: serverTimestamp() });
+    });
+  }
+
+  async updateKeys(patch: Partial<Pick<KeysData, "passphrase" | "recovery">>): Promise<void> {
+    await updateDoc(this.keysRef, { ...patch, updatedAt: serverTimestamp() });
+  }
+
+  private get keysRef() {
+    return doc(this.db, `${this.base}/state/keys`);
   }
 
   /** Wait until the server has every pending write, or give up after timeoutMs (offline). */

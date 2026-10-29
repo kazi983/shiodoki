@@ -33,6 +33,16 @@ export interface DesktopStateData {
   device: string;
 }
 
+/** users/{uid}/state/keys: the data key wrapped twice (docs/e2ee/design.md). Salts are base64. */
+export interface KeysData {
+  v: 1;
+  passphrase: { kdf: "PBKDF2-SHA256"; iterations: number; salt: string; wrappedKey: string };
+  recovery: { kdf: "HKDF-SHA256"; salt: string; wrappedKey: string };
+}
+
+/** Error message of createKeys when the account already has keys (another PC set them up). */
+export const KEYS_EXIST = "keys-exist";
+
 export interface DataWindowConfig {
   firebase: Record<string, string>;
   /** Connect to the local emulators instead of the real project. */
@@ -51,8 +61,14 @@ export type DataRequest =
   | { op: "setPreferences"; patch: Partial<PreferencesData> }
   | { op: "setDesktopState"; state: DesktopStateData }
   | { op: "countRemoteTasks" }
-  | { op: "importTasks"; tasks: Task[]; preferences: Partial<PreferencesData> }
-  | { op: "flush"; timeoutMs: number };
+  | { op: "importTasks"; tasks: Task[]; sessions: SessionRecord[]; preferences: Partial<PreferencesData> }
+  | { op: "flush"; timeoutMs: number }
+  /** Resolves to KeysData or null (no keys yet). Falls back to the cache while offline. */
+  | { op: "getKeys" }
+  /** Online only: fails with KEYS_EXIST instead of replacing keys another PC created. */
+  | { op: "createKeys"; keys: KeysData }
+  /** Waits for the server. */
+  | { op: "updateKeys"; patch: Partial<Pick<KeysData, "passphrase" | "recovery">> };
 
 export interface DataRequestMessage {
   id: number;
