@@ -93,7 +93,7 @@ npm run dev:local   # Firebase を使わず、PC 内の JSON ファイルだけ�
 ## テスト
 
 Firebase を使うテストは Firebase Emulator（PC 上で動く Firebase の模擬環境）で行い、本番のデータには触れません。
-Emulator には Java 21 以上と、`firebase` での `npm install` が必要です。
+Emulator には Java 21 以上と、`firebase` での `npm install` が必要です（Java の選び方は `firebase/README.md`）。
 
 ```bash
 npm run typecheck          # 型チェック

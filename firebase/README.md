@@ -13,7 +13,7 @@ Cloud Firestore のセキュリティルール、インデックス、Emulator �
 
 ## ルールのテストを動かす
 
-Node.js 22 以上と Java 21 以上が必要です（Firestore Emulator が Java で動くため）。
+Node.js 22 以上と Java 21 以上が必要です（Firestore Emulator が Java で動くため）。shell の `java` が古くても、npm scripts（`scripts/firebase.mjs`）が `/usr/lib/jvm` と Android Studio の JDK から 21 以上を探して使います。別の JDK を使うときは `FIREBASE_JAVA_HOME` を指定します。
 
 ```bash
 cd firebase
