@@ -3,7 +3,7 @@
  */
 
 import type { Locale } from "./i18n";
-import type { LeaveScheduleInput, LeaveScheduleStatus } from "./leave";
+import type { LeaveDefaults, LeaveScheduleInput, LeaveScheduleStatus } from "./leave";
 import type { SecretKind } from "./passphrase";
 import type { DaySummary } from "./session";
 import type { SyncInfo } from "./sync";
@@ -15,6 +15,8 @@ export interface PickerState {
   tasks: Task[];
   lastSelectedTaskId: string | null;
   leave: LeaveScheduleStatus | null;
+  /** Initial leave inputs while no schedule is set. */
+  leaveInput: LeaveDefaults;
   testMode: boolean;
   /** Length of one session (30 minutes; 5 seconds in TASK_MODE=test). */
   intervalMs: number;
@@ -45,7 +47,7 @@ export interface LeaveInfo {
 
 export interface StartSessionRequest {
   taskId: string;
-  /** Required when no leave schedule is active yet. */
+  /** Sets the leave schedule when none is active yet; omitted means working without one. */
   leave?: LeaveScheduleInput;
 }
 

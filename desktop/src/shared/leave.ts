@@ -13,6 +13,12 @@ export const BUFFER_OPTIONS = [0, 5, 10, 15, 20, 25, 30] as const;
 export const DEFAULT_LEAVE_TIME = "23:30";
 export const DEFAULT_BUFFER_MINUTES = 15;
 
+/** Initial leave inputs of the picker. A null time means no leave schedule. */
+export interface LeaveDefaults {
+  leaveTime: string | null;
+  bufferMinutes: number;
+}
+
 export interface LeaveScheduleInput {
   /** "HH:MM" */
   leaveTime: string;

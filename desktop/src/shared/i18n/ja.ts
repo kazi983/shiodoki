@@ -60,7 +60,6 @@ export const ja = {
   errors: {
     stopTimePassed: "作業ストップの時刻を過ぎています",
     taskAlreadyCompleted: "完了済みのタスクは開始できません",
-    leaveTimeRequired: "離席時刻を入力してください",
     taskNotFound: "タスクが見つかりません",
   },
   picker: {

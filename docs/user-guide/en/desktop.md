@@ -115,6 +115,8 @@ The first time you start a task each day, enter the time you **leave** your desk
 and **how many minutes before it to stop** (0 to 30, 15 by default; 0 means you work until you leave).
 
 - You can type the time as digits only, like `2330`, `930` or `9`. A time that has passed means tomorrow.
+- Leave the time empty to work without one (no warning, no wrap-up). The next pickers open with the time empty too;
+  enter a time when you start a task if a plan comes up.
 - **5 minutes before** wrap-up time, a warning appears. You can leave a note for next time.
 - At wrap-up time, "Time to leave" fills the screen and cannot be closed. It shows how long you worked
   today, by task. Click "Quit Shiodoki" to finish.

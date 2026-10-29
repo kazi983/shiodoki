@@ -1,14 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { t } from "@shared/i18n";
 import type { PickerState } from "@shared/ipc";
-import {
-  BUFFER_OPTIONS,
-  DEFAULT_BUFFER_MINUTES,
-  DEFAULT_LEAVE_TIME,
-  buildLeaveSchedule,
-  formatHHMM,
-  normalizeTimeInput,
-} from "@shared/leave";
+import { BUFFER_OPTIONS, buildLeaveSchedule, formatHHMM, normalizeTimeInput } from "@shared/leave";
 import { PRIORITY_META, formatDuration, type Priority, type Task } from "@shared/task";
 import { groupTasks, type TaskListEntry } from "@shared/taskList";
 import { alertError } from "../errors";
@@ -37,8 +30,10 @@ export function PickerPage() {
   const [state, setState] = useState<PickerState | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
-  const [leaveTime, setLeaveTime] = useState(DEFAULT_LEAVE_TIME);
-  const [bufferMinutes, setBufferMinutes] = useState(DEFAULT_BUFFER_MINUTES);
+  const [leaveTime, setLeaveTime] = useState("");
+  const [bufferMinutes, setBufferMinutes] = useState(0);
+  // The leave inputs are filled once per picker window, so a later reload never overwrites what the user typed.
+  const leaveInputFilled = useRef(false);
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -48,6 +43,11 @@ export function PickerPage() {
   const load = useCallback(async (selectId?: string) => {
     const next = await window.api.picker.getState();
     setState(next);
+    if (!leaveInputFilled.current) {
+      leaveInputFilled.current = true;
+      setLeaveTime(next.leaveInput.leaveTime ?? "");
+      setBufferMinutes(next.leaveInput.bufferMinutes);
+    }
     setSelectedId((current) => {
       const ids = next.tasks.map((t) => t.id);
       if (selectId && ids.includes(selectId)) return selectId;
@@ -121,7 +121,9 @@ export function PickerPage() {
         return;
       }
       if (!(await window.api.dialog.confirm(text.startTitle, text.startConfirm(task.name)))) return;
-      const leave = state?.leave ? undefined : { leaveTime: normalizeTimeInput(leaveTime), bufferMinutes };
+      // An empty time means working without a leave schedule.
+      const leave =
+        state?.leave || !leaveTime.trim() ? undefined : { leaveTime: normalizeTimeInput(leaveTime), bufferMinutes };
       await window.api.picker.startSession({ taskId: task.id, leave });
     });
 
@@ -231,7 +233,7 @@ export function PickerPage() {
                 value={leaveTime}
                 onChange={(e) => setLeaveTime(e.target.value)}
                 aria-label={text.leaveAt}
-                placeholder="18:30"
+                placeholder="--:--"
               />
             </label>
             <label>
@@ -251,15 +253,17 @@ export function PickerPage() {
             </label>
           </>
         )}
-        <span className="leave-stop" title={text.stopTimeTitle}>
-          {stopPreview
-            ? text.workUntil(
-                <span key="time" className="mono">
-                  {stopPreview}
-                </span>,
-              )
-            : text.enterTime}
-        </span>
+        {(state?.leave || leaveTime.trim()) && (
+          <span className="leave-stop" title={text.stopTimeTitle}>
+            {stopPreview
+              ? text.workUntil(
+                  <span key="time" className="mono">
+                    {stopPreview}
+                  </span>,
+                )
+              : text.enterTime}
+          </span>
+        )}
       </section>
 
       <div className="add-row">

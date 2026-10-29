@@ -61,7 +61,6 @@ export const en: Messages = {
   errors: {
     stopTimePassed: "It's past your wrap-up time",
     taskAlreadyCompleted: "A completed task cannot be started",
-    leaveTimeRequired: "Enter the time you leave",
     taskNotFound: "Task not found",
   },
   picker: {
