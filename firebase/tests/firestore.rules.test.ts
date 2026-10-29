@@ -19,6 +19,11 @@ import {
   type Firestore,
 } from "firebase/firestore";
 
+/** Stand-in for an encrypted value: "e1:" + base64 of `bytes` bytes (the rules check the form, not the content). */
+function cipher(bytes = 40, fill = 1): string {
+  return "e1:" + Buffer.alloc(bytes, fill).toString("base64");
+}
+
 const ALICE = "alice";
 const BOB = "bob";
 
@@ -46,7 +51,7 @@ function dbAs(uid: string | null): Firestore {
 
 function newTask(overrides: Record<string, unknown> = {}) {
   return {
-    name: "Write requirements",
+    name: cipher(),
     memo: "",
     priority: "NOW",
     completed: false,
@@ -87,9 +92,27 @@ describe("tasks", () => {
     await assertFails(setDoc(doc(dbAs(ALICE), `users/${ALICE}/tasks/t1`), newTask({ priority })));
   });
 
+  test("names and memos must be encrypted; an empty memo may stay empty", async () => {
+    const ref = doc(dbAs(ALICE), `users/${ALICE}/tasks/t1`);
+    await assertSucceeds(setDoc(ref, newTask({ memo: cipher(100) })));
+    await assertFails(setDoc(ref, newTask({ name: "Write requirements" })));
+    await assertFails(setDoc(ref, newTask({ memo: "plain note" })));
+    await assertFails(setDoc(ref, newTask({ name: "e1:not base64!" })));
+    await assertFails(updateDoc(ref, { name: "Renamed", updatedAt: serverTimestamp() }));
+  });
+
+  test("size limits fit the encrypted form of 200 / 5000 characters", async () => {
+    const ref = doc(dbAs(ALICE), `users/${ALICE}/tasks/t1`);
+    // 200 characters x 3 bytes + 28 = 628 bytes -> 840 base64 characters; 5000 -> 15028 bytes -> 20040 characters.
+    await assertSucceeds(setDoc(ref, newTask({ name: cipher(628), memo: cipher(15028) })));
+    await assertFails(setDoc(ref, newTask({ name: cipher(750) })));
+    await assertFails(setDoc(ref, newTask({ memo: cipher(15750) })));
+  });
+
   test("rejects empty names, unknown fields and client-side updatedAt", async () => {
     const ref = doc(dbAs(ALICE), `users/${ALICE}/tasks/t1`);
     await assertFails(setDoc(ref, newTask({ name: "" })));
+    await assertFails(setDoc(ref, newTask({ name: "e1:" })));
     await assertFails(setDoc(ref, newTask({ extra: 1 })));
     await assertFails(setDoc(ref, newTask({ updatedAt: Timestamp.now() })));
     await assertFails(setDoc(ref, newTask({ totalMinutes: -1 })));
@@ -107,6 +130,24 @@ describe("tasks", () => {
         updatedBy: "desktop",
       }),
     );
+  });
+
+  test("sortOrder is optional and must be a number", async () => {
+    const db = dbAs(ALICE);
+    await assertSucceeds(setDoc(doc(db, `users/${ALICE}/tasks/t1`), newTask({ sortOrder: 1_790_000_000_000 })));
+    await assertFails(setDoc(doc(db, `users/${ALICE}/tasks/t2`), newTask({ sortOrder: "1" })));
+    await assertFails(setDoc(doc(db, `users/${ALICE}/tasks/t3`), newTask({ sortOrder: null })));
+    const ref = doc(db, `users/${ALICE}/tasks/t1`);
+    // A drop writes the position (a midpoint, so not an integer) together with the new priority.
+    await assertSucceeds(
+      updateDoc(ref, {
+        priority: "SOONER",
+        sortOrder: 1_790_000_000_500.5,
+        updatedAt: serverTimestamp(),
+        updatedBy: "android",
+      }),
+    );
+    await assertFails(updateDoc(ref, { sortOrder: true, updatedAt: serverTimestamp(), updatedBy: "android" }));
   });
 
   test("updates must refresh updatedAt and keep createdAt", async () => {
@@ -127,7 +168,7 @@ describe("tasks", () => {
 describe("sessions", () => {
   const session = {
     taskId: "t1",
-    taskName: "Write requirements",
+    taskName: cipher(),
     startedAt: Timestamp.fromDate(new Date("2026-10-01T09:00:00Z")),
     endedAt: Timestamp.fromDate(new Date("2026-10-01T09:30:00Z")),
     elapsedMinutes: 30,
@@ -177,6 +218,7 @@ describe("sessions", () => {
 
   test("rejects invalid sessions", async () => {
     const ref = doc(dbAs(ALICE), `users/${ALICE}/sessions/s1`);
+    await assertFails(setDoc(ref, { ...session, taskName: "Write requirements" }));
     await assertFails(setDoc(ref, { ...session, endReason: "unknown" }));
     await assertFails(setDoc(ref, { ...session, endedAt: session.startedAt, startedAt: session.endedAt }));
     await assertFails(setDoc(doc(dbAs(BOB), `users/${ALICE}/sessions/s2`), session));
@@ -190,7 +232,7 @@ describe("state", () => {
       setDoc(ref, {
         status: "running",
         currentTaskId: "t1",
-        currentTaskName: "Write requirements",
+        currentTaskName: cipher(),
         startedAt: Timestamp.now(),
         nextPromptAt: Timestamp.now(),
         heartbeatAt: serverTimestamp(),
@@ -202,8 +244,17 @@ describe("state", () => {
     await assertFails(getDoc(doc(dbAs(BOB), `users/${ALICE}/state/desktop`)));
   });
 
-  test("rejects unknown desktop status and leave time fields", async () => {
+  test("rejects unknown desktop status, a plain task name and leave time fields", async () => {
     const ref = doc(dbAs(ALICE), `users/${ALICE}/state/desktop`);
+    await assertFails(
+      setDoc(ref, {
+        status: "running",
+        currentTaskId: "t1",
+        currentTaskName: "Write requirements",
+        heartbeatAt: serverTimestamp(),
+        device: "pc",
+      }),
+    );
     await assertFails(setDoc(ref, { status: "busy", heartbeatAt: serverTimestamp(), device: "pc" }));
     await assertFails(
       setDoc(ref, {
@@ -219,6 +270,37 @@ describe("state", () => {
     const ref = doc(dbAs(ALICE), `users/${ALICE}/state/preferences`);
     await assertSucceeds(setDoc(ref, { lastSelectedTaskId: "t1", nextTaskId: null, updatedAt: serverTimestamp() }));
     await assertFails(setDoc(ref, { lastSelectedTaskId: 1, updatedAt: serverTimestamp() }));
+  });
+
+  // A wrapped 32-byte key: "e1:" + base64(12 + 32 + 16 bytes).
+  const wrapped = "e1:" + Buffer.alloc(60, 7).toString("base64");
+  const keys = {
+    v: 1,
+    passphrase: { kdf: "PBKDF2-SHA256", iterations: 600000, salt: "c2FsdHNhbHRzYWx0c2FsdA==", wrappedKey: wrapped },
+    recovery: { kdf: "HKDF-SHA256", salt: "cmVjb3ZlcnlyZWNvdmVyeQ==", wrappedKey: wrapped },
+    updatedAt: serverTimestamp(),
+  };
+
+  test("the owner can create, read and re-wrap the keys, but never delete them", async () => {
+    const ref = doc(dbAs(ALICE), `users/${ALICE}/state/keys`);
+    await assertSucceeds(setDoc(ref, keys));
+    await assertSucceeds(getDoc(ref));
+    await assertSucceeds(
+      updateDoc(ref, { passphrase: { ...keys.passphrase, salt: "bmV3c2FsdA==" }, updatedAt: serverTimestamp() }),
+    );
+    await assertFails(deleteDoc(ref));
+    await assertFails(getDoc(doc(dbAs(BOB), `users/${ALICE}/state/keys`)));
+    await assertFails(setDoc(doc(dbAs(BOB), `users/${ALICE}/state/keys`), keys));
+  });
+
+  test("rejects keys that are not wrapped, a weak KDF or unknown fields", async () => {
+    const ref = doc(dbAs(ALICE), `users/${ALICE}/state/keys`);
+    await assertFails(setDoc(ref, { ...keys, recovery: { ...keys.recovery, wrappedKey: "plain key" } }));
+    await assertFails(setDoc(ref, { ...keys, passphrase: { ...keys.passphrase, iterations: 1000 } }));
+    await assertFails(setDoc(ref, { ...keys, passphrase: { ...keys.passphrase, kdf: "MD5" } }));
+    await assertFails(setDoc(ref, { ...keys, v: 2 }));
+    await assertFails(setDoc(ref, { ...keys, dek: wrapped }));
+    await assertFails(setDoc(ref, { ...keys, updatedAt: Timestamp.now() }));
   });
 
   test("other state documents are denied", async () => {

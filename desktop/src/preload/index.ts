@@ -20,6 +20,7 @@ const api: DesktopApi = {
     listAll: () => ipcRenderer.invoke(IPC.tasksListAll),
     add: (input) => ipcRenderer.invoke(IPC.tasksAdd, input),
     update: (id, patch) => ipcRenderer.invoke(IPC.tasksUpdate, id, patch),
+    move: (drop, keepPosition) => ipcRenderer.invoke(IPC.tasksMove, drop, keepPosition),
     complete: (id) => ipcRenderer.invoke(IPC.tasksComplete, id),
     reopen: (id) => ipcRenderer.invoke(IPC.tasksReopen, id),
     remove: (id) => ipcRenderer.invoke(IPC.tasksRemove, id),
@@ -27,6 +28,23 @@ const api: DesktopApi = {
   },
   auth: {
     signIn: () => ipcRenderer.invoke(IPC.authSignIn),
+  },
+  storage: {
+    useLocal: () => ipcRenderer.invoke(IPC.storageUseLocal),
+  },
+  shell: {
+    openGuide: (page) => ipcRenderer.invoke(IPC.shellOpenGuide, page),
+  },
+  encryption: {
+    create: (passphrase) => ipcRenderer.invoke(IPC.encryptionCreate, passphrase),
+    finishSetup: () => ipcRenderer.invoke(IPC.encryptionFinishSetup),
+    unlock: (kind, secret) => ipcRenderer.invoke(IPC.encryptionUnlock, kind, secret),
+    changePassphrase: (kind, secret, newPassphrase) =>
+      ipcRenderer.invoke(IPC.encryptionChangePassphrase, kind, secret, newPassphrase),
+    createRecoveryKey: () => ipcRenderer.invoke(IPC.encryptionCreateRecoveryKey),
+    copyRecoveryKey: (recoveryKey) => ipcRenderer.invoke(IPC.encryptionCopyRecoveryKey, recoveryKey),
+    saveRecoveryKeyToFile: (recoveryKey) => ipcRenderer.invoke(IPC.encryptionSaveRecoveryKey, recoveryKey),
+    signOut: () => ipcRenderer.invoke(IPC.encryptionSignOut),
   },
   sync: {
     get: () => ipcRenderer.invoke(IPC.syncGet),

@@ -3,9 +3,14 @@ package dev.kaorukajihara.shiodoki.ui.all
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.kaorukajihara.shiodoki.data.SyncStatus
+import dev.kaorukajihara.shiodoki.data.TaskMove
 import dev.kaorukajihara.shiodoki.data.TaskRepository
 import dev.kaorukajihara.shiodoki.data.TasksSnapshot
+import dev.kaorukajihara.shiodoki.data.moveTask
+import dev.kaorukajihara.shiodoki.data.undoMove
+import dev.kaorukajihara.shiodoki.model.Priority
 import dev.kaorukajihara.shiodoki.model.Task
+import dev.kaorukajihara.shiodoki.model.TaskDrop
 import dev.kaorukajihara.shiodoki.model.TaskPatch
 import dev.kaorukajihara.shiodoki.ui.home.PriorityGroup
 import dev.kaorukajihara.shiodoki.ui.home.toHomeUiState
@@ -28,8 +33,11 @@ data class AllTasksUiState(
   val filter: TaskFilter,
   /** Open tasks grouped like Home. null until the first snapshot arrives. */
   val open: List<PriorityGroup>?,
-  /** Tasks completed within [COMPLETED_WINDOW], newest first. null until the first snapshot arrives. */
-  val completed: List<Task>?,
+  /**
+   * Tasks completed within [COMPLETED_WINDOW] by priority, each newest first. Priorities without tasks are left
+   * out. null until the first snapshot arrives.
+   */
+  val completed: List<PriorityGroup>?,
   val syncStatus: SyncStatus?,
 )
 
@@ -44,11 +52,17 @@ fun recentlyCompleted(snapshot: TasksSnapshot?, now: Instant): List<Task>? {
     ?.sortedByDescending { it.completedAt }
 }
 
+/** [tasks] under their priorities in the fixed order, keeping their order within each (design §5.5). */
+fun groupByPriority(tasks: List<Task>): List<PriorityGroup> {
+  val byPriority = tasks.groupBy { it.priority }
+  return Priority.entries.mapNotNull { p -> byPriority[p]?.let { PriorityGroup(p, it) } }
+}
+
 fun toAllTasksUiState(snapshot: TasksSnapshot?, filter: TaskFilter, now: Instant): AllTasksUiState =
   AllTasksUiState(
     filter = filter,
     open = toHomeUiState(snapshot).groups,
-    completed = recentlyCompleted(snapshot, now),
+    completed = recentlyCompleted(snapshot, now)?.let(::groupByPriority),
     syncStatus = snapshot?.syncStatus,
   )
 
@@ -79,4 +93,15 @@ class AllTasksViewModel(private val repository: TaskRepository) : ViewModel() {
 
   /** Also clears `completedAt`. */
   fun reopen(taskId: String) = repository.update(taskId, TaskPatch(completed = false))
+
+  /** A row of the open list dropped after a drag (design §5.3); null when nothing changed. */
+  fun move(drop: TaskDrop): TaskMove? = repository.moveTask(drop)
+
+  /**
+   * A row of the completed list dropped after a drag: only its priority changes (design §5.5), and it goes to the
+   * end of the new one, the place it gets back when reopened.
+   */
+  fun moveCompleted(drop: TaskDrop): TaskMove? = repository.moveTask(drop, keepPosition = false)
+
+  fun undoMove(move: TaskMove) = repository.undoMove(move)
 }

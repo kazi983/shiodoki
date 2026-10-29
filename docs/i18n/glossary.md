@@ -67,6 +67,25 @@
 | タスク管理                 | Manage tasks                 | 画面タイトル・メニュー                                                                                                              |      |
 | 集計                       | Stats                        | Android の下部ナビ                                                                                                                  |      |
 
+### ローカルモードと暗号化（2026-10-23 追加）
+
+| 日本語                        | English 案                                          | 補足                                                                                             | 確認 |
+| ----------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ---- |
+| データの保存先                | Where to keep your data                             | 起動時の選択画面の見出し                                                                         |      |
+| この PC だけで使う            | Use on this PC only                                 | ローカルモードを選ぶボタン。同期表示の「この PC のみ / This PC only」と揃える                    |      |
+| Google でログインして同期     | Sign in with Google to sync                         | 起動時の選択画面。トレイでは末尾に「…」（次の画面がある）                                        |      |
+| 暗号化                        | Encryption                                          | トレイ項目は `Encryption…`                                                                       |      |
+| パスフレーズ                  | Passphrase                                          | `password` にしない（Google のパスワードと区別する）                                             |      |
+| パスフレーズを設定            | Set a passphrase                                    | 見出し                                                                                           |      |
+| パスフレーズ（確認）          | Confirm passphrase                                  | 入力欄のラベル                                                                                   |      |
+| 現在のパスフレーズ            | Current passphrase                                  |                                                                                                  |      |
+| 回復キー                      | Recovery key                                        | Proton / 1Password と同じ語                                                                      |      |
+| 回復キーを保存 / 保存しました | Save your recovery key / I've saved my recovery key | 見出し / 必須のチェックボックス                                                                  |      |
+| 回復キーの再発行              | New recovery key                                    | ボタンは `Create new recovery key…`（確認ダイアログが出るので「…」）。`reissue` は硬いので避ける |      |
+| データのロックを解除 / 解除   | Unlock your data / Unlock                           | ほかの PC でのはじめてのログイン。`decrypt` は使わない                                           |      |
+| 本人確認                      | Verify it's you                                     | パスフレーズ変更の前の確認                                                                       |      |
+| ファイルに保存                | Save to file                                        |                                                                                                  |      |
+
 ### 作業ストップと離席時刻（訂正）
 
 当初「デスクトップの UI は離席時刻を『作業終了』と呼んでいて用語がずれている」と書き、日本語を「離席」に揃えると決めたが、これは読み違いだった。
@@ -80,45 +99,48 @@
 
 ## 3. 共通 UI 用語
 
-| 日本語                     | English 案                 | 補足                                                 | 確認 |
-| -------------------------- | -------------------------- | ---------------------------------------------------- | ---- |
-| ログイン / ログアウト      | Sign in / Sign out         | Google のボタン表記 `Sign in with Google` に合わせる |      |
-| Google でログイン          | Sign in with Google        |                                                      |      |
-| 終了（アプリ）             | Quit                       | デスクトップアプリの慣習                             |      |
-| 再起動                     | Restart                    |                                                      |      |
-| 前面に表示                 | Bring to front             | 多重起動時のダイアログ                               |      |
-| キャンセル                 | Cancel                     |                                                      |      |
-| 追加 / タスクを追加        | Add / Add task             |                                                      |      |
-| 新しいタスク               | New task                   |                                                      |      |
-| 変更を保存                 | Save changes               |                                                      |      |
-| 削除                       | Delete                     |                                                      |      |
-| 編集                       | Edit                       |                                                      |      |
-| 戻る                       | Back                       |                                                      |      |
-| 閉じる                     | Close                      |                                                      |      |
-| 開始 / はじめる            | Start                      |                                                      |      |
-| 選び直す                   | Choose again               | Android フォーカス画面の開始の確認                   |      |
-| 元に戻す                   | Undo                       | スナックバー                                         |      |
-| 完了しました               | Task completed             | スナックバー                                         |      |
-| 検索                       | Search                     | `Search tasks`                                       |      |
-| 作成日                     | Created                    |                                                      |      |
-| 時間                       | Time                       | 一覧の列見出し                                       |      |
-| 設定                       | Settings                   |                                                      |      |
-| アカウント                 | Account                    |                                                      |      |
-| ホーム                     | Home                       |                                                      |      |
-| 言語                       | Language                   | 言語設定（新規）                                     |      |
-| OS の設定に従う            | System default             | 言語設定の選択肢（新規）                             |      |
-| 読み込み中                 | Loading                    |                                                      |      |
-| エラー                     | Error                      |                                                      |      |
-| 保存できませんでした       | Couldn't save              |                                                      |      |
-| 未保存の変更               | Unsaved changes            | タスク管理画面の自動保存の状態表示                   |      |
-| 保存済み                   | Saved                      | 同上                                                 |      |
-| 見つかりませんでした       | No matches                 | 検索結果が 0 件                                      |      |
-| 必要な権限                 | Required permissions       | Android                                              |      |
-| 許可済み / 設定する        | Granted / Grant            | Android の権限行                                     |      |
-| 他のアプリの上に重ねて表示 | Display over other apps    | Android 公式の英語表記に合わせる                     |      |
-| 通知                       | Notifications              |                                                      |      |
-| 電池の最適化の対象外       | Unrestricted battery usage | Android 公式の英語表記に合わせる                     |      |
-| 休止状態にする             | Put to sleep               | 離席時の案内文                                       |      |
+| 日本語                     | English 案                 | 補足                                                          | 確認 |
+| -------------------------- | -------------------------- | ------------------------------------------------------------- | ---- |
+| ログイン / ログアウト      | Sign in / Sign out         | Google のボタン表記 `Sign in with Google` に合わせる          |      |
+| Google でログイン          | Sign in with Google        |                                                               |      |
+| 終了（アプリ）             | Quit                       | デスクトップアプリの慣習                                      |      |
+| 再起動                     | Restart                    |                                                               |      |
+| 前面に表示                 | Bring to front             | 多重起動時のダイアログ                                        |      |
+| アップデート / 更新する    | Update                     | 新しいバージョンの確認ダイアログ（Windows のみ）              |      |
+| 変更点を見る               | See what's new             | GitHub の Release ページをブラウザで開く                      |      |
+| キャンセル                 | Cancel                     |                                                               |      |
+| 追加 / タスクを追加        | Add / Add task             |                                                               |      |
+| 新しいタスク               | New task                   |                                                               |      |
+| 変更を保存                 | Save changes               |                                                               |      |
+| 削除                       | Delete                     |                                                               |      |
+| 編集                       | Edit                       |                                                               |      |
+| 戻る                       | Back                       |                                                               |      |
+| 閉じる                     | Close                      |                                                               |      |
+| 開始 / はじめる            | Start                      |                                                               |      |
+| 選び直す                   | Choose again               | Android フォーカス画面の開始の確認                            |      |
+| 元に戻す                   | Undo                       | スナックバー                                                  |      |
+| 完了しました               | Task completed             | スナックバー                                                  |      |
+| X → Y に移動しました       | Moved X → Y                | スナックバー。ドラッグで分類を変えたとき（X・Y は分類のキー） |      |
+| 検索                       | Search                     | `Search tasks`                                                |      |
+| 作成日                     | Created                    |                                                               |      |
+| 時間                       | Time                       | 一覧の列見出し                                                |      |
+| 設定                       | Settings                   |                                                               |      |
+| アカウント                 | Account                    |                                                               |      |
+| ホーム                     | Home                       |                                                               |      |
+| 言語                       | Language                   | 言語設定（新規）                                              |      |
+| OS の設定に従う            | System default             | 言語設定の選択肢（新規）                                      |      |
+| 読み込み中                 | Loading                    |                                                               |      |
+| エラー                     | Error                      |                                                               |      |
+| 保存できませんでした       | Couldn't save              |                                                               |      |
+| 未保存の変更               | Unsaved changes            | タスク管理画面の自動保存の状態表示                            |      |
+| 保存済み                   | Saved                      | 同上                                                          |      |
+| 見つかりませんでした       | No matches                 | 検索結果が 0 件                                               |      |
+| 必要な権限                 | Required permissions       | Android                                                       |      |
+| 許可済み / 設定する        | Granted / Grant            | Android の権限行                                              |      |
+| 他のアプリの上に重ねて表示 | Display over other apps    | Android 公式の英語表記に合わせる                              |      |
+| 通知                       | Notifications              |                                                               |      |
+| 電池の最適化の対象外       | Unrestricted battery usage | Android 公式の英語表記に合わせる                              |      |
+| 休止状態にする             | Put to sleep               | 離席時の案内文                                                |      |
 
 ---
 

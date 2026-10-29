@@ -23,6 +23,9 @@
     "setup:linux-sandbox": "bash scripts/setup-linux-sandbox.sh"
   },
   "devDependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@fontsource/ibm-plex-mono": "^5.3.0",
     "@fontsource/noto-sans-jp": "^5.3.0",
     "@types/node": "^24.19.1",
@@ -54,7 +57,6 @@
     ],
     "linux": {
       "target": [
-        "AppImage",
         "deb"
       ],
       "category": "Utility",
@@ -68,11 +70,22 @@
         "nsis"
       ],
       "icon": "resources/icon.png"
+    },
+    "nsis": {
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "kazi983",
+      "repo": "shiodoki"
     }
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/kazi983/shiodoki.git"
   },
-  "author": "Kaoru Kajihara <kaoru.kajihara.mail@gmail.com>"
+  "author": "Kaoru Kajihara <kaoru.kajihara.mail@gmail.com>",
+  "dependencies": {
+    "electron-updater": "^6.8.11"
+  }
 }

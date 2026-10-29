@@ -6,8 +6,10 @@ import {
   chooseLocale,
   loadLanguageSetting,
   loadOverlayOffset,
+  loadStorageSetting,
   saveLanguageSetting,
   saveOverlayOffset,
+  saveStorageSetting,
 } from "../src/main/settings";
 
 describe("language setting file", () => {
@@ -33,6 +35,31 @@ describe("language setting file", () => {
     expect(loadLanguageSetting(file)).toBe("system");
     writeFileSync(file, JSON.stringify({ language: "fr" }));
     expect(loadLanguageSetting(file)).toBe("system");
+  });
+});
+
+describe("storage setting", () => {
+  const dir = mkdtempSync(join(tmpdir(), "shiodoki-settings-"));
+  const file = join(dir, "nested", "settings.json");
+
+  afterEach(() => rmSync(join(dir, "nested"), { recursive: true, force: true }));
+
+  test("missing, broken or unknown means not chosen yet", () => {
+    expect(loadStorageSetting(file)).toBeNull();
+    writeFileSync(join(dir, "broken.json"), "{not json");
+    expect(loadStorageSetting(join(dir, "broken.json"))).toBeNull();
+    saveStorageSetting(file, "local");
+    writeFileSync(file, JSON.stringify({ storage: "usb" }));
+    expect(loadStorageSetting(file)).toBeNull();
+  });
+
+  test("saves, clears and keeps the other settings", () => {
+    saveLanguageSetting(file, "en");
+    saveStorageSetting(file, "cloud");
+    expect(loadStorageSetting(file)).toBe("cloud");
+    saveStorageSetting(file, null);
+    expect(loadStorageSetting(file)).toBeNull();
+    expect(loadLanguageSetting(file)).toBe("en");
   });
 });
 

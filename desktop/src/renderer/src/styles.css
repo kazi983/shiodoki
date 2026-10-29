@@ -451,7 +451,12 @@ textarea.field {
   overflow: auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 2px;
+}
+
+/* Headings and tasks are siblings, so a dragged task can cross a heading. */
+.task-list .group-label:not(:first-child) {
+  margin-top: 10px;
 }
 
 .task-list:focus {
@@ -460,12 +465,6 @@ textarea.field {
 
 .task-list:focus-visible .task-option[aria-selected="true"] {
   box-shadow: inset 0 0 0 2px var(--accent);
-}
-
-.task-group {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
 }
 
 .group-label {
@@ -510,6 +509,14 @@ textarea.field {
   background: var(--selected);
   color: var(--text-strong);
   box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+/* A row being dragged (taskDrag.tsx); the inline style adds the color bar of the priority it would land in. */
+.dragging {
+  --lift: 0 8px 24px rgb(0 0 0 / 45%);
+  background: var(--selected);
+  box-shadow: var(--lift);
+  cursor: grabbing;
 }
 
 .task-option .task-name {
@@ -787,6 +794,35 @@ textarea.field {
   font-family: var(--mono);
   font-size: 12px;
   color: var(--sub);
+}
+
+/* Priority headings and the "completed" divider between the rows (drop targets while dragging). */
+.task-table tbody tr.group-row,
+.task-table tbody tr.section-row {
+  border-top: none;
+  cursor: default;
+}
+
+.task-table tbody tr.group-row:hover,
+.task-table tbody tr.section-row:hover {
+  background: none;
+}
+
+.task-table tr.group-row td {
+  height: auto;
+  padding: 14px 12px 4px;
+}
+
+.task-table tr.group-row .group-label {
+  padding: 0;
+}
+
+.task-table tr.section-row td {
+  height: auto;
+  padding: 20px 12px 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-strong);
 }
 
 .task-table tr.completed .cell-name {
@@ -1202,30 +1238,539 @@ html:has(.overlay-root) body {
   font-size: 12px;
 }
 
-/* ---------- login ---------- */
+/* ---------- welcome and encryption (setup, unlock, settings) ---------- */
 
-.login {
+.flow {
   height: 100%;
   display: flex;
   flex-direction: column;
+  gap: 20px;
+  padding: 28px 32px 24px;
+  background: var(--bg);
+  line-height: 1.6;
+}
+
+.flow-scroll {
+  overflow-y: auto;
+  gap: 14px;
+  padding: 20px 28px;
+}
+
+.flow-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.flow-header h1 {
+  font-size: 24px;
+}
+
+.flow-icon {
+  width: 44px;
+  height: 44px;
+  margin-bottom: 4px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--accent);
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 18px;
-  padding: 24px;
-  background: var(--bg);
-  text-align: center;
 }
 
-.login h1 {
-  font-size: 28px;
+.flow-footer {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
 }
 
-.login .sub {
-  font-size: 14px;
-  line-height: 1.8;
-}
-
-.login .hint {
+.flow-footer-note {
   font-size: 12px;
   color: var(--sub);
+}
+
+.strong {
+  display: block;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+.strong-danger {
+  display: block;
+  font-weight: 700;
+  color: var(--danger);
+}
+
+.account {
+  font-size: 12px;
+  color: var(--sub);
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--sub);
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #8fb3ff;
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.link-button:hover {
+  color: var(--kbd);
+}
+
+.btn-wide {
+  padding: 0 32px;
+}
+
+.btn:disabled.btn-primary {
+  cursor: not-allowed;
+}
+
+.btn-outline-danger {
+  background: transparent;
+  border-color: #7a2e35;
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.btn-outline-danger:hover:not(:disabled) {
+  background: #2a1418;
+  filter: none;
+}
+
+/* storage choice */
+
+.storage-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.storage-choice-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.storage-choice-header h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+.choice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.1s;
+}
+
+.choice:hover:not(:disabled) {
+  background: var(--hover);
+}
+
+.choice:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.choice-primary {
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+
+.choice-icon {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 10px;
+  background: var(--border);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.choice-primary .choice-icon {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.choice-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.choice-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+.choice-body {
+  font-size: 13px;
+  color: var(--text);
+}
+
+/* steps */
+
+.step-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.step-text {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--sub);
+}
+
+.step-bar {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+
+.step-bar span {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+}
+
+.step-bar span.done {
+  background: var(--accent);
+}
+
+/* passphrase fields */
+
+.field-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.field-stack-tight {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.secret-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.secret-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.secret-box {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.secret-box.compact {
+  height: 40px;
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.secret-box:focus-within {
+  border-color: var(--accent);
+}
+
+.secret-box.invalid {
+  border-color: #ff6b6b;
+}
+
+.secret-box input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  color: var(--text-strong);
+  font-size: 14px;
+  outline: none;
+}
+
+.secret-toggle {
+  width: 44px;
+  height: 100%;
+  flex: none;
+  border: 0;
+  border-radius: 0 10px 10px 0;
+  background: transparent;
+  color: var(--sub);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.secret-toggle:hover {
+  color: var(--text-strong);
+}
+
+.field-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--danger);
+}
+
+.passphrase-rules {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--sub);
+}
+
+.passphrase-rules li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.passphrase-rules li.ok {
+  color: var(--ok);
+}
+
+.rule-dot {
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rule-dot::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* passphrase / recovery key switch */
+
+.segmented {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.panel .segmented {
+  background: var(--bg);
+}
+
+.segmented button {
+  height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sub);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.panel .segmented button {
+  height: 32px;
+}
+
+.segmented button.active {
+  background: var(--border);
+  color: var(--text-strong);
+  font-weight: 700;
+}
+
+/* recovery key */
+
+.recovery-key {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.recovery-groups {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text-strong);
+  text-align: center;
+  user-select: all;
+}
+
+.recovery-groups span {
+  padding: 6px 0;
+  border-radius: 6px;
+  background: var(--field);
+}
+
+.recovery-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.notice {
+  padding: 12px 14px;
+  border-radius: 10px;
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.notice svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.notice-warn {
+  background: #2a1f14;
+  color: var(--warn-text);
+}
+
+.notice-warn svg {
+  color: var(--warn);
+}
+
+.check-label {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-strong);
+  cursor: pointer;
+}
+
+.check-label input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+/* encryption window */
+
+.status-ok {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #12261f;
+  font-size: 13px;
+}
+
+.status-ok svg {
+  flex: none;
+  color: var(--ok);
+}
+
+.status-ok-text {
+  flex: 1;
+  color: #b5f0da;
+}
+
+.panel {
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.panel h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+.panel p {
+  font-size: 13px;
+}
+
+.panel-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+}
+
+.panel-actions-split .hint {
+  flex: 1;
+}
+
+.panel-actions .btn {
+  height: 40px;
+}
+
+.status-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ok);
 }

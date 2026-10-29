@@ -5,7 +5,7 @@
 
 import { Timestamp, serverTimestamp, type DocumentData, type FieldValue } from "firebase/firestore";
 import type { SessionRecord } from "@shared/session";
-import type { DesktopStateData, PreferencesData } from "@shared/sync";
+import type { DesktopStateData, KeysData, PreferencesData } from "@shared/sync";
 import { isPriority, type Task, type TaskPatch, type UpdatedBy } from "@shared/task";
 
 function ts(iso: string): Timestamp {
@@ -22,6 +22,8 @@ function iso(value: unknown, fallback: string): string {
 
 export function taskToDoc(task: Task, updatedBy: UpdatedBy = "desktop"): Record<string, unknown> {
   return {
+    // Optional in the rules: tasks written before it existed have none.
+    ...(task.sortOrder === undefined ? {} : { sortOrder: task.sortOrder }),
     name: task.name,
     memo: task.memo,
     priority: task.priority,
@@ -67,13 +69,15 @@ export function docToTask(id: string, d: DocumentData): Task {
     createdAt: iso(d.createdAt, now),
     updatedAt: iso(d.updatedAt, now),
     updatedBy,
+    ...(typeof d.sortOrder === "number" && Number.isFinite(d.sortOrder) ? { sortOrder: d.sortOrder } : {}),
   };
 }
 
 export function sessionToDoc(s: SessionRecord): Record<string, unknown> {
   return {
     taskId: s.taskId,
-    taskName: s.taskName.slice(0, 200),
+    // Ciphertext: cutting it would make it unreadable (the apps limit the plain text).
+    taskName: s.taskName,
     startedAt: ts(s.startedAt),
     endedAt: ts(s.endedAt),
     elapsedMinutes: s.elapsedMinutes,
@@ -100,7 +104,7 @@ export function desktopStateToDoc(s: DesktopStateData): Record<string, unknown |
   return {
     status: s.status,
     currentTaskId: s.currentTaskId,
-    currentTaskName: s.currentTaskName ? s.currentTaskName.slice(0, 200) : null,
+    currentTaskName: s.currentTaskName,
     startedAt: tsOrNull(s.startedAt),
     nextPromptAt: tsOrNull(s.nextPromptAt),
     heartbeatAt: serverTimestamp(),
@@ -112,5 +116,19 @@ export function docToPreferences(d: DocumentData | undefined): PreferencesData {
   return {
     lastSelectedTaskId: typeof d?.lastSelectedTaskId === "string" ? d.lastSelectedTaskId : null,
     nextTaskId: typeof d?.nextTaskId === "string" ? d.nextTaskId : null,
+  };
+}
+
+/** The rules guarantee the shape; only the fields the app knows are kept (updatedAt is dropped). */
+export function docToKeys(d: DocumentData): KeysData {
+  return {
+    v: 1,
+    passphrase: {
+      kdf: "PBKDF2-SHA256",
+      iterations: d.passphrase.iterations,
+      salt: d.passphrase.salt,
+      wrappedKey: d.passphrase.wrappedKey,
+    },
+    recovery: { kdf: "HKDF-SHA256", salt: d.recovery.salt, wrappedKey: d.recovery.wrappedKey },
   };
 }

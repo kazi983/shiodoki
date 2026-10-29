@@ -8,7 +8,8 @@ Cloud Firestore のセキュリティルール、インデックス、Emulator �
 | `firestore.rules`        | セキュリティルール（自分の `users/{uid}` 配下のみ読み書き可、項目の型・優先度の値をチェック） |
 | `firestore.indexes.json` | 複合インデックス（現時点では不要なので空）                                                    |
 | `firebase.json`          | Firebase CLI と Emulator の設定                                                               |
-| `tests/`                 | ルールのテスト（Emulator 上で実行）                                                           |
+| `tests/`                 | ルールとバックアップのテスト（Emulator 上で実行）                                             |
+| `scripts/backup.mjs`     | 1 人分のデータを本番から読み出して保存する（読み取りだけ）                                    |
 
 ## ルールのテストを動かす
 
@@ -22,6 +23,38 @@ npm test
 
 `npm test` は Firestore Emulator を起動してテストを実行し、終わると Emulator を停止します。
 プロジェクト ID は `demo-shiodoki`（`demo-` で始まる ID は本物の Firebase プロジェクトにつながらない Emulator 専用 ID）を使うので、Firebase へのログインは不要です。
+
+## クラウドのデータをバックアップする
+
+`scripts/backup.mjs` は、1 人分のデータ（タスク・セッション・`state`）を本番の Firestore から読み出して、新しいフォルダに
+2 つのファイルとして保存します。Firestore には書き込みません。
+
+| ファイル     | 内容                                                                                                                                             |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `store.json` | デスクトップのローカルモードの形式（タスク名などは平文）。この PC のデータとして置いてログインすると、初回のコピーで暗号化してアップロードされる |
+| `raw.json`   | すべてのドキュメントを保存されたまま（暗号文は暗号文のまま）。念のための控え                                                                     |
+
+どちらも平文の個人データなので、リポジトリの外に保存されます（フォルダは本人だけ読める権限で作ります）。
+
+認証はサービスアカウントの鍵を使わず、自分の Google アカウントのアプリケーションのデフォルト認証情報（ADC）を使います。
+Admin SDK はセキュリティルールを通らないので、プロジェクトのオーナーのアカウントで認証してください。
+
+```bash
+# 初回のみ：gcloud を入れる（Ubuntu）
+sudo snap install google-cloud-cli --classic
+
+# ブラウザで Google アカウントを選ぶ
+gcloud auth application-default login
+gcloud auth application-default set-quota-project shiodoki-e4e8f
+
+cd firebase
+npm install
+npm run backup -- --email you@gmail.com --out ~/shiodoki-backup-2026-10-29
+```
+
+- 暗号化したデータ（`e1:` で始まる値）があると、パスフレーズを聞かれます（画面には出ません）。環境変数 `SHIODOKI_PASSPHRASE` でも渡せます。
+- 結果には件数だけを表示し、タスク名は表示しません。
+- 移行が終わったら、ADC は不要なので取り消してください：`gcloud auth application-default revoke`
 
 ## Firebase プロジェクトの作成（初回のみ・手作業）
 

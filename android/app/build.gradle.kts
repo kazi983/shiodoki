@@ -71,6 +71,14 @@ android {
     // values-* folders; res/resources.properties names the language of the default folder.
     generateLocaleConfig = true
   }
+  testOptions {
+    // Robolectric reads the merged resources (strings of the headings).
+    unitTests.isIncludeAndroidResources = true
+    // Robolectric reaches into JDK internals, which JDK 17+ closes to other modules.
+    unitTests.all {
+      it.jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED", "--add-opens=java.base/java.io=ALL-UNNAMED")
+    }
+  }
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
@@ -101,5 +109,10 @@ dependencies {
   implementation(libs.kotlinx.serialization.core)
   testImplementation(libs.junit)
   testImplementation(libs.kotlinx.coroutines.test)
+  // Compose UI tests on the JVM (Robolectric), for gestures such as the task drag.
+  testImplementation(libs.robolectric)
+  testImplementation(platform(libs.androidx.compose.bom))
+  testImplementation(libs.androidx.compose.ui.test.junit4)
+  debugImplementation(libs.androidx.compose.ui.test.manifest)
   debugImplementation(libs.androidx.compose.ui.tooling)
 }

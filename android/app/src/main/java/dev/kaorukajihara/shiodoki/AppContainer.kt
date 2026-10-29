@@ -7,8 +7,12 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.firestore
 import dev.kaorukajihara.shiodoki.auth.AuthManager
+import dev.kaorukajihara.shiodoki.crypto.EncryptionManager
+import dev.kaorukajihara.shiodoki.crypto.KeyState
+import dev.kaorukajihara.shiodoki.crypto.KeystoreKeyVault
 import dev.kaorukajihara.shiodoki.data.DesktopStateRepository
 import dev.kaorukajihara.shiodoki.data.FirestoreDesktopStateRepository
+import dev.kaorukajihara.shiodoki.data.FirestoreKeysSource
 import dev.kaorukajihara.shiodoki.data.FirestoreSessionRecorder
 import dev.kaorukajihara.shiodoki.data.FirestoreTaskRepository
 import dev.kaorukajihara.shiodoki.data.LocalStore
@@ -50,12 +54,22 @@ class AppContainer(context: Context) {
     .map { it?.uid }
     .stateIn(appScope, SharingStarted.Eagerly, authManager.account.value?.uid)
 
-  val taskRepository: TaskRepository = FirestoreTaskRepository(firestore, uid, appScope)
+  val localStore = LocalStore(context)
+
+  /** The data key (docs/e2ee/design.md): nothing is shown or written until it is unlocked. */
+  val encryption = EncryptionManager(
+    uid = uid,
+    vault = KeystoreKeyVault(localStore),
+    keys = FirestoreKeysSource(firestore),
+    unreadable = context.getString(R.string.unreadable),
+    scope = appScope,
+    onKeysError = { Log.w(TAG, "Could not read the encryption keys", it) },
+  )
+
+  val taskRepository: TaskRepository = FirestoreTaskRepository(firestore, uid, encryption.cipher, appScope)
 
   val desktopStateRepository: DesktopStateRepository =
-    FirestoreDesktopStateRepository(firestore, uid, appScope)
-
-  val localStore = LocalStore(context)
+    FirestoreDesktopStateRepository(firestore, uid, encryption.cipher, appScope)
 
   /**
    * The focus state machine, shared by FocusService and FocusActivity (design §6.1). Its scope
@@ -67,17 +81,19 @@ class AppContainer(context: Context) {
     FocusController(
       scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate),
       store = localStore,
-      recorder = FirestoreSessionRecorder(firestore, uid),
+      recorder = FirestoreSessionRecorder(firestore, uid, encryption.cipher, appScope),
       screen = ActivityFocusScreen(appContext),
       canPrompt = {
         val signedIn = authManager.account.value != null
+        // Locked: the task names cannot be read, so there is nothing to choose from.
+        val unlocked = encryption.state.value == KeyState.Unlocked
         val overlay = FocusPermission.OVERLAY.isGranted(appContext)
         val busy = deviceGuards.isBusy()
         // Logged so "the screen did not appear" can be explained from logcat.
-        if (!signedIn || !overlay || busy) {
-          Log.i(TAG, "Focus screen not shown: signedIn=$signedIn overlay=$overlay busy=$busy")
+        if (!signedIn || !unlocked || !overlay || busy) {
+          Log.i(TAG, "Focus screen not shown: signedIn=$signedIn unlocked=$unlocked overlay=$overlay busy=$busy")
         }
-        signedIn && overlay && !busy
+        signedIn && unlocked && overlay && !busy
       },
       // Debug builds always use the short test intervals, like desktop TASK_MODE=test (design §6.8).
       config = if (BuildConfig.DEBUG) FocusConfig.TEST else FocusConfig.DEFAULT,

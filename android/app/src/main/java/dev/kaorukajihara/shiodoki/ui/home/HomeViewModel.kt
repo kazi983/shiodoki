@@ -4,10 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.kaorukajihara.shiodoki.data.DesktopStateRepository
 import dev.kaorukajihara.shiodoki.data.SyncStatus
+import dev.kaorukajihara.shiodoki.data.TaskMove
 import dev.kaorukajihara.shiodoki.data.TaskRepository
 import dev.kaorukajihara.shiodoki.data.TasksSnapshot
+import dev.kaorukajihara.shiodoki.data.moveTask
+import dev.kaorukajihara.shiodoki.data.undoMove
 import dev.kaorukajihara.shiodoki.model.Priority
 import dev.kaorukajihara.shiodoki.model.Task
+import dev.kaorukajihara.shiodoki.model.TaskDrop
 import dev.kaorukajihara.shiodoki.model.TaskPatch
 import dev.kaorukajihara.shiodoki.model.taskOrder
 import java.time.Instant
@@ -76,6 +80,12 @@ class HomeViewModel(
   fun undoComplete(taskId: String) {
     repository.update(taskId, TaskPatch(completed = false))
   }
+
+  /** A row dropped after a drag (design §5.3); null when nothing changed. */
+  fun move(drop: TaskDrop): TaskMove? = repository.moveTask(drop)
+
+  /** "元に戻す" on the snackbar after a drop into another priority. */
+  fun undoMove(move: TaskMove) = repository.undoMove(move)
 }
 
 /**

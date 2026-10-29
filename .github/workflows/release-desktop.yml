@@ -1,0 +1,102 @@
+# Builds the desktop installers on Linux and Windows. A `v*` tag push also attaches them to a
+# draft GitHub Release; publish it by hand after checking the files. Publishing is what sends
+# the update to installed Windows apps (electron-updater does not see drafts). Android is built locally
+# (scripts/build-release.sh) so the release keystore never leaves Kazi's machine.
+name: release-desktop
+
+on:
+  push:
+    tags: ["v*"]
+  # Try the build when this workflow changes; the files are kept as workflow artifacts.
+  pull_request:
+    paths: [.github/workflows/release-desktop.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            dist: dist:linux
+            files: desktop/dist/*.deb
+          - os: windows-latest
+            dist: dist:win
+            # The update metadata (latest.yml) and block map let installed apps find and download the update
+            # once the release is published. builder-debug.yml is a local build log.
+            files: |
+              desktop/dist/*.exe
+              desktop/dist/*.exe.blockmap
+              desktop/dist/*.yml
+              !desktop/dist/builder-debug.yml
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: desktop
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Check that the tag matches the app version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          version="v$(node -p "require('./package.json').version")"
+          if [ "$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match desktop/package.json ($version)."
+            exit 1
+          fi
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+      # Gitignored; the app needs it for Google sign-in.
+      - name: Write the Google OAuth client
+        env:
+          OAUTH_CLIENT_JSON: ${{ secrets.OAUTH_CLIENT_JSON }}
+        run: |
+          if [ -z "$OAUTH_CLIENT_JSON" ]; then
+            echo "::error::The repository secret OAUTH_CLIENT_JSON is not set."
+            exit 1
+          fi
+          printf '%s' "$OAUTH_CLIENT_JSON" > resources/oauth-client.json
+
+      # electron-builder would otherwise try to publish by itself when it sees a tag on CI.
+      - run: npm run ${{ matrix.dist }} -- --publish never
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ runner.os }}
+          path: ${{ matrix.files }}
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: files
+          merge-multiple: true
+      - name: Create a draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Versions like 2.0.0-alpha.3 are marked as pre-releases.
+          prerelease=()
+          case "$GITHUB_REF_NAME" in *-*) prerelease=(--prerelease) ;; esac
+          gh release create "$GITHUB_REF_NAME" files/* \
+            --repo "$GITHUB_REPOSITORY" --draft --verify-tag --generate-notes "${prerelease[@]}"

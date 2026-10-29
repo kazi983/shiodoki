@@ -109,9 +109,36 @@ npm run e2e:headless       # 上の 2 つを画面のない Linux 環境で実�
 ## 配布用ファイルの作成
 
 ```bash
-npm run dist:linux   # dist/ に AppImage と .deb を作成
-npm run dist:win     # dist/ に Windows インストーラーを作成（Linux でも作れる。wine を入れた Ubuntu で確認）
+npm run dist:linux   # dist/ に .deb を作成
+npm run dist:win     # dist/ に Windows インストーラーを作成（Windows 上で実行）
 ```
+
+### GitHub Actions でのリリース
+
+`v*` のタグを push すると、`.github/workflows/release-desktop.yml` が Ubuntu と Windows でビルドし、.deb と Windows インストーラーを付けた **下書き（draft）の GitHub Release** を作ります。中身を確認してから GitHub 上で「Publish release」を押すと公開されます。
+
+1. 最初の 1 回だけ、`oauth-client.json` をリポジトリの secret に登録する：
+   `gh secret set OAUTH_CLIENT_JSON < resources/oauth-client.json`
+2. `package.json` の `version` を上げる PR を `main` に merge する（タグと `version` が違うとビルドは失敗する）。
+3. `main` の merge commit にタグを付けて push する：
+   `git tag v2.0.0-alpha.3 origin/main && git push origin v2.0.0-alpha.3`
+4. 下書きの Release を確認する：`Shiodoki-Setup-<version>.exe`、`.exe.blockmap`、`latest.yml`、.deb が揃っていること。本文に変更点を書く（アプリの「変更点を見る」から開くページになる）。
+5. 「Publish release」を押す。**この時点で、インストール済みの Windows 版に更新が届きます。**
+
+### Windows 版の更新通知
+
+Windows 版（インストールしたもの）は、起動時に GitHub Releases の最新版を確認します（`electron-updater`）。新しいバージョンがあれば、「更新する / 変更点を見る / あとで」を選ぶダイアログを出します。
+
+- 「更新する」を選ぶまでダウンロードしません。ダウンロードが終わると「今すぐ再起動 / 終了するときに更新」を選べます。
+- 「今すぐ再起動」は、計測中のセッションを記録してからインストーラーを動かし、新しいバージョンを起動します。
+- 下書き（draft）の Release は見えないので、Publish するまで誰にも届きません。
+- インストーラーに署名していないため、更新ファイルの確認は `latest.yml` の `sha512` だけです。これは「途中で壊れていないか」の確認で、「誰が作ったか」は保証しません。GitHub アカウントを守ること（2 段階認証）が前提です。
+- Ubuntu（.deb）はこれまでどおり手で更新します。
+
+- `-alpha.3` のように `-` を含むバージョンは pre-release になります。
+- Windows インストーラーには署名していないので、初回は SmartScreen の「Windows によって PC が保護されました」が出ます（「詳細情報」→「実行」）。
+- Android 版は release 用の署名鍵を GitHub に置かないため、手元でビルドします。
+- macOS 版は作っていません（`mac` の target がなく、Apple の署名・公証なしでは Gatekeeper に止められるため）。
 
 ## Ubuntu（Wayland）について
 

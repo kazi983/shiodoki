@@ -1,5 +1,5 @@
 // End-to-end smoke test (local mode, TIMER_LOCAL=1): launches the built app with Playwright, loads a
-// seeded local store, adds a task, runs a (5 second) session and checks that the
+// seeded local store, adds a task, runs a session, completes it from the overlay and checks that the
 // picker comes back and the time was recorded. Then relaunches with the language setting
 // (settings.json) set to English and checks the translated UI. Saves screenshots to e2e/screenshots/.
 //
@@ -123,6 +123,21 @@ try {
   assert.match(await picker.locator(".resume-card").textContent(), /前回の続き既存タスク累計 1h 35m · 3 セッション/);
   assert.deepEqual(await picker.locator(".group-label").allTextContents(), ["SOON近いうち", "SOMEDAYいつか"]);
   await picker.screenshot({ path: join(shots, "1-picker.png") });
+
+  // ---- drag a task above another one under another heading: it moves there and changes category ----
+  const from = await picker.locator('[role=option]:has-text("いつかのタスク")').boundingBox();
+  const to = await picker.locator('[role=option]:has-text("既存タスク")').boundingBox();
+  await picker.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await picker.mouse.down();
+  await picker.mouse.move(to.x + to.width / 2, to.y + 4, { steps: 12 });
+  await picker.screenshot({ path: join(shots, "1b-picker-dragging.png") });
+  await picker.mouse.up();
+  await picker.waitForFunction(
+    () =>
+      [...document.querySelectorAll(".task-list .task-name")].map((e) => e.textContent).join() ===
+      "いつかのタスク,既存タスク",
+  );
+  assert.deepEqual(await picker.locator(".group-label").allTextContents(), ["SOON近いうち"]);
   assert.equal(await visibleOnAllWorkspaces("picker"), true, "picker is on every workspace");
 
   // ---- add from the picker ----
@@ -136,10 +151,25 @@ try {
   await waitClosed("picker");
   await management.waitForSelector(".task-table tbody tr");
   assert.equal(await visibleOnAllWorkspaces("management"), true, "management is on every workspace");
-  const rows = await management.locator(".task-table tbody tr").count();
+  const rows = await management.locator(".task-table tbody tr[aria-selected]").count();
   assert.equal(rows, 4, "3 seeded (1 completed) + 1 added; deleted one is skipped");
+  // Category headings, then the completed tasks under their own heading.
+  assert.deepEqual(await management.locator(".task-table .group-label").allTextContents(), [
+    "NOW今すぐ",
+    "SOON近いうち",
+    "NOW今すぐ",
+  ]);
   await management.click('tr:has-text("いつかのタスク")');
-  assert.equal(await management.getAttribute(".prio-option[aria-pressed=true]", "title"), "SOMEDAY");
+  assert.equal(await management.getAttribute(".prio-option[aria-pressed=true]", "title"), "SOON");
+  // Alt+↓ moves the selected task one line: below 既存タスク, the last one in SOON.
+  await management.press(".task-table tbody", "Alt+ArrowDown");
+  await management.waitForFunction(
+    () =>
+      [...document.querySelectorAll(".task-table tbody tr[aria-selected] .cell-name")]
+        .map((e) => e.textContent)
+        .slice(1, 3)
+        .join() === "既存タスク,いつかのタスク",
+  );
   // Autosave: a priority click saves at once, typing saves after a pause.
   await management.click('.prio-option[title="ANYTIME"]');
   await management.waitForSelector('tr:has-text("いつかのタスク") .prio-chip:has-text("いつでも")');
@@ -148,7 +178,7 @@ try {
   await management.waitForSelector('.cell-memo:has-text("メモも保存される")');
   await management.waitForSelector('.save-status:has-text("保存済み")');
   await management.fill('input[aria-label="タスクを検索"]', "メモも");
-  assert.equal(await management.locator(".task-table tbody tr").count(), 1, "search matches the memo");
+  assert.equal(await management.locator(".task-table tbody tr[aria-selected]").count(), 1, "search matches the memo");
   await management.fill('input[aria-label="タスクを検索"]', "");
   await management.screenshot({ path: join(shots, "2-management.png") });
 
@@ -167,14 +197,16 @@ try {
   await overlay.waitForSelector(".overlay-tab");
   await overlay.screenshot({ path: join(shots, "3-overlay.png") });
 
-  // ---- after the interval the picker returns ----
+  // ---- hover the overlay and complete the session; the picker returns ----
+  await overlay.hover(".overlay-tab");
+  await overlay.click(".overlay-complete");
   const picker3 = await windowFor("picker");
   await picker3.waitForSelector('.leave-row:has-text("23:59")');
   await picker3.screenshot({ path: join(shots, "4-picker-after-session.png") });
 
   const store = JSON.parse(readFileSync(join(dataDir, "store_test.json"), "utf8"));
   assert.equal(store.sessions.length, 1);
-  assert.equal(store.sessions[0].endReason, "interval");
+  assert.equal(store.sessions[0].endReason, "completed");
   assert.equal(store.sessions[0].taskName, "E2Eで追加したタスク");
   assert.equal(store.tasks.find((t) => t.name === "E2Eで追加したタスク").sessionCount, 1);
   assert.equal(store.tasks.find((t) => t.name === "いつかのタスク").memo, "戻るときに保存される");

@@ -7,19 +7,21 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsIgnoringVisibility
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -47,6 +49,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
@@ -54,22 +57,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.kaorukajihara.shiodoki.R
-import dev.kaorukajihara.shiodoki.model.Priority
 import dev.kaorukajihara.shiodoki.model.Task
+import dev.kaorukajihara.shiodoki.model.TaskDrop
 import dev.kaorukajihara.shiodoki.model.formatMinutes
 import dev.kaorukajihara.shiodoki.ui.components.SwipeToComplete
 import dev.kaorukajihara.shiodoki.ui.components.showWithUndo
 import dev.kaorukajihara.shiodoki.ui.components.strokeIcon
+import dev.kaorukajihara.shiodoki.ui.home.GroupedTaskList
 import dev.kaorukajihara.shiodoki.ui.home.PriorityGroup
+import dev.kaorukajihara.shiodoki.ui.home.rememberMoveWithUndo
 import dev.kaorukajihara.shiodoki.ui.message
-import dev.kaorukajihara.shiodoki.ui.priorityHeading
 import dev.kaorukajihara.shiodoki.ui.theme.MonoFamily
 import dev.kaorukajihara.shiodoki.ui.theme.ShiodokiColors
-import dev.kaorukajihara.shiodoki.ui.theme.color
 import kotlinx.coroutines.launch
 
 /** Design §5.7 and the "フォーカス画面" artboard. */
@@ -80,6 +82,7 @@ fun FocusContent(viewModel: FocusViewModel) {
   val scope = rememberCoroutineScope()
   val completed = stringResource(R.string.task_completed)
   val undo = stringResource(R.string.undo)
+  val onMove = rememberMoveWithUndo(snackbarHostState, scope, viewModel::move, viewModel::undoMove)
   // Back does nothing: there is no skip (M-14). Leaving with Home brings the screen back a
   // minute later (FocusActivity.onStop). While the start confirmation is open, Back goes to the
   // dialog and chooses again.
@@ -120,6 +123,7 @@ fun FocusContent(viewModel: FocusViewModel) {
               if (snackbarHostState.showWithUndo(completed, undo)) viewModel.undoComplete(taskId)
             }
           },
+          onMove = onMove,
           modifier = Modifier.fillMaxSize(),
         )
         SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
@@ -159,13 +163,19 @@ private fun ModeBanner() {
  * "PC と同じ" above "スマホで前回", fixed at the bottom within thumb reach. When both are shown,
  * only the top one is filled so the two do not compete; hidden when there is neither.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ShortcutDock(pcTask: PcTask?, previous: Task?, onSelect: (taskId: String, taskName: String) -> Unit) {
   if (pcTask == null && previous == null) return
   Column(Modifier.fillMaxWidth().background(ShiodokiColors.NavBar)) {
     HorizontalDivider(color = ShiodokiColors.Outline)
     Column(
-      modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 20.dp),
+      modifier = Modifier
+        // The navigation bar is hidden (FocusActivity), so navigationBarsPadding() is 0 and a
+        // swipe shows the bar over the cards. Keep its height free anyway; what the screen
+        // already consumed (a visible bar, the keyboard) is not padded twice.
+        .windowInsetsPadding(WindowInsets.navigationBarsIgnoringVisibility)
+        .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 20.dp),
       verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
       pcTask?.let { pc ->
@@ -222,10 +232,12 @@ private fun ShortcutButton(
   onClick: () -> Unit,
 ) {
   val shape = RoundedCornerShape(20.dp)
+  // On a short (landscape) screen two tall cards would leave the task list almost no room.
+  val minHeight = if (LocalConfiguration.current.screenHeightDp < COMPACT_HEIGHT_DP) 76.dp else 114.dp
   Row(
     modifier = Modifier
       .fillMaxWidth()
-      .heightIn(min = 76.dp)
+      .heightIn(min = minHeight)
       .clip(shape)
       .background(if (primary) ShiodokiColors.Accent else ShiodokiColors.SurfaceRaised)
       .then(if (primary) Modifier else Modifier.border(1.5.dp, ShiodokiColors.Accent, shape))
@@ -245,7 +257,8 @@ private fun ShortcutButton(
         fontSize = 17.sp,
         fontWeight = FontWeight.Bold,
         color = if (primary) ShiodokiColors.OnAccent else ShiodokiColors.TextStrong,
-        maxLines = 1,
+        // The taller card has room for a second line, so long names wrap before they are cut.
+        maxLines = 2,
         overflow = TextOverflow.Ellipsis,
       )
     }
@@ -263,6 +276,9 @@ private fun ShortcutButton(
     }
   }
 }
+
+/** Material's compact window height class (< 480dp), typically a phone in landscape. */
+private const val COMPACT_HEIGHT_DP = 480
 
 /** Adds a task with priority NOW without starting it (design §5.7, Q-A3). */
 @Composable
@@ -305,12 +321,14 @@ private fun QuickAdd(viewModel: FocusViewModel) {
   }
 }
 
+/** Swipe completes, a long press drags the row to another place or priority (design §5.7). */
 @Composable
 private fun TaskList(
   groups: List<PriorityGroup>?,
   highlightedId: String?,
   onSelect: (Task) -> Unit,
   onComplete: (taskId: String) -> Unit,
+  onMove: (TaskDrop) -> Boolean,
   modifier: Modifier,
 ) {
   when {
@@ -320,40 +338,19 @@ private fun TaskList(
     groups.isEmpty() -> Box(modifier.fillMaxWidth(), Alignment.Center) {
       Text(stringResource(R.string.no_open_tasks), color = ShiodokiColors.TextMuted)
     }
-    else -> LazyColumn(
+    else -> GroupedTaskList(
+      groups = groups,
+      onMove = onMove,
       modifier = modifier.fillMaxWidth(),
       contentPadding = PaddingValues(top = 4.dp, bottom = 16.dp),
-      verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-      groups.forEachIndexed { index, group ->
-        item(key = group.priority.name) {
-          GroupHeader(group.priority, Modifier.padding(top = if (index == 0) 0.dp else 12.dp))
-        }
-        items(group.tasks, key = { it.id }) { task ->
-          SwipeToComplete(onComplete = { onComplete(task.id) }, modifier = Modifier.animateItem()) {
-            TaskRow(task, highlighted = task.id == highlightedId, onClick = { onSelect(task) })
-          }
-        }
+      spacing = 10.dp,
+      headingGap = 12.dp,
+      rowShape = RoundedCornerShape(16.dp),
+    ) { task ->
+      SwipeToComplete(onComplete = { onComplete(task.id) }, modifier = Modifier) {
+        TaskRow(task, highlighted = task.id == highlightedId, onClick = { onSelect(task) })
       }
     }
-  }
-}
-
-@Composable
-private fun GroupHeader(priority: Priority, modifier: Modifier = Modifier) {
-  Row(
-    modifier = modifier.padding(horizontal = 4.dp),
-    verticalAlignment = Alignment.CenterVertically,
-    horizontalArrangement = Arrangement.spacedBy(8.dp),
-  ) {
-    Box(Modifier.size(8.dp).background(priority.color, RoundedCornerShape(2.dp)))
-    Text(
-      priorityHeading(priority),
-      fontSize = 11.sp,
-      fontWeight = FontWeight.Bold,
-      letterSpacing = 0.08.em,
-      color = ShiodokiColors.TextMuted,
-    )
   }
 }
 
