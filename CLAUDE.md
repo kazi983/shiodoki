@@ -14,8 +14,9 @@ daily use until v2 replaces it. The repository is kazi983/shiodoki, the Firebase
 local-mode store is offered for upload on first sign-in.
 
 `docs/requirements.md` is the source of truth for scope, the Firestore data model (§5) and the
-phase plan (§9). Update it when decisions change. User-facing docs (READMEs, requirements) are
-written in Japanese.
+phase plan (§9). Update it when decisions change. Developer docs (READMEs, requirements) are
+written in Japanese, except `android/README.md` (English). Guides for people who only install the
+app are written in both Japanese and English; change both together.
 
 ## Coding conventions
 
