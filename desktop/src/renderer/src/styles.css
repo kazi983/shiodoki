@@ -1266,13 +1266,6 @@ html:has(.overlay-root) body {
   font-size: 24px;
 }
 
-.flow-header .brand {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  color: var(--sub);
-}
-
 .flow-icon {
   width: 44px;
   height: 44px;
@@ -1356,6 +1349,25 @@ html:has(.overlay-root) body {
 
 /* storage choice */
 
+.storage-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.storage-choice-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.storage-choice-header h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
 .choice-list {
   display: flex;
   flex-direction: column;
@@ -1415,9 +1427,6 @@ html:has(.overlay-root) body {
 }
 
 .choice-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   font-size: 16px;
   font-weight: 700;
   color: var(--text-strong);
@@ -1426,15 +1435,6 @@ html:has(.overlay-root) body {
 .choice-body {
   font-size: 13px;
   color: var(--text);
-}
-
-.badge-ok {
-  padding: 1px 6px;
-  border-radius: 6px;
-  background: var(--ok);
-  color: var(--bg);
-  font-size: 11px;
-  font-weight: 700;
 }
 
 /* steps */
