@@ -49,7 +49,7 @@
 | 離席スケジュール           | Leave schedule               |                                                                                                                                     |      |
 | 作業ストップ               | Wrap up                      | 離席時刻の N 分前、作業がブロックされる時刻（コードの `stopAt`）。離席時刻（`leaveAt`）とは別の時刻                                 | ✅   |
 | 次の予定                   | Next plan                    | 外出・就寝も含むので `appointment` は避ける。時刻のラベルには使わず「離席時刻」とする                                               | ✅   |
-| 何分前に止めるか           | Stop how many minutes before | 入力欄のラベル。トレイは `Wrap up ▸ 5 min before / When I leave`                                                                    |      |
+| 何分前に止めるか           | Stop how many minutes before | 画面は `Leave at [23:00] wrap up [5 min before]`、トレイは `Wrap up ▸ When I leave`                                                 |      |
 | スヌーズ                   | Snooze                       |                                                                                                                                     |      |
 | フォーカス画面             | Focus screen                 | Android                                                                                                                             |      |
 | PC と同じ                  | Same as PC                   | フォーカス画面の選択肢                                                                                                              |      |

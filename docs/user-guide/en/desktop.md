@@ -113,7 +113,7 @@ Tasks are grouped into six categories: NOW, ROUTINE, SOONER, ANYTIME, SOMEDAY an
 
 The first time you start a task each day, enter the time you **leave** your desk for your next plan
 and **how many minutes before it to stop** (0 to 30; 0 means you work until you leave). The fields start from "Defaults for leaving" in the tray
-menu (23:00 and "Until I leave" at first).
+menu (23:00 and "when I leave" at first).
 
 - You can type the time as digits only, like `2330`, `930` or `9`. A time that has passed means tomorrow.
 - Leave the time empty to work without one (no warning, no wrap-up). The next pickers open with the time empty too;
