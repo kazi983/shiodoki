@@ -249,7 +249,7 @@ try {
 
   // ---- 3. session + PC status ----
   await picker.click('.task-list [role=option]:has-text("PCで追加")');
-  await picker.fill('input[aria-label="次の予定の時刻"]', "2359");
+  await picker.fill('input[aria-label="離席時刻"]', "2359");
   await picker.click(".start-btn");
   await windowFor(app, "overlay");
   const running = await poll(desktopState, (s) => s?.status === "running", "running state");

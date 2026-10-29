@@ -5,9 +5,11 @@ import { afterEach, describe, expect, test } from "vitest";
 import {
   chooseLocale,
   loadLanguageSetting,
+  loadLeaveDefaults,
   loadOverlayOffset,
   loadStorageSetting,
   saveLanguageSetting,
+  saveLeaveDefaults,
   saveOverlayOffset,
   saveStorageSetting,
 } from "../src/main/settings";
@@ -35,6 +37,32 @@ describe("language setting file", () => {
     expect(loadLanguageSetting(file)).toBe("system");
     writeFileSync(file, JSON.stringify({ language: "fr" }));
     expect(loadLanguageSetting(file)).toBe("system");
+  });
+});
+
+describe("leave defaults", () => {
+  const dir = mkdtempSync(join(tmpdir(), "shiodoki-settings-"));
+  const file = join(dir, "nested", "settings.json");
+
+  afterEach(() => rmSync(join(dir, "nested"), { recursive: true, force: true }));
+
+  test("missing, broken or unknown values mean 23:00 and 0 minutes", () => {
+    expect(loadLeaveDefaults(file)).toEqual({ leaveTime: "23:00", bufferMinutes: 0 });
+    saveLanguageSetting(file, "ja");
+    writeFileSync(file, "{not json");
+    expect(loadLeaveDefaults(file)).toEqual({ leaveTime: "23:00", bufferMinutes: 0 });
+    writeFileSync(file, JSON.stringify({ defaultLeaveTime: "18:45", defaultBufferMinutes: 7 }));
+    expect(loadLeaveDefaults(file)).toEqual({ leaveTime: "23:00", bufferMinutes: 0 });
+  });
+
+  test("saves each value, keeps the other settings, and keeps None apart from missing", () => {
+    saveLanguageSetting(file, "en");
+    saveLeaveDefaults(file, { leaveTime: "18:30" });
+    saveLeaveDefaults(file, { bufferMinutes: 15 });
+    expect(loadLeaveDefaults(file)).toEqual({ leaveTime: "18:30", bufferMinutes: 15 });
+    saveLeaveDefaults(file, { leaveTime: null });
+    expect(loadLeaveDefaults(file)).toEqual({ leaveTime: null, bufferMinutes: 15 });
+    expect(loadLanguageSetting(file)).toBe("en");
   });
 });
 

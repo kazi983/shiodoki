@@ -60,7 +60,6 @@ export const ja = {
   errors: {
     stopTimePassed: "作業ストップの時刻を過ぎています",
     taskAlreadyCompleted: "完了済みのタスクは開始できません",
-    leaveTimeRequired: "離席時刻を入力してください",
     taskNotFound: "タスクが見つかりません",
   },
   picker: {
@@ -71,14 +70,16 @@ export const ja = {
     resumeKbdTitle: "入力欄が空のときに Enter で開始",
     /** Show the label next to the priority key in group headings ("SOONER 近いうち"). */
     showPriorityLabel: true,
-    nextPlan: "次の予定",
-    nextPlanSet: <T>(time: T, bufferMinutes: number): (string | T)[] => ["次の予定 ", time, ` の${bufferMinutes}分前`],
+    leaveSchedule: "離席スケジュール",
+    leaveAt: "離席時刻",
+    leaveAtSet: <T>(time: T, bufferMinutes: number): (string | T)[] =>
+      bufferMinutes === 0 ? ["離席時刻 ", time, " まで"] : ["離席時刻 ", time, ` の${bufferMinutes}分前`],
     change: "変更",
-    nextPlanTime: "次の予定の時刻",
     /** Text between the time input and the buffer select. */
     bufferJoiner: "の",
     bufferLabel: "何分前に止めるか",
-    bufferOption: (minutes: number) => `${minutes}分前`,
+    /** Reads after the time and the joiner: "23:30 の 直前まで". */
+    bufferOption: (minutes: number) => (minutes === 0 ? "直前まで" : `${minutes}分前`),
     stopTimeTitle: "作業ストップの時刻",
     workUntil: <T>(time: T): (string | T)[] => [time, " に作業ストップ"],
     enterTime: "時刻を入力",
@@ -150,7 +151,7 @@ export const ja = {
     saveAndContinue: "メモを保存して続ける",
     close: <T>(kbd: T): (string | T)[] => ["閉じる ", kbd],
     blockTime: (time: string) => `${time} · 作業ストップ`,
-    blockTitle: "次の予定の時間です",
+    blockTitle: "離席時刻です",
     blockSub: "PC を休止状態にして、次の予定へ向かいましょう",
     todayTotal: "今日の作業時間",
     todayByTask: "今日のタスク別時間",
@@ -241,6 +242,12 @@ export const ja = {
   },
   tray: {
     pickTask: "タスクを選ぶ",
+    /** Initial values of the picker's leave inputs; the items reuse the picker labels. */
+    leaveDefaults: "離席の初期値",
+    noLeaveTime: "なし",
+    bufferMenu: "何分前に止めるか",
+    /** Reads after bufferMenu, unlike picker.bufferOption which reads after the time. */
+    bufferOption: (minutes: number) => (minutes === 0 ? "直前まで" : `${minutes}分前`),
     signInToSync: "Google でログインして同期…",
     encryption: "暗号化…",
     /** Both languages, so the menu can be found whichever language is shown. */

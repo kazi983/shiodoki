@@ -1,6 +1,7 @@
 import type { LeaveInfo, PickerState, RunningInfo, StartSessionRequest } from "@shared/ipc";
 import type { DesktopStatus } from "@shared/desktopState";
 import { t } from "@shared/i18n";
+import { DEFAULT_BUFFER_MINUTES, DEFAULT_LEAVE_TIME, type LeaveDefaults } from "@shared/leave";
 import type { EndReason } from "@shared/session";
 import type { SyncInfo } from "@shared/sync";
 import { LeaveScheduleService } from "./leaveScheduleService";
@@ -52,6 +53,8 @@ export interface AppControllerOptions {
   /** Runs after the last session is recorded and before quitting (e.g. flush to the server). */
   beforeQuit?: () => Promise<void>;
   syncInfo?: () => SyncInfo;
+  /** The tray defaults (settings.json), read each time the picker loads. */
+  leaveDefaults?: () => LeaveDefaults;
 }
 
 /**
@@ -67,6 +70,8 @@ export interface AppControllerOptions {
 export class AppController {
   private status: DesktopStatus = "idle";
   private leavePhase: LeavePhase = "none";
+  /** Started without a leave time: later pickers open with an empty time until the app restarts. */
+  private leaveSkipped = false;
   private intervalTimer: string | null = null;
   private snoozeTimer: string | null = null;
   private shuttingDown = false;
@@ -103,10 +108,15 @@ export class AppController {
 
   async getPickerState(): Promise<PickerState> {
     const [tasks, prefs] = await Promise.all([this.tasks.listIncomplete(), this.tasks.getPreferences()]);
+    const defaults = this.options.leaveDefaults?.() ?? {
+      leaveTime: DEFAULT_LEAVE_TIME,
+      bufferMinutes: DEFAULT_BUFFER_MINUTES,
+    };
     return {
       tasks,
       lastSelectedTaskId: prefs.lastSelectedTaskId,
       leave: this.leave.status(),
+      leaveInput: this.leaveSkipped ? { ...defaults, leaveTime: null } : defaults,
       testMode: this.options.testMode,
       intervalMs: this.options.intervalMs,
       snoozeMs: this.options.snoozeMs,
@@ -157,9 +167,11 @@ export class AppController {
     if (task.completed) throw new Error(t().errors.taskAlreadyCompleted);
 
     if (!this.leave.isScheduled) {
-      if (!req.leave) throw new Error(t().errors.leaveTimeRequired);
-      this.leave.scheduleLeave(req.leave, this.now());
-      this.leavePhase = "none";
+      if (req.leave) {
+        this.leave.scheduleLeave(req.leave, this.now());
+        this.leavePhase = "none";
+      }
+      this.leaveSkipped = !req.leave;
     }
 
     // A session may still be running if the picker was opened from the tray.

@@ -20,9 +20,11 @@ import { SessionService } from "./sessionService";
 import {
   chooseLocale,
   loadLanguageSetting,
+  loadLeaveDefaults,
   loadOverlayOffset,
   loadStorageSetting,
   saveLanguageSetting,
+  saveLeaveDefaults,
   saveOverlayOffset,
   saveStorageSetting,
   type LanguageSetting,
@@ -421,6 +423,7 @@ function wire(repo: TaskRepository, syncInfo: () => SyncInfo, { firebase, signIn
       syncInfo,
       onStatusChange: firebase ? (s) => firebase.reporter.report(s) : undefined,
       beforeQuit: firebase?.beforeQuit,
+      leaveDefaults: () => loadLeaveDefaults(settingsFile()),
     },
   );
 
@@ -445,8 +448,12 @@ function wire(repo: TaskRepository, syncInfo: () => SyncInfo, { firebase, signIn
       openEncryption: firebase ? () => wm.showEncryption() : undefined,
       signInToSync,
       language: {
-        current: loadLanguageSetting(settingsFile()),
+        current: () => loadLanguageSetting(settingsFile()),
         change: (value) => void changeLanguage(value, controller, wm),
+      },
+      leaveDefaults: {
+        current: () => loadLeaveDefaults(settingsFile()),
+        change: (patch) => saveLeaveDefaults(settingsFile(), patch),
       },
     },
     TEST_MODE,

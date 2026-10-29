@@ -104,14 +104,49 @@ describe("session flow", () => {
     expect((await tasks.get(t.id)).totalMinutes).toBe(30);
   });
 
-  test("the first session requires a leave time", async () => {
+  test("once scheduled, later sessions keep the leave schedule", async () => {
     const t = await addTask();
-    await expect(controller.startSession({ taskId: t.id })).rejects.toThrow("離席時刻");
+    expect((await controller.getPickerState()).leaveInput.leaveTime).not.toBeNull();
     await controller.startSession({ taskId: t.id, leave: LEAVE });
     await controller.completeFromOverlay();
-    // Already scheduled: no leave input needed any more
     await controller.startSession({ taskId: t.id });
     expect(controller.currentStatus).toBe("running");
+    expect((await controller.getPickerState()).leave?.bufferMinutes).toBe(15);
+  });
+
+  test("the picker starts from the tray defaults, read each time it loads", async () => {
+    let defaults = { leaveTime: "18:00" as string | null, bufferMinutes: 10 };
+    const c = new AppController(tasks, new SessionService("pc"), new TimerService(), windows, lifecycle, {
+      intervalMs: INTERVAL,
+      snoozeMs: SNOOZE,
+      testMode: false,
+      leaveDefaults: () => defaults,
+    });
+    expect((await c.getPickerState()).leaveInput).toEqual({ leaveTime: "18:00", bufferMinutes: 10 });
+    defaults = { leaveTime: null, bufferMinutes: 0 };
+    expect((await c.getPickerState()).leaveInput).toEqual({ leaveTime: null, bufferMinutes: 0 });
+
+    // Starting without a time keeps the default buffer but empties the time.
+    defaults = { leaveTime: "18:00", bufferMinutes: 10 };
+    const t = await addTask();
+    await c.startSession({ taskId: t.id });
+    expect((await c.getPickerState()).leaveInput).toEqual({ leaveTime: null, bufferMinutes: 10 });
+  });
+
+  test("without a leave time: no warning or block, and later pickers open with an empty time", async () => {
+    const t = await addTask();
+    await controller.startSession({ taskId: t.id });
+    expect(controller.currentStatus).toBe("running");
+    const state = await controller.getPickerState();
+    expect(state.leave).toBeNull();
+    expect(state.leaveInput.leaveTime).toBeNull();
+
+    await vi.advanceTimersByTimeAsync(24 * 60 * MIN);
+    expect(windows.leave).toBeNull();
+
+    // A time entered in a later picker sets the schedule.
+    await controller.startSession({ taskId: t.id, leave: LEAVE });
+    expect((await controller.getPickerState()).leave).not.toBeNull();
   });
 
   test("completing early cancels the 30-minute timer (v1 bug)", async () => {

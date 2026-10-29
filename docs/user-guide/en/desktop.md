@@ -109,16 +109,19 @@ Pick one task in "What's your focus now?" and start it. The same window comes ba
 
 Tasks are grouped into six categories: NOW, ROUTINE, SOONER, ANYTIME, SOMEDAY and BREAK.
 
-### Next plan and wrap-up
+### Leave at and wrap-up
 
-The first time you start a task each day, enter the **time of your next plan** (when you have to leave your desk)
-and **how many minutes before it to stop** (5 to 30, 15 by default).
+The first time you start a task each day, enter the time you **leave** your desk for your next plan
+and **how many minutes before it to stop** (0 to 30; 0 means you work until you leave). The fields start from "Defaults for leaving" in the tray
+menu (23:00 and "when I leave" at first).
 
 - You can type the time as digits only, like `2330`, `930` or `9`. A time that has passed means tomorrow.
+- Leave the time empty to work without one (no warning, no wrap-up). The next pickers open with the time empty too;
+  enter a time when you start a task if a plan comes up.
 - **5 minutes before** wrap-up time, a warning appears. You can leave a note for next time.
-- At wrap-up time, "Time for your next plan" fills the screen and cannot be closed. It shows how long you worked
+- At wrap-up time, "Time to leave" fills the screen and cannot be closed. It shows how long you worked
   today, by task. Click "Quit Shiodoki" to finish.
-- To use the app again, start it again and enter your next plan.
+- To use the app again, start it again and enter the time you leave.
 - A "day" starts at 4:00 a.m.
 
 ### While you work
@@ -133,16 +136,17 @@ or reopen them, and delete them.
 
 ### Tray menu
 
-| Item                         | What it does                                                                                            |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Pick a task                  | Open the task picker                                                                                    |
-| Manage tasks                 | Open task management                                                                                    |
-| Language / 言語              | Choose English, 日本語 or System default (applies after a restart)                                      |
-| Sign in with Google to sync… | Only without signing in. Sign in with Google and start syncing through the cloud                        |
-| Encryption…                  | Only when signed in. Change your passphrase or create a new recovery key                                |
-| Restart                      | Restart the app                                                                                         |
-| Sign out                     | Only when signed in. Data saved on this PC and the unlocked key are deleted too (your cloud data stays) |
-| Quit                         | Quit the app                                                                                            |
+| Item                         | What it does                                                                                                                              |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Pick a task                  | Open the task picker                                                                                                                      |
+| Manage tasks                 | Open task management                                                                                                                      |
+| Defaults for leaving         | Choose what "Leave at" (None or every 30 minutes) and "Wrap up" (minutes before) start with in the picker. A leave time already set stays |
+| Language / 言語              | Choose English, 日本語 or System default (applies after a restart)                                                                        |
+| Sign in with Google to sync… | Only without signing in. Sign in with Google and start syncing through the cloud                                                          |
+| Encryption…                  | Only when signed in. Change your passphrase or create a new recovery key                                                                  |
+| Restart                      | Restart the app                                                                                                                           |
+| Sign out                     | Only when signed in. Data saved on this PC and the unlocked key are deleted too (your cloud data stays)                                   |
+| Quit                         | Quit the app                                                                                                                              |
 
 A dot at the top left (top right in task management) shows the state of your data: "Synced", "Pending" or "Offline",
 or "This PC only" when you use the app without signing in.
@@ -197,5 +201,5 @@ signed in, your cloud data stays. To delete it, see [Data and privacy](privacy.m
 | You lost both your passphrase and recovery key | If a PC is still signed in, create a new recovery key there in "Encryption…". Otherwise your cloud data can't be read: ask the administrator to delete it, then start over |
 | Can't find the tray icon                       | On Windows, look under "^" at the bottom right of the taskbar. On Ubuntu, install the GNOME extension above                                                                |
 | "Shiodoki is already running."                 | Click "Bring to front" to show the running app                                                                                                                             |
-| You want to keep working after wrap-up         | Quit the app, start it again and enter a new next plan                                                                                                                     |
+| You want to keep working after wrap-up         | Quit the app, start it again and enter the time you leave again                                                                                                            |
 | Anything else                                  | Contact the administrator or open an issue on [GitHub](https://github.com/kazi983/shiodoki/issues)                                                                         |

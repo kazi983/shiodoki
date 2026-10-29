@@ -61,7 +61,6 @@ export const en: Messages = {
   errors: {
     stopTimePassed: "It's past your wrap-up time",
     taskAlreadyCompleted: "A completed task cannot be started",
-    leaveTimeRequired: "Enter the time of your next plan",
     taskNotFound: "Task not found",
   },
   picker: {
@@ -71,13 +70,16 @@ export const en: Messages = {
     resumeMeta: (total, sessions) => `Total ${total} · ${plural(sessions, "session", "sessions")}`,
     resumeKbdTitle: "Press Enter with the input empty to start",
     showPriorityLabel: false,
-    nextPlan: "Next plan",
-    nextPlanSet: (time, bufferMinutes) => ["Next plan ", time, ` (${bufferMinutes} min before)`],
+    leaveSchedule: "Leave schedule",
+    leaveAt: "Leave at",
+    leaveAtSet: (time, bufferMinutes) =>
+      bufferMinutes === 0
+        ? ["Leave at ", time, ", wrap up when I leave"]
+        : ["Leave at ", time, `, wrap up ${bufferMinutes} min before`],
     change: "Change",
-    nextPlanTime: "Time of the next plan",
-    bufferJoiner: "",
+    bufferJoiner: "wrap up",
     bufferLabel: "Minutes before to stop",
-    bufferOption: (minutes) => `${minutes} min before`,
+    bufferOption: (minutes) => (minutes === 0 ? "when I leave" : `${minutes} min before`),
     stopTimeTitle: "Wrap-up time",
     workUntil: (time) => ["Wrap up at ", time],
     enterTime: "Enter a time",
@@ -149,7 +151,7 @@ export const en: Messages = {
     saveAndContinue: "Save note and continue",
     close: (kbd) => ["Close ", kbd],
     blockTime: (time) => `${time} · Wrap up`,
-    blockTitle: "Time for your next plan",
+    blockTitle: "Time to leave",
     blockSub: "Put your PC to sleep and head to your next plan",
     todayTotal: "Worked today",
     todayByTask: "Time by task today",
@@ -240,6 +242,10 @@ export const en: Messages = {
   },
   tray: {
     pickTask: "Pick a task",
+    leaveDefaults: "Defaults for leaving",
+    noLeaveTime: "None",
+    bufferMenu: "Wrap up",
+    bufferOption: (minutes) => (minutes === 0 ? "When I leave" : `${minutes} min before`),
     signInToSync: "Sign in with Google to sync…",
     encryption: "Encryption…",
     language: "Language / 言語",
