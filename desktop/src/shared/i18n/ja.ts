@@ -73,12 +73,14 @@ export const ja = {
     showPriorityLabel: true,
     leaveSchedule: "離席スケジュール",
     leaveAt: "離席時刻",
-    leaveAtSet: <T>(time: T, bufferMinutes: number): (string | T)[] => ["離席時刻 ", time, ` の${bufferMinutes}分前`],
+    leaveAtSet: <T>(time: T, bufferMinutes: number): (string | T)[] =>
+      bufferMinutes === 0 ? ["離席時刻 ", time, " まで"] : ["離席時刻 ", time, ` の${bufferMinutes}分前`],
     change: "変更",
     /** Text between the time input and the buffer select. */
     bufferJoiner: "の",
     bufferLabel: "何分前に止めるか",
-    bufferOption: (minutes: number) => `${minutes}分前`,
+    /** Reads after the time and the joiner: "23:30 の 直前まで". */
+    bufferOption: (minutes: number) => (minutes === 0 ? "直前まで" : `${minutes}分前`),
     stopTimeTitle: "作業ストップの時刻",
     workUntil: <T>(time: T): (string | T)[] => [time, " に作業ストップ"],
     enterTime: "時刻を入力",

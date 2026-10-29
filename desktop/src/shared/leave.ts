@@ -8,7 +8,8 @@
 import { t } from "./i18n";
 
 export const WARNING_LEAD_MINUTES = 5;
-export const BUFFER_OPTIONS = [5, 10, 15, 20, 25, 30] as const;
+/** 0 stops work at the leave time itself; the warning still comes 5 minutes before. */
+export const BUFFER_OPTIONS = [0, 5, 10, 15, 20, 25, 30] as const;
 export const DEFAULT_LEAVE_TIME = "23:30";
 export const DEFAULT_BUFFER_MINUTES = 15;
 

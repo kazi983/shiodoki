@@ -66,6 +66,13 @@ describe("leave schedule", () => {
     expect(s.warnAt).toEqual(new Date(2026, 9, 6, 23, 10));
   });
 
+  test("a buffer of 0 stops at the leave time, still warning 5 minutes before", () => {
+    const now = new Date(2026, 9, 6, 20, 0);
+    const s = buildLeaveSchedule({ leaveTime: "23:30", bufferMinutes: 0 }, now);
+    expect(s.stopAt).toEqual(s.leaveAt);
+    expect(s.warnAt).toEqual(new Date(2026, 9, 6, 23, 25));
+  });
+
   test("rejects a negative buffer", () => {
     expect(() => buildLeaveSchedule({ leaveTime: "23:30", bufferMinutes: -1 }, new Date())).toThrow();
   });

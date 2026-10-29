@@ -73,11 +73,14 @@ export const en: Messages = {
     showPriorityLabel: false,
     leaveSchedule: "Leave schedule",
     leaveAt: "Leave at",
-    leaveAtSet: (time, bufferMinutes) => ["Leave at ", time, ` (stop ${bufferMinutes} min before)`],
+    leaveAtSet: (time, bufferMinutes) =>
+      bufferMinutes === 0
+        ? ["Leave at ", time, " (work until then)"]
+        : ["Leave at ", time, ` (stop ${bufferMinutes} min before)`],
     change: "Change",
     bufferJoiner: "",
     bufferLabel: "Minutes before to stop",
-    bufferOption: (minutes) => `${minutes} min before`,
+    bufferOption: (minutes) => (minutes === 0 ? "Until I leave" : `${minutes} min before`),
     stopTimeTitle: "Wrap-up time",
     workUntil: (time) => ["Wrap up at ", time],
     enterTime: "Enter a time",

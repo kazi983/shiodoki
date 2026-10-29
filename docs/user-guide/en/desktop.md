@@ -112,7 +112,7 @@ Tasks are grouped into six categories: NOW, ROUTINE, SOONER, ANYTIME, SOMEDAY an
 ### Leave at and wrap-up
 
 The first time you start a task each day, enter the time you **leave** your desk for your next plan
-and **how many minutes before it to stop** (5 to 30, 15 by default).
+and **how many minutes before it to stop** (0 to 30, 15 by default; 0 means you work until you leave).
 
 - You can type the time as digits only, like `2330`, `930` or `9`. A time that has passed means tomorrow.
 - **5 minutes before** wrap-up time, a warning appears. You can leave a note for next time.
