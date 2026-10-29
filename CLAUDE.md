@@ -37,7 +37,8 @@ written in Japanese.
   commit is listed in `.git-blame-ignore-revs` (`git config blame.ignoreRevsFile .git-blame-ignore-revs`).
 - `firebase/` — `firestore.rules`, emulator config, rules tests. `npm test` runs the rules tests
   on the Firestore emulator (Java 21+). `npm run deploy:rules` deploys to project
-  `shiodoki-e4e8f` (`.firebaserc`).
+  `shiodoki-e4e8f` (`.firebaserc`). `npm run backup` (`scripts/backup.mjs`) reads one user's data from production
+  with the Admin SDK and Application Default Credentials, read-only (steps in `firebase/README.md`).
 - `desktop/` — Electron + TypeScript + React (electron-vite). Before committing, run in
   `desktop/`: `npm run typecheck`, `npm test`, `npm run test:integration`, `npm run e2e:headless`.
   Integration and Firebase E2E tests start the emulators via `../firebase/node_modules/.bin/firebase`,
