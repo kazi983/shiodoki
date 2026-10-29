@@ -242,6 +242,10 @@ export const en: Messages = {
   },
   tray: {
     pickTask: "Pick a task",
+    leaveDefaults: "Defaults for leaving",
+    noLeaveTime: "None",
+    bufferMenu: "Wrap up",
+    bufferOption: (minutes) => (minutes === 0 ? "When I leave" : `${minutes} min before`),
     signInToSync: "Sign in with Google to sync…",
     encryption: "Encryption…",
     language: "Language / 言語",

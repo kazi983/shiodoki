@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { app, Menu, nativeImage, Tray } from "electron";
 import { LANGUAGE_NAMES, t } from "@shared/i18n";
+import { BUFFER_OPTIONS, LEAVE_TIME_PRESETS, type LeaveDefaults } from "@shared/leave";
 import { LANGUAGE_SETTINGS, type LanguageSetting } from "./settings";
 
 export interface TrayActions {
@@ -15,6 +16,8 @@ export interface TrayActions {
   /** Cloud mode only: change the passphrase, create a new recovery key. */
   openEncryption?: () => void;
   language: { current: LanguageSetting; change(value: LanguageSetting): void };
+  /** Initial leave inputs of the next picker; a running leave schedule is not changed. */
+  leaveDefaults: { current: LeaveDefaults; change(patch: Partial<LeaveDefaults>): void };
 }
 
 /**
@@ -31,6 +34,29 @@ export function createTray(actions: TrayActions, testMode: boolean): Tray | null
       Menu.buildFromTemplate([
         { label: text.pickTask, click: actions.openPicker },
         { label: common.manageTasks, click: actions.openManagement },
+        {
+          label: text.leaveDefaults,
+          submenu: [
+            {
+              label: t().picker.leaveAt,
+              submenu: [null, ...LEAVE_TIME_PRESETS].map((value) => ({
+                label: value ?? text.noLeaveTime,
+                type: "radio" as const,
+                checked: value === actions.leaveDefaults.current.leaveTime,
+                click: () => actions.leaveDefaults.change({ leaveTime: value }),
+              })),
+            },
+            {
+              label: text.bufferMenu,
+              submenu: BUFFER_OPTIONS.map((minutes) => ({
+                label: text.bufferOption(minutes),
+                type: "radio" as const,
+                checked: minutes === actions.leaveDefaults.current.bufferMinutes,
+                click: () => actions.leaveDefaults.change({ bufferMinutes: minutes }),
+              })),
+            },
+          ],
+        },
         {
           label: text.language,
           submenu: LANGUAGE_SETTINGS.map((value) => ({

@@ -114,6 +114,25 @@ describe("session flow", () => {
     expect((await controller.getPickerState()).leave?.bufferMinutes).toBe(15);
   });
 
+  test("the picker starts from the tray defaults, read each time it loads", async () => {
+    let defaults = { leaveTime: "18:00" as string | null, bufferMinutes: 10 };
+    const c = new AppController(tasks, new SessionService("pc"), new TimerService(), windows, lifecycle, {
+      intervalMs: INTERVAL,
+      snoozeMs: SNOOZE,
+      testMode: false,
+      leaveDefaults: () => defaults,
+    });
+    expect((await c.getPickerState()).leaveInput).toEqual({ leaveTime: "18:00", bufferMinutes: 10 });
+    defaults = { leaveTime: null, bufferMinutes: 0 };
+    expect((await c.getPickerState()).leaveInput).toEqual({ leaveTime: null, bufferMinutes: 0 });
+
+    // Starting without a time keeps the default buffer but empties the time.
+    defaults = { leaveTime: "18:00", bufferMinutes: 10 };
+    const t = await addTask();
+    await c.startSession({ taskId: t.id });
+    expect((await c.getPickerState()).leaveInput).toEqual({ leaveTime: null, bufferMinutes: 10 });
+  });
+
   test("without a leave time: no warning or block, and later pickers open with an empty time", async () => {
     const t = await addTask();
     await controller.startSession({ taskId: t.id });

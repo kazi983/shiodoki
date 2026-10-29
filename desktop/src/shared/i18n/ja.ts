@@ -242,6 +242,12 @@ export const ja = {
   },
   tray: {
     pickTask: "タスクを選ぶ",
+    /** Initial values of the picker's leave inputs; the items reuse the picker labels. */
+    leaveDefaults: "離席の初期値",
+    noLeaveTime: "なし",
+    bufferMenu: "何分前に止めるか",
+    /** Reads after bufferMenu, unlike picker.bufferOption which reads after the time. */
+    bufferOption: (minutes: number) => (minutes === 0 ? "直前まで" : `${minutes}分前`),
     signInToSync: "Google でログインして同期…",
     encryption: "暗号化…",
     /** Both languages, so the menu can be found whichever language is shown. */

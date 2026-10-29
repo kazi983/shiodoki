@@ -1,7 +1,7 @@
 import type { LeaveInfo, PickerState, RunningInfo, StartSessionRequest } from "@shared/ipc";
 import type { DesktopStatus } from "@shared/desktopState";
 import { t } from "@shared/i18n";
-import { DEFAULT_BUFFER_MINUTES, DEFAULT_LEAVE_TIME } from "@shared/leave";
+import { DEFAULT_BUFFER_MINUTES, DEFAULT_LEAVE_TIME, type LeaveDefaults } from "@shared/leave";
 import type { EndReason } from "@shared/session";
 import type { SyncInfo } from "@shared/sync";
 import { LeaveScheduleService } from "./leaveScheduleService";
@@ -53,6 +53,8 @@ export interface AppControllerOptions {
   /** Runs after the last session is recorded and before quitting (e.g. flush to the server). */
   beforeQuit?: () => Promise<void>;
   syncInfo?: () => SyncInfo;
+  /** The tray defaults (settings.json), read each time the picker loads. */
+  leaveDefaults?: () => LeaveDefaults;
 }
 
 /**
@@ -106,14 +108,15 @@ export class AppController {
 
   async getPickerState(): Promise<PickerState> {
     const [tasks, prefs] = await Promise.all([this.tasks.listIncomplete(), this.tasks.getPreferences()]);
+    const defaults = this.options.leaveDefaults?.() ?? {
+      leaveTime: DEFAULT_LEAVE_TIME,
+      bufferMinutes: DEFAULT_BUFFER_MINUTES,
+    };
     return {
       tasks,
       lastSelectedTaskId: prefs.lastSelectedTaskId,
       leave: this.leave.status(),
-      leaveInput: {
-        leaveTime: this.leaveSkipped ? null : DEFAULT_LEAVE_TIME,
-        bufferMinutes: DEFAULT_BUFFER_MINUTES,
-      },
+      leaveInput: this.leaveSkipped ? { ...defaults, leaveTime: null } : defaults,
       testMode: this.options.testMode,
       intervalMs: this.options.intervalMs,
       snoozeMs: this.options.snoozeMs,
