@@ -33,6 +33,7 @@ import {
 import { JsonFileTaskRepository, type TaskRepository } from "./taskRepository";
 import { TaskService } from "./taskService";
 import { TimerService } from "./timerService";
+import { watchScreenState } from "./screenStateMonitor";
 import { createTray } from "./tray";
 import { RELEASES_URL, startUpdateCheck } from "./updater";
 import { WindowManager, type FlowRoute } from "./windowManager";
@@ -389,8 +390,10 @@ function wire(repo: TaskRepository, syncInfo: () => SyncInfo, { firebase, signIn
     loadOverlayOffset(settingsFile()),
   );
   const wm = windows;
+  let stopScreenWatch = (): void => {};
   const quitWith = (quit: () => void) => {
     quitting = true;
+    stopScreenWatch();
     firebase?.reporter.stop();
     wm.destroyAll();
     quit();
@@ -412,6 +415,7 @@ function wire(repo: TaskRepository, syncInfo: () => SyncInfo, { firebase, signIn
         }),
       relaunch: () => {
         quitting = true;
+        stopScreenWatch();
         app.relaunch();
         app.exit(0);
       },
@@ -426,6 +430,11 @@ function wire(repo: TaskRepository, syncInfo: () => SyncInfo, { firebase, signIn
       leaveDefaults: () => loadLeaveDefaults(settingsFile()),
     },
   );
+
+  stopScreenWatch = watchScreenState({
+    onOff: () => void controller.onScreenOff(),
+    onOn: () => controller.onScreenOn(),
+  });
 
   registerIpcHandlers(
     controller,

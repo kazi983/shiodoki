@@ -94,6 +94,9 @@ app are written in both Japanese and English; change both together.
   process only (kept with `safeStorage` in `userData/dek.bin`), and `FirestoreTaskRepository` encrypts task names,
   memos and session / desktop-state task names before they reach the data window and decrypts snapshots. Never log
   plain task names or secrets (the data window's console warnings are forwarded to the terminal).
+- Screen off (idle blank, lock, suspend) ends the running session as `screen_off` and screen on shows
+  the picker (`screenStateMonitor.ts`: `powerMonitor` plus, on Linux, GNOME's `ActiveChanged` via
+  `gdbus monitor`). Timers stop during suspend, so leave times are rechecked by the wall clock.
 - `desktopStateReporter.ts` writes `users/{uid}/state/desktop` on every status change plus a
   5-minute heartbeat.
 - Renderer pages (`src/renderer/src/pages/`) only call `window.api` (preload, typed by

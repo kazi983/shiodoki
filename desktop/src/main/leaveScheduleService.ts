@@ -26,27 +26,51 @@ export class LeaveScheduleService {
     return this.schedule !== null;
   }
 
+  get current(): Readonly<LeaveSchedule> | null {
+    return this.schedule;
+  }
+
   scheduleLeave(input: LeaveScheduleInput, now: Date = new Date()): LeaveSchedule {
     const schedule = buildLeaveSchedule(input, now);
     this.cancel();
     this.schedule = schedule;
-    this.warningTimer = this.timer.start(schedule.warnAt.getTime() - now.getTime(), () => {
-      this.warningTimer = null;
-      this.callbacks.onWarning();
-    });
+    this.startTimers(schedule, now, true);
+    return schedule;
+  }
+
+  /**
+   * Restart the timers from the wall clock, since they do not run while the
+   * system is suspended. A warning time already passed is not fired again.
+   */
+  rearm(now: Date): void {
+    if (!this.schedule) return;
+    this.clearTimers();
+    this.startTimers(this.schedule, now, false);
+  }
+
+  cancel(): void {
+    this.clearTimers();
+    this.schedule = null;
+  }
+
+  private startTimers(schedule: LeaveSchedule, now: Date, warnIfPassed: boolean): void {
+    if (warnIfPassed || schedule.warnAt.getTime() > now.getTime()) {
+      this.warningTimer = this.timer.start(schedule.warnAt.getTime() - now.getTime(), () => {
+        this.warningTimer = null;
+        this.callbacks.onWarning();
+      });
+    }
     this.stopTimer = this.timer.start(schedule.stopAt.getTime() - now.getTime(), () => {
       this.stopTimer = null;
       this.callbacks.onStop();
     });
-    return schedule;
   }
 
-  cancel(): void {
+  private clearTimers(): void {
     this.timer.cancel(this.warningTimer);
     this.timer.cancel(this.stopTimer);
     this.warningTimer = null;
     this.stopTimer = null;
-    this.schedule = null;
   }
 
   status(): LeaveScheduleStatus | null {
