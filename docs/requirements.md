@@ -1,7 +1,7 @@
 # Shiodoki 要件定義書
 
-- ステータス: 確定 v0.25
-- 更新日: 2026-10-22
+- ステータス: 確定 v0.27
+- 更新日: 2026-10-29
 - 対象: 現行アプリ v1（[kazi983/30min-task-timer-python](https://github.com/kazi983/30min-task-timer-python) の `main.pyw` / `app/`）の作り替え
 - 本文中の `app/...` などのパスは v1 リポジトリのファイルを指す
 
