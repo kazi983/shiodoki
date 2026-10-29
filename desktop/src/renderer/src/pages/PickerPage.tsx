@@ -206,12 +206,12 @@ export function PickerPage() {
         </button>
       )}
 
-      <section className="leave-row" aria-label={text.nextPlan}>
+      <section className="leave-row" aria-label={text.leaveSchedule}>
         <ClockIcon />
         {state?.leave ? (
           <>
             <span>
-              {text.nextPlanSet(
+              {text.leaveAtSet(
                 <span key="time" className="mono">
                   {formatHHMM(new Date(state.leave.leaveAt))}
                 </span>,
@@ -225,12 +225,12 @@ export function PickerPage() {
         ) : (
           <>
             <label>
-              {text.nextPlan}
+              {text.leaveAt}
               <input
                 className="field-sm input-time"
                 value={leaveTime}
                 onChange={(e) => setLeaveTime(e.target.value)}
-                aria-label={text.nextPlanTime}
+                aria-label={text.leaveAt}
                 placeholder="18:30"
               />
             </label>

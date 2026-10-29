@@ -109,16 +109,16 @@ Pick one task in "What's your focus now?" and start it. The same window comes ba
 
 Tasks are grouped into six categories: NOW, ROUTINE, SOONER, ANYTIME, SOMEDAY and BREAK.
 
-### Next plan and wrap-up
+### Leave at and wrap-up
 
-The first time you start a task each day, enter the **time of your next plan** (when you have to leave your desk)
+The first time you start a task each day, enter the time you **leave** your desk for your next plan
 and **how many minutes before it to stop** (5 to 30, 15 by default).
 
 - You can type the time as digits only, like `2330`, `930` or `9`. A time that has passed means tomorrow.
 - **5 minutes before** wrap-up time, a warning appears. You can leave a note for next time.
-- At wrap-up time, "Time for your next plan" fills the screen and cannot be closed. It shows how long you worked
+- At wrap-up time, "Time to leave" fills the screen and cannot be closed. It shows how long you worked
   today, by task. Click "Quit Shiodoki" to finish.
-- To use the app again, start it again and enter your next plan.
+- To use the app again, start it again and enter the time you leave.
 - A "day" starts at 4:00 a.m.
 
 ### While you work
@@ -197,5 +197,5 @@ signed in, your cloud data stays. To delete it, see [Data and privacy](privacy.m
 | You lost both your passphrase and recovery key | If a PC is still signed in, create a new recovery key there in "Encryption…". Otherwise your cloud data can't be read: ask the administrator to delete it, then start over |
 | Can't find the tray icon                       | On Windows, look under "^" at the bottom right of the taskbar. On Ubuntu, install the GNOME extension above                                                                |
 | "Shiodoki is already running."                 | Click "Bring to front" to show the running app                                                                                                                             |
-| You want to keep working after wrap-up         | Quit the app, start it again and enter a new next plan                                                                                                                     |
+| You want to keep working after wrap-up         | Quit the app, start it again and enter the time you leave again                                                                                                            |
 | Anything else                                  | Contact the administrator or open an issue on [GitHub](https://github.com/kazi983/shiodoki/issues)                                                                         |

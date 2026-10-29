@@ -71,10 +71,10 @@ export const ja = {
     resumeKbdTitle: "入力欄が空のときに Enter で開始",
     /** Show the label next to the priority key in group headings ("SOONER 近いうち"). */
     showPriorityLabel: true,
-    nextPlan: "次の予定",
-    nextPlanSet: <T>(time: T, bufferMinutes: number): (string | T)[] => ["次の予定 ", time, ` の${bufferMinutes}分前`],
+    leaveSchedule: "離席スケジュール",
+    leaveAt: "離席時刻",
+    leaveAtSet: <T>(time: T, bufferMinutes: number): (string | T)[] => ["離席時刻 ", time, ` の${bufferMinutes}分前`],
     change: "変更",
-    nextPlanTime: "次の予定の時刻",
     /** Text between the time input and the buffer select. */
     bufferJoiner: "の",
     bufferLabel: "何分前に止めるか",
@@ -150,7 +150,7 @@ export const ja = {
     saveAndContinue: "メモを保存して続ける",
     close: <T>(kbd: T): (string | T)[] => ["閉じる ", kbd],
     blockTime: (time: string) => `${time} · 作業ストップ`,
-    blockTitle: "次の予定の時間です",
+    blockTitle: "離席時刻です",
     blockSub: "PC を休止状態にして、次の予定へ向かいましょう",
     todayTotal: "今日の作業時間",
     todayByTask: "今日のタスク別時間",
