@@ -67,6 +67,25 @@
 | タスク管理                 | Manage tasks                 | 画面タイトル・メニュー                                                                                                              |      |
 | 集計                       | Stats                        | Android の下部ナビ                                                                                                                  |      |
 
+### ローカルモードと暗号化（2026-10-23 追加）
+
+| 日本語                        | English 案                                          | 補足                                                                                             | 確認 |
+| ----------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ---- |
+| データの保存先                | Where to keep your data                             | 起動時の選択画面の見出し                                                                         |      |
+| この PC だけで使う            | Use on this PC only                                 | ローカルモードを選ぶボタン。同期表示の「この PC のみ / This PC only」と揃える                    |      |
+| Google でログインして同期     | Sign in with Google to sync                         | 起動時の選択画面。トレイでは末尾に「…」（次の画面がある）                                        |      |
+| 暗号化                        | Encryption                                          | トレイ項目は `Encryption…`                                                                       |      |
+| パスフレーズ                  | Passphrase                                          | `password` にしない（Google のパスワードと区別する）                                             |      |
+| パスフレーズを設定            | Set a passphrase                                    | 見出し                                                                                           |      |
+| パスフレーズ（確認）          | Confirm passphrase                                  | 入力欄のラベル                                                                                   |      |
+| 現在のパスフレーズ            | Current passphrase                                  |                                                                                                  |      |
+| 回復キー                      | Recovery key                                        | Proton / 1Password と同じ語                                                                      |      |
+| 回復キーを保存 / 保存しました | Save your recovery key / I've saved my recovery key | 見出し / 必須のチェックボックス                                                                  |      |
+| 回復キーの再発行              | New recovery key                                    | ボタンは `Create new recovery key…`（確認ダイアログが出るので「…」）。`reissue` は硬いので避ける |      |
+| データのロックを解除 / 解除   | Unlock your data / Unlock                           | ほかの PC でのはじめてのログイン。`decrypt` は使わない                                           |      |
+| 本人確認                      | Verify it's you                                     | パスフレーズ変更の前の確認                                                                       |      |
+| ファイルに保存                | Save to file                                        |                                                                                                  |      |
+
 ### 作業ストップと離席時刻（訂正）
 
 当初「デスクトップの UI は離席時刻を『作業終了』と呼んでいて用語がずれている」と書き、日本語を「離席」に揃えると決めたが、これは読み違いだった。

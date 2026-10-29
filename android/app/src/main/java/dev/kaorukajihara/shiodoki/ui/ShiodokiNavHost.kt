@@ -13,6 +13,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import dev.kaorukajihara.shiodoki.AppContainer
+import dev.kaorukajihara.shiodoki.crypto.KeyState
 import dev.kaorukajihara.shiodoki.ui.all.AllTasksScreen
 import dev.kaorukajihara.shiodoki.ui.all.AllTasksViewModel
 import dev.kaorukajihara.shiodoki.ui.components.MainTab
@@ -24,9 +25,12 @@ import dev.kaorukajihara.shiodoki.ui.login.LoginScreen
 import dev.kaorukajihara.shiodoki.ui.login.LoginViewModel
 import dev.kaorukajihara.shiodoki.ui.settings.SettingsScreen
 import dev.kaorukajihara.shiodoki.ui.settings.SettingsViewModel
+import dev.kaorukajihara.shiodoki.ui.unlock.UnlockScreen
+import dev.kaorukajihara.shiodoki.ui.unlock.UnlockViewModel
 import kotlinx.serialization.Serializable
 
 @Serializable object LoginRoute
+@Serializable object UnlockRoute
 @Serializable object HomeRoute
 @Serializable object AllTasksRoute
 @Serializable object SettingsRoute
@@ -34,22 +38,42 @@ import kotlinx.serialization.Serializable
 /** taskId == null adds a new task. */
 @Serializable data class EditTaskRoute(val taskId: String? = null)
 
-/** Screens inside MainActivity (design §5.1). The auth state decides Login vs. the rest. */
+/** Where the auth and key state put the user: Login, Unlock, or the app itself (Home). */
+private enum class Gate(val route: Any) {
+  LOGIN(LoginRoute),
+  UNLOCK(UnlockRoute),
+  APP(HomeRoute),
+}
+
+/**
+ * Screens inside MainActivity (design §5.1). The auth state decides Login vs. the rest, then the data key decides
+ * Unlock vs. the app (docs/e2ee/design.md §5).
+ */
 @Composable
 fun ShiodokiNavHost(container: AppContainer) {
   val authManager = container.authManager
   val taskRepository = container.taskRepository
   val desktopStateRepository = container.desktopStateRepository
   val account by authManager.account.collectAsStateWithLifecycle()
-  val signedIn = account != null
+  val keyState by container.encryption.state.collectAsStateWithLifecycle()
+  val gate = when {
+    account == null -> Gate.LOGIN
+    keyState == KeyState.Unlocked -> Gate.APP
+    else -> Gate.UNLOCK
+  }
   val navController = rememberNavController()
-  val startDestination: Any = remember { if (signedIn) HomeRoute else LoginRoute }
+  val startDestination: Any = remember { gate.route }
 
-  // Follow sign-in / sign-out (including a session expiring) and clear the back stack.
-  LaunchedEffect(signedIn) {
-    val onLogin = navController.currentDestination?.hasRoute<LoginRoute>() == true
-    if (signedIn == onLogin) {
-      navController.navigate(if (signedIn) HomeRoute else LoginRoute) {
+  // Follow sign-in / sign-out (including a session expiring) and unlocking, and clear the back stack.
+  LaunchedEffect(gate) {
+    val destination = navController.currentDestination
+    val current = when {
+      destination?.hasRoute<LoginRoute>() == true -> Gate.LOGIN
+      destination?.hasRoute<UnlockRoute>() == true -> Gate.UNLOCK
+      else -> Gate.APP
+    }
+    if (gate != current) {
+      navController.navigate(gate.route) {
         popUpTo(navController.graph.id) { inclusive = true }
       }
     }
@@ -74,6 +98,9 @@ fun ShiodokiNavHost(container: AppContainer) {
   NavHost(navController, startDestination) {
     composable<LoginRoute> {
       LoginScreen(viewModel { LoginViewModel(authManager) })
+    }
+    composable<UnlockRoute> {
+      UnlockScreen(viewModel { UnlockViewModel(container.encryption, authManager, container.focusFeature) })
     }
     composable<HomeRoute> {
       HomeScreen(

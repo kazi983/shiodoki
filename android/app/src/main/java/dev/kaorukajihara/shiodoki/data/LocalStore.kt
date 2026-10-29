@@ -30,11 +30,26 @@ class LocalStore(context: Context) : FocusStore {
     dataStore.edit { it[FOCUS_ENABLED] = enabled }
   }
 
-  /** Sign-out (design §7.2 step 6): drop everything that belongs to the account. */
+  /** Sign-out (design §7.2 step 6): drop everything that belongs to the account, the data key included. */
   suspend fun clearUserData() {
     dataStore.edit { prefs ->
       prefs.remove(LAST_SELECTED_TASK_ID)
+      prefs.remove(DEK_UID)
+      prefs.remove(SEALED_DEK)
       RUNNING_KEYS.forEach { prefs.remove(it) }
+    }
+  }
+
+  /** The data key sealed by the Android Keystore ([dev.kaorukajihara.shiodoki.crypto.KeystoreKeyVault]), for [uid]. */
+  suspend fun loadSealedDek(uid: String): String? {
+    val p = dataStore.data.first()
+    return if (p[DEK_UID] == uid) p[SEALED_DEK] else null
+  }
+
+  suspend fun saveSealedDek(uid: String, sealed: String) {
+    dataStore.edit {
+      it[DEK_UID] = uid
+      it[SEALED_DEK] = sealed
     }
   }
 
@@ -76,6 +91,8 @@ class LocalStore(context: Context) : FocusStore {
   private companion object {
     val FOCUS_ENABLED = booleanPreferencesKey("focusEnabled")
     val LAST_SELECTED_TASK_ID = stringPreferencesKey("lastSelectedTaskId")
+    val DEK_UID = stringPreferencesKey("dekUid")
+    val SEALED_DEK = stringPreferencesKey("sealedDek")
 
     // The running session (design §6.6).
     val RUNNING_SESSION_ID = stringPreferencesKey("runningSessionId")

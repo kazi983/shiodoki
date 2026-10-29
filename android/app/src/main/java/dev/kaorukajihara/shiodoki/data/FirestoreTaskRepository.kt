@@ -7,6 +7,7 @@ import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentSnapshot.ServerTimestampBehavior
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.MetadataChanges
+import dev.kaorukajihara.shiodoki.crypto.FieldCipher
 import dev.kaorukajihara.shiodoki.model.Task
 import dev.kaorukajihara.shiodoki.model.TaskInput
 import dev.kaorukajihara.shiodoki.model.TaskPatch
@@ -22,6 +23,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
@@ -32,16 +34,20 @@ import kotlinx.coroutines.flow.stateIn
  * The process keeps a single snapshot listener for the signed-in user (design §3.2), started
  * eagerly in [scope] so the task list is already in memory when a screen opens (N-06). Signing out
  * or switching users removes the listener ([uid] changes, `flatMapLatest` cancels the old flow).
+ *
+ * Names and memos are end-to-end encrypted with [cipher] (docs/e2ee/design.md): no snapshot and no write until the
+ * data key is unlocked.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class FirestoreTaskRepository(
   private val db: FirebaseFirestore,
   private val uid: StateFlow<String?>,
+  private val cipher: StateFlow<FieldCipher?>,
   scope: CoroutineScope,
 ) : TaskRepository {
 
-  override val snapshot: StateFlow<TasksSnapshot?> = uid
-    .flatMapLatest { uid -> if (uid == null) flowOf(null) else snapshots(uid) }
+  override val snapshot: StateFlow<TasksSnapshot?> = combine(uid, cipher, ::Pair)
+    .flatMapLatest { (uid, cipher) -> if (uid == null || cipher == null) flowOf(null) else snapshots(uid, cipher) }
     .stateIn(scope, SharingStarted.Eagerly, null)
 
   private val _writeFailures = MutableSharedFlow<Unit>(extraBufferCapacity = 8)
@@ -50,30 +56,30 @@ class FirestoreTaskRepository(
   override fun add(input: TaskInput): String {
     // Client-side id, so a retried write cannot create a duplicate (design §4.3).
     val id = UUID.randomUUID().toString()
-    val tasks = tasksRef() ?: return id
+    val (tasks, cipher) = target() ?: return id
     val now = Timestamp.now()
     val sortOrder = endSortOrder(currentTasks(), input.priority, now.toInstant())
-    tasks.document(id).set(newTaskDoc(input, now, sortOrder)).fire("add $id")
+    tasks.document(id).set(newTaskDoc(input, now, sortOrder, cipher)).fire("add $id")
     return id
   }
 
   override fun update(id: String, patch: TaskPatch) {
     if (patch.isEmpty) return
-    val tasks = tasksRef() ?: return
+    val (tasks, cipher) = target() ?: return
     val now = Timestamp.now()
-    tasks.document(id).update(patchToDoc(patch.withEndSortOrder(id, currentTasks(), now.toInstant()), now))
+    tasks.document(id).update(patchToDoc(patch.withEndSortOrder(id, currentTasks(), now.toInstant()), now, cipher))
       .fire("update $id")
   }
 
   override fun updateAll(patches: Map<String, TaskPatch>) {
     val writes = patches.filterValues { !it.isEmpty }
     if (writes.isEmpty()) return
-    val tasks = tasksRef() ?: return
+    val (tasks, cipher) = target() ?: return
     val now = Timestamp.now()
     val all = currentTasks()
     val batch = db.batch()
     writes.forEach { (id, patch) ->
-      batch.update(tasks.document(id), patchToDoc(patch.withEndSortOrder(id, all, now.toInstant()), now))
+      batch.update(tasks.document(id), patchToDoc(patch.withEndSortOrder(id, all, now.toInstant()), now, cipher))
     }
     batch.commit().fire("update ${writes.size} tasks")
   }
@@ -81,10 +87,15 @@ class FirestoreTaskRepository(
   /** The latest snapshot, for placing a task at the end of its priority. Empty before the first one. */
   private fun currentTasks(): List<Task> = snapshot.value?.tasks.orEmpty()
 
-  private fun tasksRef(): CollectionReference? {
+  /** The signed-in user's tasks and the cipher, or null (logged) while signed out or locked. */
+  private fun target(): Pair<CollectionReference, FieldCipher>? {
     val uid = uid.value
-    if (uid == null) Log.w(TAG, "Write ignored: not signed in")
-    return uid?.let { db.collection("users").document(it).collection("tasks") }
+    val cipher = cipher.value
+    if (uid == null || cipher == null) {
+      Log.w(TAG, "Write ignored: ${if (uid == null) "not signed in" else "locked"}")
+      return null
+    }
+    return db.collection("users").document(uid).collection("tasks") to cipher
   }
 
   /**
@@ -98,7 +109,7 @@ class FirestoreTaskRepository(
     }
   }
 
-  private fun snapshots(uid: String): Flow<TasksSnapshot> = callbackFlow {
+  private fun snapshots(uid: String, cipher: FieldCipher): Flow<TasksSnapshot> = callbackFlow {
     val registration = db.collection("users").document(uid).collection("tasks")
       // Metadata changes too, so the sync status follows hasPendingWrites / isFromCache.
       .addSnapshotListener(MetadataChanges.INCLUDE) { snap, e ->
@@ -109,7 +120,7 @@ class FirestoreTaskRepository(
         }
         if (snap == null) return@addSnapshotListener
         val tasks = snap.documents.map { doc ->
-          docToTask(doc.id, doc.getData(ServerTimestampBehavior.ESTIMATE).orEmpty())
+          docToTask(doc.id, doc.getData(ServerTimestampBehavior.ESTIMATE).orEmpty(), cipher)
         }
         val status = when {
           snap.metadata.hasPendingWrites() -> SyncStatus.PENDING

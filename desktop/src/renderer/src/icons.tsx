@@ -95,6 +95,79 @@ export function CheckIcon({ size = 16 }: { size?: number }) {
   );
 }
 
+export function MonitorIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" {...stroke} aria-hidden>
+      <rect x="3" y="4" width="18" height="12" rx="2" />
+      <path d="M8 20h8M12 16v4" />
+    </svg>
+  );
+}
+
+export function CloudLockIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" {...stroke} aria-hidden>
+      <path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 8.5a4 4 0 0 1-.5 7.97" />
+      <rect x="9" y="14" width="6" height="5" rx="1" />
+      <path d="M10.5 14v-1.5a1.5 1.5 0 0 1 3 0V14" />
+    </svg>
+  );
+}
+
+export function LockIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...stroke} aria-hidden>
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+    </svg>
+  );
+}
+
+export function EyeIcon({ off = false }: { off?: boolean }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" {...stroke} aria-hidden>
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+      <circle cx="12" cy="12" r="3" />
+      {off && <path d="M4 4l16 16" />}
+    </svg>
+  );
+}
+
+export function CopyIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" {...stroke} aria-hidden>
+      <rect x="8" y="8" width="12" height="12" rx="2" />
+      <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+    </svg>
+  );
+}
+
+export function DownloadIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" {...stroke} aria-hidden>
+      <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />
+    </svg>
+  );
+}
+
+export function WarningIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" {...stroke} aria-hidden>
+      <path d="M12 3l9.5 17h-19z" />
+      <path d="M12 10v4M12 17h.01" />
+    </svg>
+  );
+}
+
+export function ErrorIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" {...stroke} aria-hidden>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 8v5M12 16h.01" />
+    </svg>
+  );
+}
+
 /** Progress ring: `fraction` of the circle (0..1) drawn clockwise from the top. */
 export function Ring({
   size,
