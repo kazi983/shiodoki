@@ -2,6 +2,7 @@ package dev.kaorukajihara.shiodoki.ui.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,6 +33,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -72,6 +76,7 @@ import dev.kaorukajihara.shiodoki.ui.theme.MonoFamily
 import dev.kaorukajihara.shiodoki.ui.theme.ShiodokiColors
 import dev.kaorukajihara.shiodoki.ui.theme.color
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /** Design §5.3 and the "ホーム" artboard: the PC status card and incomplete tasks by priority. */
@@ -191,7 +196,8 @@ internal fun ColumnScope.TaskList(
 /**
  * Tasks under priority headings; a long press on a row drags it (design §5.3). While a row is dragged every heading
  * is shown, so a task can be dropped into a priority without tasks. [rowShape] is the shape of the rows, for the
- * shadow of the dragged one.
+ * shadow of the dragged one. When [revealTaskId] changes, the list scrolls to that task once it is in [groups]
+ * (a task just added lands at the end of its priority, often below the fold).
  */
 @Composable
 internal fun GroupedTaskList(
@@ -202,10 +208,19 @@ internal fun GroupedTaskList(
   spacing: Dp = 8.dp,
   headingGap: Dp = 16.dp,
   rowShape: Shape = RoundedCornerShape(12.dp),
+  revealTaskId: String? = null,
   row: @Composable (task: Task) -> Unit,
 ) {
   val listState = rememberLazyListState()
   val drag = rememberTaskDragState(listState, groups, onMove)
+  val entries = drag.entries ?: entriesOf(groups, allHeadings = false)
+  val currentEntries by rememberUpdatedState(entries)
+  LaunchedEffect(revealTaskId) {
+    val id = revealTaskId ?: return@LaunchedEffect
+    // The new task shows up with the next snapshot of the repository, not right after the add.
+    val index = snapshotFlow { currentEntries.indexOfFirst { it.key == id } }.first { it >= 0 }
+    listState.reveal(index, headingAbove = currentEntries.getOrNull(index - 1) is TaskListEntry.Heading)
+  }
   LazyColumn(
     state = listState,
     modifier = modifier.taskDrag(drag),
@@ -213,7 +228,7 @@ internal fun GroupedTaskList(
     verticalArrangement = Arrangement.spacedBy(spacing),
   ) {
     itemsIndexed(
-      drag.entries ?: entriesOf(groups, allHeadings = false),
+      entries,
       key = { _, entry -> entry.key },
       contentType = { _, entry -> entry::class },
     ) { index, entry ->
@@ -225,6 +240,21 @@ internal fun GroupedTaskList(
         is TaskListEntry.Row -> DraggableTaskRow(drag, entry.key, rowShape) { row(entry.task) }
       }
     }
+  }
+}
+
+/**
+ * Scrolls until the item at [index] is wholly in view; an item already in view stays where it is. An item out of view
+ * comes to the top, under its heading when [headingAbove] is true (the first row of its priority).
+ */
+private suspend fun LazyListState.reveal(index: Int, headingAbove: Boolean) {
+  val info = layoutInfo
+  val item = info.visibleItemsInfo.firstOrNull { it.index == index }
+  val end = info.viewportEndOffset - info.afterContentPadding
+  when {
+    item == null -> animateScrollToItem(if (headingAbove) index - 1 else index)
+    item.offset < 0 -> animateScrollBy(item.offset.toFloat())
+    item.offset + item.size > end -> animateScrollBy((item.offset + item.size - end).toFloat())
   }
 }
 
