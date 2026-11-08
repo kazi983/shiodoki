@@ -19,6 +19,24 @@ sealed interface LoginError {
   data object NoAccount : LoginError
 
   data class Failed(val detail: String) : LoginError
+
+  /**
+   * Google refused the account after it was picked: this build's signing key (SHA-1) is not registered for its
+   * package, or the registration has not reached Google yet.
+   */
+  data class Rejected(val detail: String) : LoginError
+}
+
+/**
+ * Credential Manager reports both the user closing the picker and Google refusing the picked account (a SHA-1 not
+ * registered for this package: "[16] Account reauth failed.") as a cancellation. Only the first one is silent
+ * (design §5.2); the message is the only way to tell them apart.
+ */
+internal fun cancellationError(message: String?): LoginError? {
+  if (message == null) return null
+  val lower = message.lowercase()
+  val closedByUser = "user" in lower && ("cancel" in lower || "dismiss" in lower)
+  return if (closedByUser) null else LoginError.Rejected(message)
 }
 
 data class LoginUiState(val busy: Boolean = false, val error: LoginError? = null)
@@ -38,11 +56,8 @@ class LoginViewModel(private val authManager: AuthManager) : ViewModel() {
       } catch (e: CancellationException) {
         throw e
       } catch (e: GetCredentialCancellationException) {
-        // The user closed the picker: show nothing (design §5.2). Credential Manager also
-        // reports a misconfigured client (SHA-1 not registered for this package) as a
-        // cancellation ("[16] Account reauth failed"), so log it to tell the two apart.
         Log.i(TAG, "Sign-in cancelled: ${e.message}")
-        null
+        cancellationError(e.message)
       } catch (_: NoCredentialException) {
         LoginError.NoAccount
       } catch (e: Exception) {

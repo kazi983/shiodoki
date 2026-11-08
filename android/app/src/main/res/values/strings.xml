@@ -108,6 +108,7 @@
   <string name="login_description">The same tasks as on your PC.\nView, add and edit them on your phone.</string>
   <string name="login_no_account">No Google account on this device</string>
   <string name="login_failed">Could not sign in: %1$s</string>
+  <string name="login_rejected">Google did not accept the sign-in. The signing key (SHA-1) of this app may not be registered in Firebase yet, or the registration has not taken effect (it can take a while): %1$s</string>
 
   <!-- Unlock (end-to-end encryption, docs/e2ee/design.md). Terms: docs/i18n/glossary.md -->
   <string name="unlock_title">Unlock your data</string>
