@@ -39,6 +39,15 @@ android {
   }
 
   signingConfigs {
+    // A debug key shared through the repository, so a debug build from any machine (or a cloud session) has the
+    // SHA-1 registered in Firebase, and builds install over each other. Not a secret: it only signs the separate
+    // .debug app, and the release key stays out of the repository.
+    getByName("debug") {
+      storeFile = rootProject.file("debug.keystore")
+      storePassword = "android"
+      keyAlias = "androiddebugkey"
+      keyPassword = "android"
+    }
     if (keystoreProperties.isNotEmpty()) {
       create("release") {
         storeFile = file(keystoreProperties.getProperty("storeFile"))

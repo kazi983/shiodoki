@@ -12,9 +12,14 @@ Two separate apps. You can install both on one phone.
 | App name    | Shiodoki                     | Shiodoki (debug), orange icon               |
 | Timer       | Real (30 min)                | Test mode (30 s)                            |
 | Firebase    | Real project                 | Real project, or local emulators (optional) |
-| Signed with | Your release key             | The SDK debug key                           |
+| Signed with | Your release key             | `debug.keystore` in this folder (committed) |
 
 Both use the same Firestore data when signed in with the same account.
+
+Debug builds are signed with `android/debug.keystore` (password `android`, alias `androiddebugkey`), not the SDK
+debug key in `~/.android`. Every machine and cloud session then signs with the same key, so Google sign-in works on
+any debug APK and one installs over another. The key only signs the `.debug` app; never use it for anything else.
+Its SHA-1 is `48:0A:A7:36:CF:FA:82:EE:B9:37:B3:F2:64:E7:58:85:46:1E:6C:E6`.
 
 ## Setup (once)
 

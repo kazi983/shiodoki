@@ -13,4 +13,6 @@
 # Release signing (design §9.2). google-services.json is public and committed.
 *.jks
 *.keystore
+# The shared debug key (README: Release vs debug); the release key stays ignored.
+!/debug.keystore
 keystore.properties
