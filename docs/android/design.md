@@ -612,16 +612,17 @@ sequenceDiagram
 ### 9.1 Firebase への登録（P4 着手時、手作業）
 
 1. Firebase コンソール → プロジェクト `shiodoki-e4e8f` → Android アプリを追加（パッケージ名 `dev.kaorukajihara.shiodoki`）。debug ビルド用に `dev.kaorukajihara.shiodoki.debug` も追加する（§9.5）。
-2. **debug 用と release 用、両方の署名証明書の SHA-1** を登録する（Google ログインに必須）。debug 用は `./gradlew signingReport` で確認できる。
+2. **debug 用と release 用、両方の署名証明書の SHA-1** を登録する（Google ログインに必須）。debug 用の鍵はリポジトリの `android/debug.keystore`（§9.2）で、SHA-1 は `./gradlew signingReport` で確認できる。
 3. `google-services.json` をダウンロードして `android/app/` に置く。
 4. この手順は `android/README.md` に書く（`firebase/README.md` の「Android アプリの登録」から参照する）。
 
 ### 9.2 秘密情報の扱い
 
-| ファイル                                               | コミット                   | 理由                                                                                              |
-| ------------------------------------------------------ | -------------------------- | ------------------------------------------------------------------------------------------------- |
-| `google-services.json`                                 | する                       | デスクトップの `firebaseConfig.ts` と同じく、アプリに埋め込む前提の公開情報。データはルールで守る |
-| release 用の keystore（`.jks`）、`keystore.properties` | **しない**（`.gitignore`） | 署名鍵。漏れると他人が同じ署名のアプリを作れる                                                    |
+| ファイル                                               | コミット                   | 理由                                                                                                                                                                       |
+| ------------------------------------------------------ | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `google-services.json`                                 | する                       | デスクトップの `firebaseConfig.ts` と同じく、アプリに埋め込む前提の公開情報。データはルールで守る                                                                          |
+| release 用の keystore（`.jks`）、`keystore.properties` | **しない**（`.gitignore`） | 署名鍵。漏れると他人が同じ署名のアプリを作れる                                                                                                                             |
+| debug 用の keystore（`android/debug.keystore`）        | する                       | どの PC・クラウドのセッションでビルドしても同じ署名にし、Firebase への SHA-1 登録を 1 回で済ませる。署名できるのは別アプリの `.debug` だけで、データはルールと E2EE で守る |
 
 ### 9.3 Emulator 接続
 
