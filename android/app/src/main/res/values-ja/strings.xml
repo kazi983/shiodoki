@@ -99,6 +99,7 @@
   <string name="login_description">PC と同じタスクを、スマホからも\n確認・追加・編集できます。</string>
   <string name="login_no_account">この端末に Google アカウントがありません</string>
   <string name="login_failed">ログインできませんでした: %1$s</string>
+  <string name="login_rejected">Google がログインを受け付けませんでした。このアプリの署名鍵（SHA-1）が Firebase に登録されていないか、登録の反映待ち（しばらくかかることがあります）の可能性があります: %1$s</string>
 
   <!-- ロック解除（エンドツーエンド暗号化） -->
   <string name="unlock_title">データのロックを解除</string>

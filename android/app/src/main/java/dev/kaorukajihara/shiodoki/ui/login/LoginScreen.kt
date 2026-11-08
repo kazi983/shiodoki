@@ -81,6 +81,7 @@ fun LoginScreen(viewModel: LoginViewModel) {
           val message = when (error) {
             LoginError.NoAccount -> stringResource(R.string.login_no_account)
             is LoginError.Failed -> stringResource(R.string.login_failed, error.detail)
+            is LoginError.Rejected -> stringResource(R.string.login_rejected, error.detail)
           }
           Text(message, fontSize = 13.sp, color = ShiodokiColors.Danger, textAlign = TextAlign.Center)
         }
