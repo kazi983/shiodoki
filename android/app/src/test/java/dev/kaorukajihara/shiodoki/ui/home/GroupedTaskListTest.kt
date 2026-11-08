@@ -5,6 +5,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsDisplayed
@@ -42,13 +46,17 @@ class GroupedTaskListTest {
   private val clicks = mutableListOf<String>()
   private val completed = mutableListOf<String>()
 
-  private fun show(groups: List<PriorityGroup>) = rule.setContent {
+  private fun show(groups: List<PriorityGroup>) = rule.setContent { TestList(groups) }
+
+  @Composable
+  private fun TestList(groups: List<PriorityGroup>, revealTaskId: String? = null) {
     Box(Modifier.height(500.dp).fillMaxWidth()) {
       GroupedTaskList(
         groups,
         onMove = { drops += it; true },
         modifier = Modifier.fillMaxWidth(),
         contentPadding = PaddingValues(0.dp),
+        revealTaskId = revealTaskId,
       ) { task ->
         SwipeToComplete(onComplete = { completed += task.id }, modifier = Modifier) {
           TaskRow(task, detail = "", onClick = { clicks += task.id })
@@ -171,5 +179,31 @@ class GroupedTaskListTest {
     rule.mainClock.advanceTimeBy(2000)
     assertEquals(emptyList<TaskDrop>(), drops)
     rule.onNodeWithText("t15").assertIsDisplayed()
+  }
+
+  @Test
+  fun `a task added below the fold is scrolled into view once it shows up`() {
+    var groups by mutableStateOf(listOf(PriorityGroup(Priority.NOW, manyTasks())))
+    var revealTaskId by mutableStateOf<String?>(null)
+    rule.setContent { TestList(groups, revealTaskId) }
+    rule.onNodeWithText("t01").assertIsDisplayed()
+    // The id is known right after the add; the task itself arrives with a later snapshot.
+    revealTaskId = "new"
+    rule.mainClock.advanceTimeBy(1000)
+    rule.onNodeWithText("t01").assertIsDisplayed()
+    groups = listOf(PriorityGroup(Priority.NOW, manyTasks() + task("new", createdAt = "2026-01-02T00:00:00Z")))
+    rule.mainClock.advanceTimeBy(2000)
+    rule.onNodeWithText("new").assertIsDisplayed()
+    rule.onNodeWithText("t01").assertDoesNotExist()
+  }
+
+  @Test
+  fun `a task already in view does not scroll the list`() {
+    var revealTaskId by mutableStateOf<String?>(null)
+    rule.setContent { TestList(listOf(PriorityGroup(Priority.NOW, manyTasks())), revealTaskId) }
+    revealTaskId = "t03"
+    rule.mainClock.advanceTimeBy(2000)
+    rule.onNodeWithText("NOW").assertIsDisplayed()
+    rule.onNodeWithText("t01").assertIsDisplayed()
   }
 }

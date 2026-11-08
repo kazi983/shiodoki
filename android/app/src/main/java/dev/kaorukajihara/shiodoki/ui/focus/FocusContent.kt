@@ -346,6 +346,8 @@ private fun TaskList(
       spacing = 10.dp,
       headingGap = 12.dp,
       rowShape = RoundedCornerShape(16.dp),
+      // A task added with QuickAdd goes to the end of NOW, which can be below the fold.
+      revealTaskId = highlightedId,
     ) { task ->
       SwipeToComplete(onComplete = { onComplete(task.id) }, modifier = Modifier) {
         TaskRow(task, highlighted = task.id == highlightedId, onClick = { onSelect(task) })
