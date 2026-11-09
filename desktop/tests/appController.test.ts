@@ -230,6 +230,44 @@ describe("leave schedule", () => {
     expect(windows.picker).toBe(false);
   });
 
+  test("closing the block screen keeps the app blocked and shows it again every 5 minutes", async () => {
+    const t = await addTask();
+    vi.setSystemTime(new Date(2026, 9, 6, 23, 0));
+    await controller.startSession({ taskId: t.id, leave: LEAVE });
+    await vi.advanceTimersByTimeAsync(15 * MIN);
+    expect(windows.leave).toBe("block");
+
+    controller.closeBlock();
+    expect(windows.leave).toBeNull();
+    expect(controller.currentStatus).toBe("leave_blocked");
+    await controller.openPicker();
+    controller.openManagement();
+    expect(windows.picker).toBe(false);
+    expect(windows.management).toBe(false);
+    await expect(controller.startSession({ taskId: t.id })).rejects.toThrow();
+
+    await vi.advanceTimersByTimeAsync(5 * MIN - 1);
+    expect(windows.leave).toBeNull();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(windows.leave).toBe("block");
+
+    // Again and again
+    controller.closeBlock();
+    await vi.advanceTimersByTimeAsync(5 * MIN);
+    expect(windows.leave).toBe("block");
+    expect(windows.picker).toBe(false);
+  });
+
+  test("closeBlock does nothing unless blocked", async () => {
+    const t = await addTask();
+    vi.setSystemTime(new Date(2026, 9, 6, 22, 50));
+    await controller.startSession({ taskId: t.id, leave: LEAVE });
+    await vi.advanceTimersByTimeAsync(20 * MIN);
+    expect(windows.leave).toBe("warning");
+    controller.closeBlock();
+    expect(windows.leave).toBe("warning");
+  });
+
   test("after the warning the 30-minute mark does not reopen the picker", async () => {
     const t = await addTask();
     vi.setSystemTime(new Date(2026, 9, 6, 22, 45));
@@ -406,17 +444,52 @@ describe("screen off / on", () => {
     expect(windows.leave).toBe("block");
   });
 
-  test("the block stays through screen off and on", async () => {
+  test("the block stays through a screen off shorter than 30 minutes", async () => {
     const t = await addTask();
     vi.setSystemTime(new Date(2026, 9, 6, 23, 0));
     await controller.startSession({ taskId: t.id, leave: LEAVE });
     await vi.advanceTimersByTimeAsync(15 * MIN);
     expect(windows.leave).toBe("block");
     await controller.onScreenOff();
+    await vi.advanceTimersByTimeAsync(29 * MIN);
     controller.onScreenOn();
     expect(windows.leave).toBe("block");
     expect(windows.picker).toBe(false);
     expect(controller.currentStatus).toBe("leave_blocked");
+  });
+
+  test("a closed block screen comes back right away after a short screen off", async () => {
+    const t = await addTask();
+    vi.setSystemTime(new Date(2026, 9, 6, 23, 0));
+    await controller.startSession({ taskId: t.id, leave: LEAVE });
+    await vi.advanceTimersByTimeAsync(15 * MIN);
+    controller.closeBlock();
+    expect(windows.leave).toBeNull();
+    await controller.onScreenOff();
+    // The re-show timer does not fire while the screen is off
+    await vi.advanceTimersByTimeAsync(10 * MIN);
+    expect(windows.leave).toBeNull();
+    controller.onScreenOn();
+    expect(windows.leave).toBe("block");
+    expect(controller.currentStatus).toBe("leave_blocked");
+  });
+
+  test("a screen off of 30 minutes or more lifts the block and shows the picker", async () => {
+    const t = await addTask();
+    vi.setSystemTime(new Date(2026, 9, 6, 23, 0));
+    await controller.startSession({ taskId: t.id, leave: LEAVE });
+    await vi.advanceTimersByTimeAsync(15 * MIN);
+    await controller.onScreenOff();
+    // Suspended overnight: measured by the wall clock, not the timers
+    vi.setSystemTime(new Date(2026, 9, 7, 7, 0));
+    controller.onScreenOn();
+    expect(windows.leave).toBeNull();
+    expect(windows.picker).toBe(true);
+    expect(controller.currentStatus).toBe("idle");
+    expect((await controller.getPickerState()).leave).toBeNull();
+
+    await controller.startSession({ taskId: t.id, leave: { leaveTime: "18:00", bufferMinutes: 0 } });
+    expect(controller.currentStatus).toBe("running");
   });
 
   test("ignored before start (e.g. on the login screen)", async () => {

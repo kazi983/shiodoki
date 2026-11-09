@@ -131,6 +131,8 @@ export interface DesktopApi {
   leave: {
     getState(): Promise<LeaveInfo>;
     dismissWarning(): Promise<void>;
+    /** Close the block screen; it comes back after a while (the app stays blocked). */
+    closeBlock(): Promise<void>;
   };
   dialog: {
     confirm(title: string, message: string): Promise<boolean>;
@@ -166,6 +168,7 @@ export const IPC = {
   overlayDragEnd: "overlay:dragEnd",
   leaveGetState: "leave:getState",
   leaveDismissWarning: "leave:dismissWarning",
+  leaveCloseBlock: "leave:closeBlock",
   dialogConfirm: "dialog:confirm",
   dialogAlert: "dialog:alert",
   authSignIn: "auth:signIn",

@@ -7,7 +7,16 @@ import { getLocale, setLocale, t } from "@shared/i18n";
 import { IPC } from "@shared/ipc";
 import type { DataEvent, SyncInfo } from "@shared/sync";
 import { AppController } from "./appController";
-import { APP_DIR_NAME, DEK_FILE_NAME, INTERVAL_MS, SNOOZE_MS, STORE_FILE_NAME, TEST_MODE } from "./config";
+import {
+  APP_DIR_NAME,
+  BLOCK_RELEASE_MS,
+  BLOCK_RESHOW_MS,
+  DEK_FILE_NAME,
+  INTERVAL_MS,
+  SNOOZE_MS,
+  STORE_FILE_NAME,
+  TEST_MODE,
+} from "./config";
 import { DataBridge } from "./dataBridge";
 import { DesktopStateReporter } from "./desktopStateReporter";
 import { FirestoreTaskRepository } from "./firestoreTaskRepository";
@@ -383,6 +392,7 @@ function wire(repo: TaskRepository, syncInfo: () => SyncInfo, { firebase, signIn
       onPickerClosedByUser: () => controller.snooze(),
       onManagementClosedByUser: () => controller.backToPicker(),
       onWarningClosedByUser: () => controller.dismissWarning(),
+      onBlockClosedByUser: () => controller.closeBlock(),
       onFlowClosedByUser: (route) => (firebase ? firebase.onFlowClosed(route) : void controller.exit()),
       onOverlayMoved: (offsetY) => saveOverlayOffset(settingsFile(), offsetY),
       isQuitting: () => quitting,
@@ -423,6 +433,8 @@ function wire(repo: TaskRepository, syncInfo: () => SyncInfo, { firebase, signIn
     {
       intervalMs: INTERVAL_MS,
       snoozeMs: SNOOZE_MS,
+      blockReshowMs: BLOCK_RESHOW_MS,
+      blockReleaseMs: BLOCK_RELEASE_MS,
       testMode: TEST_MODE,
       syncInfo,
       onStatusChange: firebase ? (s) => firebase.reporter.report(s) : undefined,
