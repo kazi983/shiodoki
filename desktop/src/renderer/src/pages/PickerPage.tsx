@@ -37,6 +37,8 @@ export function PickerPage() {
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  // A task just added is centered in the list once it is selected; other selections only scroll into view.
+  const centerTaskId = useRef<string | null>(null);
   const now = useNow(10_000);
   const { common, picker: text } = t();
 
@@ -82,7 +84,11 @@ export function PickerPage() {
   }, []);
 
   useEffect(() => {
-    listRef.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
+    const center = selectedId !== null && selectedId === centerTaskId.current;
+    if (center) centerTaskId.current = null;
+    listRef.current
+      ?.querySelector('[aria-selected="true"]')
+      ?.scrollIntoView({ block: center ? "center" : "nearest", behavior: center ? "smooth" : "auto" });
   }, [selectedId]);
 
   const tasks = useMemo(() => state?.tasks ?? [], [state]);
@@ -111,6 +117,7 @@ export function PickerPage() {
       if (!newName.trim()) return;
       const task = await window.api.tasks.add({ name: newName, priority: "NOW", memo: "" });
       setNewName("");
+      centerTaskId.current = task.id;
       await load(task.id);
     });
 

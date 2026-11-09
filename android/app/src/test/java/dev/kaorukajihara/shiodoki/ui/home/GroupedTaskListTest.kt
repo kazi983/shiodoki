@@ -181,8 +181,14 @@ class GroupedTaskListTest {
     rule.onNodeWithText("t15").assertIsDisplayed()
   }
 
+  /** The vertical middle of [name]'s row, in dp from the top of the 500dp list. */
+  private fun middleOf(name: String): Float {
+    val bounds = rule.onNodeWithText(name).fetchSemanticsNode().boundsInRoot
+    return with(rule.density) { ((bounds.top + bounds.bottom) / 2).toDp().value }
+  }
+
   @Test
-  fun `a task added below the fold is scrolled into view once it shows up`() {
+  fun `a task added below the fold is scrolled to the middle once it shows up`() {
     var groups by mutableStateOf(listOf(PriorityGroup(Priority.NOW, manyTasks())))
     var revealTaskId by mutableStateOf<String?>(null)
     rule.setContent { TestList(groups, revealTaskId) }
@@ -191,19 +197,40 @@ class GroupedTaskListTest {
     revealTaskId = "new"
     rule.mainClock.advanceTimeBy(1000)
     rule.onNodeWithText("t01").assertIsDisplayed()
-    groups = listOf(PriorityGroup(Priority.NOW, manyTasks() + task("new", createdAt = "2026-01-02T00:00:00Z")))
-    rule.mainClock.advanceTimeBy(2000)
-    rule.onNodeWithText("new").assertIsDisplayed()
+    val tasks = manyTasks()
+    groups = listOf(PriorityGroup(Priority.NOW, tasks.take(30) + task("new") + tasks.drop(30)))
+    rule.mainClock.advanceTimeBy(3000)
     rule.onNodeWithText("t01").assertDoesNotExist()
+    assertEquals(250f, middleOf("new"), 2f)
   }
 
   @Test
-  fun `a task already in view does not scroll the list`() {
+  fun `a task already in view is scrolled to the middle`() {
     var revealTaskId by mutableStateOf<String?>(null)
     rule.setContent { TestList(listOf(PriorityGroup(Priority.NOW, manyTasks())), revealTaskId) }
-    revealTaskId = "t03"
+    rule.onNodeWithText("t07").assertIsDisplayed()
+    revealTaskId = "t07"
+    rule.mainClock.advanceTimeBy(3000)
+    assertEquals(250f, middleOf("t07"), 2f)
+  }
+
+  @Test
+  fun `a task near the top stays where it is`() {
+    var revealTaskId by mutableStateOf<String?>(null)
+    rule.setContent { TestList(listOf(PriorityGroup(Priority.NOW, manyTasks())), revealTaskId) }
+    revealTaskId = "t02"
     rule.mainClock.advanceTimeBy(2000)
     rule.onNodeWithText("NOW").assertIsDisplayed()
     rule.onNodeWithText("t01").assertIsDisplayed()
+  }
+
+  @Test
+  fun `the last task is scrolled to the end of the list`() {
+    var revealTaskId by mutableStateOf<String?>(null)
+    rule.setContent { TestList(listOf(PriorityGroup(Priority.NOW, manyTasks())), revealTaskId) }
+    revealTaskId = "t40"
+    rule.mainClock.advanceTimeBy(3000)
+    rule.onNodeWithText("t40").assertIsDisplayed()
+    assertTrue(middleOf("t40") > 400f)
   }
 }
