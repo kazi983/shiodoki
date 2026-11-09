@@ -44,6 +44,7 @@ import { TaskService } from "./taskService";
 import { TimerService } from "./timerService";
 import { watchScreenState } from "./screenStateMonitor";
 import { createTray } from "./tray";
+import { checkClockSkew } from "./clockCheck";
 import { RELEASES_URL, startUpdateCheck } from "./updater";
 import { WindowManager, type FlowRoute } from "./windowManager";
 
@@ -443,9 +444,21 @@ function wire(repo: TaskRepository, syncInfo: () => SyncInfo, { firebase, signIn
     },
   );
 
+  // Electron's own time zone data can lag behind the OS (clockCheck.ts): check at startup and on screen on.
+  let clockSkew = 0;
+  const checkClock = () =>
+    void checkClockSkew().then((skew) => {
+      if (skew === clockSkew) return;
+      clockSkew = skew;
+      tray?.refresh();
+    });
+
   stopScreenWatch = watchScreenState({
     onOff: () => void controller.onScreenOff(),
-    onOn: () => controller.onScreenOn(),
+    onOn: () => {
+      controller.onScreenOn();
+      checkClock();
+    },
   });
 
   registerIpcHandlers(
@@ -459,7 +472,7 @@ function wire(repo: TaskRepository, syncInfo: () => SyncInfo, { firebase, signIn
     firebase?.encryption,
   );
 
-  createTray(
+  const tray = createTray(
     {
       openPicker: () => void controller.openPicker(),
       openManagement: () => controller.openManagement(),
@@ -476,9 +489,11 @@ function wire(repo: TaskRepository, syncInfo: () => SyncInfo, { firebase, signIn
         current: () => loadLeaveDefaults(settingsFile()),
         change: (patch) => saveLeaveDefaults(settingsFile(), patch),
       },
+      clockSkewMinutes: () => clockSkew,
     },
     TEST_MODE,
   );
+  checkClock();
 
   // Windows only: the Linux .deb is updated by hand (_docs/desktop-update.md).
   // There is no app-update.yml outside the packaged app, so the check would fail in development.

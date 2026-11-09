@@ -252,6 +252,9 @@ export const ja = {
     encryption: "暗号化…",
     /** Both languages, so the menu can be found whichever language is shown. */
     language: "言語 / Language",
+    /** The app's clock differs from the OS (old time zone data in Electron); minutes is app minus OS. */
+    clockSkew: (minutes: number) =>
+      `時刻が OS と ${minutes % 60 === 0 ? `${Math.abs(minutes) / 60} 時間` : `${Math.abs(minutes)} 分`}ずれています。アプリを更新してください`,
   },
   language: {
     system: "OS の設定に従う",

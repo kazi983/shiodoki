@@ -249,6 +249,8 @@ export const en: Messages = {
     signInToSync: "Sign in with Google to sync…",
     encryption: "Encryption…",
     language: "Language / 言語",
+    clockSkew: (minutes) =>
+      `Times are ${minutes % 60 === 0 ? `${Math.abs(minutes) / 60} h` : `${Math.abs(minutes)} min`} off from the OS. Update the app.`,
   },
   language: {
     system: "System default",

@@ -18,24 +18,36 @@ export interface TrayActions {
   language: { current(): LanguageSetting; change(value: LanguageSetting): void };
   /** Initial leave inputs of the next picker; a running leave schedule is not changed. */
   leaveDefaults: { current(): LeaveDefaults; change(patch: Partial<LeaveDefaults>): void };
+  /** The app's UTC offset minus the OS offset in minutes (clockCheck.ts); non-zero shows a warning. */
+  clockSkewMinutes(): number;
+}
+
+export interface TrayHandle {
+  /** Rebuild the menu and the tooltip, e.g. after the clock check. */
+  refresh(): void;
 }
 
 /**
  * System tray icon. On GNOME this needs the "AppIndicator and
  * KStatusNotifierItem Support" extension; without it the app still runs.
  */
-export function createTray(actions: TrayActions, testMode: boolean): Tray | null {
+export function createTray(actions: TrayActions, testMode: boolean): TrayHandle | null {
   try {
     const icon = nativeImage.createFromPath(join(app.getAppPath(), "resources", "tray.png"));
     const tray = new Tray(icon);
-    tray.setToolTip(testMode ? "Shiodoki (TEST)" : "Shiodoki");
     const { common, tray: text } = t();
+    const name = testMode ? "Shiodoki (TEST)" : "Shiodoki";
     // AppIndicator (Linux) does not redraw radio items after a click, so the menu is rebuilt after each choice.
-    const refresh = () => tray.setContextMenu(buildMenu());
-    const buildMenu = (): Menu => {
+    const refresh = () => {
+      const skew = actions.clockSkewMinutes();
+      tray.setToolTip(skew === 0 ? name : `${name}\n${text.clockSkew(skew)}`);
+      tray.setContextMenu(buildMenu(skew));
+    };
+    const buildMenu = (skew: number): Menu => {
       const leave = actions.leaveDefaults.current();
       const language = actions.language.current();
       return Menu.buildFromTemplate([
+        ...(skew === 0 ? [] : [{ label: `⚠ ${text.clockSkew(skew)}`, enabled: false }, { type: "separator" as const }]),
         { label: text.pickTask, click: actions.openPicker },
         { label: common.manageTasks, click: actions.openManagement },
         {
@@ -88,7 +100,7 @@ export function createTray(actions: TrayActions, testMode: boolean): Tray | null
       ]);
     };
     refresh();
-    return tray;
+    return { refresh };
   } catch (error) {
     console.warn("Tray icon is not available:", error);
     return null;
