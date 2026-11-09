@@ -67,6 +67,7 @@ export function registerIpcHandlers(
 
   ipcMain.handle(IPC.leaveGetState, () => controller.getLeaveInfo());
   ipcMain.handle(IPC.leaveDismissWarning, () => controller.dismissWarning());
+  ipcMain.handle(IPC.leaveCloseBlock, () => controller.closeBlock());
 
   ipcMain.handle(IPC.authSignIn, () => auth.signIn());
   ipcMain.handle(IPC.storageUseLocal, () => auth.useLocal());

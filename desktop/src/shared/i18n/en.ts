@@ -157,7 +157,7 @@ export const en: Messages = {
     todayByTask: "Time by task today",
     todayEmpty: "Nothing recorded today yet",
     allRecorded: "All of today's sessions are recorded",
-    quitApp: "Quit Shiodoki",
+    closeBlock: "Close (shown again in 5 minutes)",
   },
   login: {
     waiting: "Sign in in your browser…",

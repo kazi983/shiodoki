@@ -157,7 +157,7 @@ export const ja = {
     todayByTask: "今日のタスク別時間",
     todayEmpty: "今日の記録はまだありません",
     allRecorded: "今日のセッションはすべて記録済みです",
-    quitApp: "アプリを終了",
+    closeBlock: "閉じる（5 分後にまた表示されます）",
   },
   login: {
     waiting: "ブラウザでログインしてください…",

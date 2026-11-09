@@ -55,7 +55,14 @@ export interface AppControllerOptions {
   syncInfo?: () => SyncInfo;
   /** The tray defaults (settings.json), read each time the picker loads. */
   leaveDefaults?: () => LeaveDefaults;
+  /** After the user closes the block screen, it is shown again this much later (default 5 minutes). */
+  blockReshowMs?: number;
+  /** A screen off at least this long lifts the block: the user has really left (default 30 minutes). */
+  blockReleaseMs?: number;
 }
+
+const DEFAULT_BLOCK_RESHOW_MS = 5 * 60_000;
+const DEFAULT_BLOCK_RELEASE_MS = 30 * 60_000;
 
 /**
  * Top-level orchestrator of the session flow:
@@ -63,6 +70,8 @@ export interface AppControllerOptions {
  *   picker --start--> running (overlay) --30 min / overlay click--> picker
  *   picker --snooze (Esc / close)--> snoozed --5 min--> picker
  *   any --leave warning--> warning window; --leave stop--> block window
+ *   block window --close--> still blocked --5 min--> block window
+ *   blocked --screen off for 30 min or more--> picker without a leave schedule
  *   any --screen off--> session recorded, nothing scheduled --screen on--> picker
  *
  * Every path that ends a session goes through finishSession(), which
@@ -75,9 +84,12 @@ export class AppController {
   private leaveSkipped = false;
   private intervalTimer: string | null = null;
   private snoozeTimer: string | null = null;
+  private blockReshowTimer: string | null = null;
   private shuttingDown = false;
   private started = false;
   private screenOff = false;
+  /** Wall-clock time of the last screen off, to measure how long the user was away. */
+  private screenOffAt: Date | null = null;
   private nextPromptAt: Date | null = null;
   private readonly leave: LeaveScheduleService;
   private readonly now: () => Date;
@@ -282,6 +294,20 @@ export class AppController {
     this.windows.showLeave("block");
   }
 
+  /**
+   * The user closed the block screen. The app stays blocked (no picker, no
+   * session) and the block screen comes back after a while.
+   */
+  closeBlock(): void {
+    if (this.leavePhase !== "blocked") return;
+    this.windows.closeLeave();
+    this.cancelBlockReshow();
+    this.blockReshowTimer = this.timer.start(this.options.blockReshowMs ?? DEFAULT_BLOCK_RESHOW_MS, () => {
+      this.blockReshowTimer = null;
+      if (this.leavePhase === "blocked" && !this.screenOff) this.windows.showLeave("block");
+    });
+  }
+
   // -------------------------
   // screen off / on
   // -------------------------
@@ -294,9 +320,11 @@ export class AppController {
   async onScreenOff(): Promise<void> {
     if (!this.started || this.screenOff || this.shuttingDown) return;
     this.screenOff = true;
+    this.screenOffAt = this.now();
     this.timer.cancel(this.intervalTimer);
     this.intervalTimer = null;
     this.cancelSnooze();
+    this.cancelBlockReshow();
     await this.finishSession("screen_off");
     if (this.status === "snoozed") {
       this.nextPromptAt = null;
@@ -308,10 +336,25 @@ export class AppController {
   onScreenOn(): void {
     if (!this.screenOff || this.shuttingDown) return;
     this.screenOff = false;
-    if (this.leavePhase === "blocked") return;
+    const now = this.now();
+    const awayMs = this.screenOffAt ? now.getTime() - this.screenOffAt.getTime() : 0;
+    this.screenOffAt = null;
+
+    if (this.leavePhase === "blocked") {
+      if (awayMs < (this.options.blockReleaseMs ?? DEFAULT_BLOCK_RELEASE_MS)) {
+        // A short break does not lift the block, even if the block screen was closed.
+        this.windows.showLeave("block");
+        return;
+      }
+      // Away long enough: the user has left, so start over without a schedule (like P-03).
+      this.leave.cancel();
+      this.leavePhase = "none";
+      this.windows.closeLeave();
+      this.showPicker();
+      return;
+    }
 
     const schedule = this.leave.current;
-    const now = this.now();
     if (schedule && schedule.stopAt.getTime() <= now.getTime()) {
       // The stop time passed while away: the user stopped in time, so start over without a schedule.
       this.leave.cancel();
@@ -425,5 +468,10 @@ export class AppController {
   private cancelSnooze(): void {
     this.timer.cancel(this.snoozeTimer);
     this.snoozeTimer = null;
+  }
+
+  private cancelBlockReshow(): void {
+    this.timer.cancel(this.blockReshowTimer);
+    this.blockReshowTimer = null;
   }
 }
