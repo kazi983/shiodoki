@@ -66,6 +66,7 @@ const api: DesktopApi = {
   leave: {
     getState: () => ipcRenderer.invoke(IPC.leaveGetState),
     dismissWarning: () => ipcRenderer.invoke(IPC.leaveDismissWarning),
+    closeBlock: () => ipcRenderer.invoke(IPC.leaveCloseBlock),
   },
   dialog: {
     confirm: (title, message) => ipcRenderer.invoke(IPC.dialogConfirm, title, message),

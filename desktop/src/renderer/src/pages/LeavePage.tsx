@@ -9,7 +9,7 @@ import { formatCountdown, useNow } from "../useNow";
 
 /**
  * warning: 5 minutes before the stop time (dismissible); leave a note on the running task
- * block:   stop time reached (cannot be closed; exit the app to leave), with today's work
+ * block:   stop time reached, with today's work; closing it only hides it for 5 minutes (the app stays blocked)
  */
 export function LeavePage({ mode }: { mode: "warning" | "block" }) {
   const [info, setInfo] = useState<LeaveInfo | null>(null);
@@ -124,10 +124,6 @@ function LeaveBlock({ info }: { info: LeaveInfo | null }) {
   const max = Math.max(1, ...(today?.tasks.map((t) => t.minutes) ?? []));
   const { common, leave: text } = t();
 
-  const exitApp = async () => {
-    if (await window.api.dialog.confirm(common.quit, common.quitConfirm)) await window.api.nav.exit();
-  };
-
   return (
     <main className="leave block">
       <div className="block-body">
@@ -171,8 +167,8 @@ function LeaveBlock({ info }: { info: LeaveInfo | null }) {
         <footer className="block-footer">
           <CheckIcon size={14} />
           {text.allRecorded}
-          <button type="button" className="link-btn" onClick={() => void exitApp()}>
-            {text.quitApp}
+          <button type="button" className="link-btn" onClick={() => void window.api.leave.closeBlock()}>
+            {text.closeBlock}
           </button>
         </footer>
       </div>

@@ -23,6 +23,8 @@ export interface WindowHandlers {
   onManagementClosedByUser(): void;
   /** Warning closed by the user. */
   onWarningClosedByUser(): void;
+  /** Block screen closed by the user (e.g. Alt+F4) -> shown again later. */
+  onBlockClosedByUser(): void;
   /** Welcome closed -> quit; encryption setup or unlock closed -> sign out (no signed-in state without a key). */
   onFlowClosedByUser(route: FlowRoute): void;
   /** The user dropped the overlay tab: px from the top of the work area, to persist. */
@@ -244,20 +246,19 @@ export class WindowManager implements WindowPort {
       frame: false,
       resizable: false,
       minimizable: !block,
-      closable: !block,
       alwaysOnTop: true,
       visibleOnAllWorkspaces: true,
       skipTaskbar: false,
       bounds: block ? display.workArea : undefined,
     });
     win.setAlwaysOnTop(true, block ? "screen-saver" : "floating");
-    win.on("close", (event) => {
-      // The block screen cannot be closed; quit from the tray instead.
-      if (block && !this.handlers.isQuitting()) {
-        event.preventDefault();
-        return;
-      }
-      if (!block && !this.isProgrammatic(win)) this.handlers.onWarningClosedByUser();
+    win.on("close", () => {
+      if (this.isProgrammatic(win)) return;
+      if (block) {
+        // Already closing: the controller's closeLeave() must not destroy it again.
+        if (this.leave === win) this.leave = null;
+        this.handlers.onBlockClosedByUser();
+      } else this.handlers.onWarningClosedByUser();
     });
     win.on("closed", () => {
       if (this.leave === win) this.leave = null;
@@ -267,7 +268,6 @@ export class WindowManager implements WindowPort {
 
   closeLeave(): void {
     if (!this.leave || this.leave.isDestroyed()) return;
-    // The block window refuses to close unless quitting; destroy() bypasses that.
     const win = this.leave;
     this.leave = null;
     this.closingProgrammatically.add(win);
