@@ -2,7 +2,7 @@
 
 For people who install and use the Shiodoki desktop app. Developers: see the [root README](../../README.md).
 
-Shiodoki のデスクトップアプリをインストールして使う人向けの説明です。開発者向けの情報は [README](../../README.md) にあります。
+Shiodoki のデスクトップアプリをインストールして使う人向けの説明です。開発者向けの情報は [README](../../README.ja.md) にあります。
 
 | Language | How to use                              | Your data and privacy                 |
 | -------- | --------------------------------------- | ------------------------------------- |
