@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Shiodoki (潮時, "the right moment to switch") is v2 of a desktop app that asks the user every
 30 minutes which task to work on and tracks time per task, with a "leave time" schedule (離席時刻:
 when the user has to get up from the desk for their next plan, not the end of a workday) that
-warns and then blocks work shortly before it. Tasks sync through Firebase (Cloud Firestore) so an Android app (`android/`, in progress) can
+warns and then blocks work shortly before it. Tasks sync through Firebase (Cloud Firestore) so an Android app (`android/`) can
 read and edit them. v1 (Python/Tkinter) lives in kazi983/30min-task-timer-python and is still in
 daily use until v2 replaces it. The repository is kazi983/shiodoki, the Firebase project is
 `shiodoki-e4e8f` and the local data directory is `shiodoki`. v2 does not read v1 data; only the
@@ -15,7 +15,8 @@ local-mode store is offered for upload on first sign-in.
 
 `docs/requirements.md` is the source of truth for scope, the Firestore data model (§5) and the
 phase plan (§9). Update it when decisions change. Developer docs (READMEs, requirements) are
-written in Japanese, except `android/README.md` (English). Guides for people who only install the
+written in Japanese, except `android/README.md` (English) and the root `README.md`, which is in English for people
+outside Japan; `README.ja.md` is its Japanese version, so change both together. Guides for people who only install the
 app are written in both Japanese and English; change both together.
 
 ## Coding conventions
@@ -48,6 +49,8 @@ app are written in both Japanese and English; change both together.
   - `npm run dev` (Firebase), `npm run dev:local` (`TIMER_LOCAL=1`, JSON file only),
     `TASK_MODE=test` shrinks intervals (30 min → 5 s, snooze 5 min → 10 s).
   - `TIMER_FIREBASE_EMULATOR=1` points the app at the emulators with a fake Google account (E2E).
+  - `e2e/readme-screenshots.mjs` retakes the README screenshots (`docs/images/`) in English with sample
+    tasks; run it after a UI change those screens show (about 7 minutes, it waits for a real leave time).
   - `desktop/linux/` starts the installed app at login and on screen unlock, outside the app (GNOME
     autostart + a systemd user service); install steps in its README.
   - UI text lives in `src/shared/i18n/` (`ja.ts` defines the keys, `en.ts` is typed by it; terms in
