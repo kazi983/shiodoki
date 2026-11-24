@@ -234,6 +234,51 @@ try {
   assert.equal(await managementEn.locator('tr:has-text("既存タスク") .prio-chip').textContent(), "Soon");
   await managementEn.screenshot({ path: join(shots, "6-management-en.png") });
 
+  // ---- the previous task opens in the middle of a long list, or as close as the list's ends allow ----
+  const longList = Array.from({ length: 60 }, (_, i) =>
+    seedTask({
+      id: `long-${i}`,
+      name: `長い一覧 ${i}`,
+      priority: "NOW",
+      createdAt: new Date(Date.UTC(2026, 8, 1, 0, i)).toISOString(),
+    }),
+  );
+  for (const [lastSelectedTaskId, where] of [
+    ["long-30", "middle"],
+    ["long-0", "top"],
+    ["long-59", "bottom"],
+  ]) {
+    await app.close();
+    const preferences = { lastSelectedTaskId, nextTaskId: null };
+    writeFileSync(
+      join(dataDir, "store_test.json"),
+      JSON.stringify({ version: 1, tasks: longList, sessions: [], preferences }),
+    );
+    app = await launch("ja");
+    const pickerLong = await windowFor("picker");
+    await pickerLong.waitForSelector(".task-list [aria-selected=true]");
+    // The fonts and the window manager may still change the layout right after the window opens.
+    await pickerLong.evaluate(() => document.fonts.ready);
+    await pickerLong.waitForTimeout(1000);
+    const view = await pickerLong.evaluate(() => {
+      const list = document.querySelector(".task-list");
+      const row = list.querySelector("[aria-selected=true]");
+      const [l, r] = [list.getBoundingClientRect(), row.getBoundingClientRect()];
+      return {
+        name: row.querySelector(".task-name").textContent,
+        offCenter: (r.top + r.bottom - l.top - l.bottom) / 2,
+        scrollTop: list.scrollTop,
+        maxScroll: list.scrollHeight - list.clientHeight,
+      };
+    });
+    assert.equal(view.name, `長い一覧 ${lastSelectedTaskId.slice("long-".length)}`);
+    assert.ok(view.maxScroll > 500, "the list scrolls");
+    if (where === "middle") assert.ok(Math.abs(view.offCenter) <= 2, `middle: ${JSON.stringify(view)}`);
+    if (where === "top") assert.equal(view.scrollTop, 0);
+    if (where === "bottom") assert.ok(view.maxScroll - view.scrollTop <= 1, `bottom: ${JSON.stringify(view)}`);
+    await pickerLong.screenshot({ path: join(shots, `7-picker-long-${where}.png`) });
+  }
+
   console.log("E2E smoke test passed. Screenshots:", shots);
 } finally {
   await app.close().catch(() => {});
