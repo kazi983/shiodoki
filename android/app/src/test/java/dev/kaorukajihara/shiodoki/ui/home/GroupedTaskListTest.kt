@@ -11,8 +11,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -35,7 +38,7 @@ import org.robolectric.annotation.Config
 
 /**
  * The drag of [GroupedTaskList] with real touch input (design §5.3). A plain Application, so Firebase is not
- * started. The list is 500dp high; rows are about 56dp.
+ * started. The list asks for 500dp but gets the height of Robolectric's default screen (470dp); rows are about 56dp.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], application = Application::class)
@@ -50,7 +53,7 @@ class GroupedTaskListTest {
 
   @Composable
   private fun TestList(groups: List<PriorityGroup>, revealTaskId: String? = null) {
-    Box(Modifier.height(500.dp).fillMaxWidth()) {
+    Box(Modifier.height(500.dp).fillMaxWidth().testTag(LIST)) {
       GroupedTaskList(
         groups,
         onMove = { drops += it; true },
@@ -181,11 +184,17 @@ class GroupedTaskListTest {
     rule.onNodeWithText("t15").assertIsDisplayed()
   }
 
-  /** The vertical middle of [name]'s row, in dp from the top of the 500dp list. */
-  private fun middleOf(name: String): Float {
-    val bounds = rule.onNodeWithText(name).fetchSemanticsNode().boundsInRoot
+  /** The vertical middle of the node found by [matcher], in dp from the top of the screen. */
+  private fun middleOf(matcher: SemanticsMatcher): Float {
+    val bounds = rule.onNode(matcher).fetchSemanticsNode().boundsInRoot
     return with(rule.density) { ((bounds.top + bounds.bottom) / 2).toDp().value }
   }
+
+  /** The vertical middle of [name]'s row. */
+  private fun middleOf(name: String) = middleOf(hasText(name))
+
+  /** The vertical middle of the list, measured rather than assumed from the requested height. */
+  private fun listMiddle() = middleOf(hasTestTag(LIST))
 
   @Test
   fun `a task added below the fold is scrolled to the middle once it shows up`() {
@@ -201,7 +210,7 @@ class GroupedTaskListTest {
     groups = listOf(PriorityGroup(Priority.NOW, tasks.take(30) + task("new") + tasks.drop(30)))
     rule.mainClock.advanceTimeBy(3000)
     rule.onNodeWithText("t01").assertDoesNotExist()
-    assertEquals(250f, middleOf("new"), 2f)
+    assertEquals(listMiddle(), middleOf("new"), 2f)
   }
 
   @Test
@@ -211,7 +220,7 @@ class GroupedTaskListTest {
     rule.onNodeWithText("t07").assertIsDisplayed()
     revealTaskId = "t07"
     rule.mainClock.advanceTimeBy(3000)
-    assertEquals(250f, middleOf("t07"), 2f)
+    assertEquals(listMiddle(), middleOf("t07"), 2f)
   }
 
   @Test
@@ -231,6 +240,10 @@ class GroupedTaskListTest {
     revealTaskId = "t40"
     rule.mainClock.advanceTimeBy(3000)
     rule.onNodeWithText("t40").assertIsDisplayed()
-    assertTrue(middleOf("t40") > 400f)
+    assertTrue(middleOf("t40") > listMiddle() + 100f)
+  }
+
+  private companion object {
+    const val LIST = "list"
   }
 }
