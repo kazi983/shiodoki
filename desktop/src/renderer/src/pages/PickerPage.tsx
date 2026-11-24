@@ -37,7 +37,8 @@ export function PickerPage() {
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  // A task just added is centered in the list once it is selected; other selections only scroll into view.
+  // The first selection and a task just added are centered in the list; other selections only scroll into view.
+  const firstSelectionShown = useRef(false);
   const centerTaskId = useRef<string | null>(null);
   const now = useNow(10_000);
   const { common, picker: text } = t();
@@ -84,11 +85,15 @@ export function PickerPage() {
   }, []);
 
   useEffect(() => {
-    const center = selectedId !== null && selectedId === centerTaskId.current;
-    if (center) centerTaskId.current = null;
+    if (selectedId === null) return;
+    const first = !firstSelectionShown.current;
+    firstSelectionShown.current = true;
+    const added = selectedId === centerTaskId.current;
+    if (added) centerTaskId.current = null;
+    // The list opens already centered, without an animation.
     listRef.current
       ?.querySelector('[aria-selected="true"]')
-      ?.scrollIntoView({ block: center ? "center" : "nearest", behavior: center ? "smooth" : "auto" });
+      ?.scrollIntoView({ block: first || added ? "center" : "nearest", behavior: added ? "smooth" : "auto" });
   }, [selectedId]);
 
   const tasks = useMemo(() => state?.tasks ?? [], [state]);
