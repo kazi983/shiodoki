@@ -11,8 +11,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -35,7 +38,7 @@ import org.robolectric.annotation.Config
 
 /**
  * The drag of [GroupedTaskList] with real touch input (design §5.3). A plain Application, so Firebase is not
- * started. The list is 500dp high; rows are about 56dp.
+ * started. The list asks for 500dp but gets the height of Robolectric's default screen (470dp); rows are about 56dp.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], application = Application::class)
@@ -50,7 +53,7 @@ class GroupedTaskListTest {
 
   @Composable
   private fun TestList(groups: List<PriorityGroup>, revealTaskId: String? = null) {
-    Box(Modifier.height(500.dp).fillMaxWidth()) {
+    Box(Modifier.height(500.dp).fillMaxWidth().testTag(LIST)) {
       GroupedTaskList(
         groups,
         onMove = { drops += it; true },
@@ -181,8 +184,20 @@ class GroupedTaskListTest {
     rule.onNodeWithText("t15").assertIsDisplayed()
   }
 
+  /** The vertical middle of the node found by [matcher], in dp from the top of the screen. */
+  private fun middleOf(matcher: SemanticsMatcher): Float {
+    val bounds = rule.onNode(matcher).fetchSemanticsNode().boundsInRoot
+    return with(rule.density) { ((bounds.top + bounds.bottom) / 2).toDp().value }
+  }
+
+  /** The vertical middle of [name]'s row. */
+  private fun middleOf(name: String) = middleOf(hasText(name))
+
+  /** The vertical middle of the list, measured rather than assumed from the requested height. */
+  private fun listMiddle() = middleOf(hasTestTag(LIST))
+
   @Test
-  fun `a task added below the fold is scrolled into view once it shows up`() {
+  fun `a task added below the fold is scrolled to the middle once it shows up`() {
     var groups by mutableStateOf(listOf(PriorityGroup(Priority.NOW, manyTasks())))
     var revealTaskId by mutableStateOf<String?>(null)
     rule.setContent { TestList(groups, revealTaskId) }
@@ -191,19 +206,44 @@ class GroupedTaskListTest {
     revealTaskId = "new"
     rule.mainClock.advanceTimeBy(1000)
     rule.onNodeWithText("t01").assertIsDisplayed()
-    groups = listOf(PriorityGroup(Priority.NOW, manyTasks() + task("new", createdAt = "2026-01-02T00:00:00Z")))
-    rule.mainClock.advanceTimeBy(2000)
-    rule.onNodeWithText("new").assertIsDisplayed()
+    val tasks = manyTasks()
+    groups = listOf(PriorityGroup(Priority.NOW, tasks.take(30) + task("new") + tasks.drop(30)))
+    rule.mainClock.advanceTimeBy(3000)
     rule.onNodeWithText("t01").assertDoesNotExist()
+    assertEquals(listMiddle(), middleOf("new"), 2f)
   }
 
   @Test
-  fun `a task already in view does not scroll the list`() {
+  fun `a task already in view is scrolled to the middle`() {
     var revealTaskId by mutableStateOf<String?>(null)
     rule.setContent { TestList(listOf(PriorityGroup(Priority.NOW, manyTasks())), revealTaskId) }
-    revealTaskId = "t03"
+    rule.onNodeWithText("t07").assertIsDisplayed()
+    revealTaskId = "t07"
+    rule.mainClock.advanceTimeBy(3000)
+    assertEquals(listMiddle(), middleOf("t07"), 2f)
+  }
+
+  @Test
+  fun `a task near the top stays where it is`() {
+    var revealTaskId by mutableStateOf<String?>(null)
+    rule.setContent { TestList(listOf(PriorityGroup(Priority.NOW, manyTasks())), revealTaskId) }
+    revealTaskId = "t02"
     rule.mainClock.advanceTimeBy(2000)
     rule.onNodeWithText("NOW").assertIsDisplayed()
     rule.onNodeWithText("t01").assertIsDisplayed()
+  }
+
+  @Test
+  fun `the last task is scrolled to the end of the list`() {
+    var revealTaskId by mutableStateOf<String?>(null)
+    rule.setContent { TestList(listOf(PriorityGroup(Priority.NOW, manyTasks())), revealTaskId) }
+    revealTaskId = "t40"
+    rule.mainClock.advanceTimeBy(3000)
+    rule.onNodeWithText("t40").assertIsDisplayed()
+    assertTrue(middleOf("t40") > listMiddle() + 100f)
+  }
+
+  private companion object {
+    const val LIST = "list"
   }
 }

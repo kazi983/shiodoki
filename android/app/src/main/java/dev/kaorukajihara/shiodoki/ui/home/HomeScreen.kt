@@ -75,6 +75,7 @@ import dev.kaorukajihara.shiodoki.ui.shortName
 import dev.kaorukajihara.shiodoki.ui.theme.MonoFamily
 import dev.kaorukajihara.shiodoki.ui.theme.ShiodokiColors
 import dev.kaorukajihara.shiodoki.ui.theme.color
+import kotlin.math.abs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -196,8 +197,8 @@ internal fun ColumnScope.TaskList(
 /**
  * Tasks under priority headings; a long press on a row drags it (design §5.3). While a row is dragged every heading
  * is shown, so a task can be dropped into a priority without tasks. [rowShape] is the shape of the rows, for the
- * shadow of the dragged one. When [revealTaskId] changes, the list scrolls to that task once it is in [groups]
- * (a task just added lands at the end of its priority, often below the fold).
+ * shadow of the dragged one. When [revealTaskId] changes, the list scrolls that task to its center once it is in
+ * [groups] (a task just added lands at the end of its priority, often below the fold).
  */
 @Composable
 internal fun GroupedTaskList(
@@ -219,7 +220,7 @@ internal fun GroupedTaskList(
     val id = revealTaskId ?: return@LaunchedEffect
     // The new task shows up with the next snapshot of the repository, not right after the add.
     val index = snapshotFlow { currentEntries.indexOfFirst { it.key == id } }.first { it >= 0 }
-    listState.reveal(index, headingAbove = currentEntries.getOrNull(index - 1) is TaskListEntry.Heading)
+    listState.scrollToCenter(index)
   }
   LazyColumn(
     state = listState,
@@ -244,19 +245,37 @@ internal fun GroupedTaskList(
 }
 
 /**
- * Scrolls until the item at [index] is wholly in view; an item already in view stays where it is. An item out of view
- * comes to the top, under its heading when [headingAbove] is true (the first row of its priority).
+ * Scrolls until the middle of the item at [index] is at the middle of the viewport (inside the content padding), or as
+ * close as the ends of the list allow. An item out of view is first approached by the average item pitch, then the
+ * second pass lands on its measured position.
  */
-private suspend fun LazyListState.reveal(index: Int, headingAbove: Boolean) {
-  val info = layoutInfo
-  val item = info.visibleItemsInfo.firstOrNull { it.index == index }
-  val end = info.viewportEndOffset - info.afterContentPadding
-  when {
-    item == null -> animateScrollToItem(if (headingAbove) index - 1 else index)
-    item.offset < 0 -> animateScrollBy(item.offset.toFloat())
-    item.offset + item.size > end -> animateScrollBy((item.offset + item.size - end).toFloat())
+private suspend fun LazyListState.scrollToCenter(index: Int) {
+  repeat(CENTER_PASSES) {
+    val info = layoutInfo
+    val visible = info.visibleItemsInfo
+    if (visible.isEmpty()) return
+    val center = (info.viewportEndOffset - info.afterContentPadding) / 2f
+    val item = visible.firstOrNull { it.index == index }
+    val itemCenter = if (item != null) {
+      item.offset + item.size / 2f
+    } else {
+      val first = visible.first()
+      val last = visible.last()
+      val pitch = if (last.index > first.index) {
+        (last.offset - first.offset).toFloat() / (last.index - first.index)
+      } else {
+        (first.size + info.mainAxisItemSpacing).toFloat()
+      }
+      first.offset + (index - first.index) * pitch + pitch / 2f
+    }
+    val delta = itemCenter - center
+    if (abs(delta) < 1f) return
+    // At either end of the list nothing more can be consumed.
+    if (abs(animateScrollBy(delta)) < 1f) return
   }
 }
+
+private const val CENTER_PASSES = 3
 
 /** "■ NOW  今すぐ" */
 @Composable
