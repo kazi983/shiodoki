@@ -28,44 +28,45 @@
 
 ## 2. ドメイン用語（アプリ固有の概念）
 
-| 日本語                     | English 案                   | 補足                                                                                                                                | 確認 |
-| -------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ---- |
-| Shiodoki（潮時）           | Shiodoki                     | アプリ名は訳さない                                                                                                                  |      |
-| タスク                     | Task                         |                                                                                                                                     |      |
-| セッション                 | Session                      | 1 回の作業記録（30 分単位）                                                                                                         |      |
-| 累計                       | Total                        | `Total 1h 35m`                                                                                                                      |      |
-| 分類                       | Category                     | 旧「優先度 / Priority」（2026-10-20 変更）。保存するフィールド名とコードは `priority` のまま                                        | ✅   |
-| 今すぐ NOW                 | Now                          |                                                                                                                                     |      |
-| 定期 ROUTINE               | Routine                      | 2026-10-20 追加                                                                                                                     | ✅   |
-| 近いうち（SOONER）         | Soon                         | 表示ラベルだけ `Soon`。画面に出すキーも日英とも `SOON`（2026-10-10 変更）。保存するキーは `SOONER` のまま（データモデルは変えない） | ✅   |
-| いつでも ANYTIME           | Anytime                      |                                                                                                                                     |      |
-| いつか SOMEDAY             | Someday                      |                                                                                                                                     |      |
-| 休憩 BREAK                 | Break                        | 2026-10-20 追加                                                                                                                     | ✅   |
-| 完了 / 完了済み            | Done / Completed             | 操作は `Mark as done`、状態・一覧は `Completed`                                                                                     |      |
-| 未完了                     | Open                         | `3 open · 5 completed`。操作「未完了に戻す」は `Reopen`                                                                             |      |
-| メモ                       | Note                         | `Memo` は和製英語寄りのため `Note`                                                                                                  |      |
-| 前回の続き                 | Continue last task           |                                                                                                                                     | ✅   |
-| 離席時刻                   | Leave at                     | 席を立つ時刻。UI は動詞句 `Leave at 23:30`。名詞 `leave time` は休暇と読まれるので避ける                                            | ✅   |
-| 離席スケジュール           | Leave schedule               |                                                                                                                                     |      |
-| 作業ストップ               | Wrap up                      | 離席時刻の N 分前、作業がブロックされる時刻（コードの `stopAt`）。離席時刻（`leaveAt`）とは別の時刻                                 | ✅   |
-| 次の予定                   | Next plan                    | 外出・就寝も含むので `appointment` は避ける。時刻のラベルには使わず「離席時刻」とする                                               | ✅   |
-| 何分前に止めるか           | Stop how many minutes before | 画面は `Leave at [23:00] wrap up [5 min before]`、トレイは `Wrap up ▸ When I leave`                                                 |      |
-| スヌーズ                   | Snooze                       |                                                                                                                                     |      |
-| フォーカス画面             | Focus screen                 | Android                                                                                                                             |      |
-| PC と同じ                  | Same as PC                   | フォーカス画面の選択肢                                                                                                              |      |
-| スマホで前回               | Last on phone                |                                                                                                                                     |      |
-| 再開                       | Resume                       | フォーカス画面で「スマホで前回」のタスクを始めるボタン                                                                              |      |
-| PC の状況                  | PC status                    |                                                                                                                                     |      |
-| PC で実行中                | Running on PC                |                                                                                                                                     |      |
-| PC で途中終了              | Interrupted on PC            |                                                                                                                                     |      |
-| 停止中（離席前のブロック） | Paused                       | PC のアプリ終了（`App closed`）と区別するため `Stopped` は使わない                                                                  | ✅   |
-| 同期済み                   | Synced                       |                                                                                                                                     |      |
-| 送信待ち / 未送信あり      | Pending                      | 日本語はデスクトップ「送信待ち」、Android「未送信あり」とずれているが、英語は統一する                                               |      |
-| オフライン                 | Offline                      |                                                                                                                                     |      |
-| この PC のみ               | This PC only                 | ローカルモード                                                                                                                      |      |
-| Quick Start                | Quick Start                  | デスクトップのタスク選択画面。既に英語                                                                                              |      |
-| タスク管理                 | Manage tasks                 | 画面タイトル・メニュー                                                                                                              |      |
-| 集計                       | Stats                        | Android の下部ナビ                                                                                                                  |      |
+| 日本語                     | English 案                   | 補足                                                                                                                                                    | 確認 |
+| -------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| Shiodoki（潮時）           | Shiodoki                     | アプリ名は訳さない                                                                                                                                      |      |
+| タスク                     | Task                         |                                                                                                                                                         |      |
+| セッション                 | Session                      | 1 回の作業記録（30 分単位）                                                                                                                             |      |
+| 累計                       | Total                        | `Total 1h 35m`                                                                                                                                          |      |
+| 分類                       | Category                     | 旧「優先度 / Priority」（2026-10-20 変更）。保存するフィールド名とコードは `priority` のまま                                                            | ✅   |
+| 今すぐ NOW                 | Now                          |                                                                                                                                                         |      |
+| 定期 ROUTINE               | Routine                      | 2026-10-20 追加                                                                                                                                         | ✅   |
+| 近いうち（SOONER）         | Soon                         | 表示ラベルだけ `Soon`。画面に出すキーも日英とも `SOON`（2026-10-10 変更）。保存するキーは `SOONER` のまま（データモデルは変えない）                     | ✅   |
+| いつでも ANYTIME           | Anytime                      |                                                                                                                                                         |      |
+| いつか SOMEDAY             | Someday                      |                                                                                                                                                         |      |
+| 休憩 BREAK                 | Break                        | 2026-10-20 追加                                                                                                                                         | ✅   |
+| 完了 / 完了済み            | Done / Completed             | 操作は `Mark as done`、状態・一覧は `Completed`                                                                                                         |      |
+| 未完了                     | Open                         | `3 open · 5 completed`。操作「未完了に戻す」は `Reopen`                                                                                                 |      |
+| メモ                       | Note                         | `Memo` は和製英語寄りのため `Note`                                                                                                                      |      |
+| 前回の続き                 | Continue last task           |                                                                                                                                                         | ✅   |
+| 離席時刻                   | Leave at                     | 席を立つ時刻。UI は動詞句 `Leave at 23:30`。名詞 `leave time` は休暇と読まれるので避ける                                                                | ✅   |
+| 離席スケジュール           | Leave schedule               |                                                                                                                                                         |      |
+| 作業ストップ               | Wrap up                      | 離席時刻の N 分前、作業がブロックされる時刻（コードの `stopAt`）。離席時刻（`leaveAt`）とは別の時刻                                                     | ✅   |
+| 次の予定                   | Next plan                    | 外出・就寝も含むので `appointment` は避ける。時刻のラベルには使わず「離席時刻」とする                                                                   | ✅   |
+| 何分前に止めるか           | Stop how many minutes before | 画面は `Leave at [23:00] wrap up [5 min before]`、トレイは `Wrap up ▸ When I leave`                                                                     |      |
+| スヌーズ                   | Snooze                       |                                                                                                                                                         |      |
+| フォーカス画面             | Focus screen                 | Android                                                                                                                                                 |      |
+| PC と同じ                  | Same as PC                   | フォーカス画面の選択肢                                                                                                                                  |      |
+| スマホで前回               | Last on phone                |                                                                                                                                                         |      |
+| 再開                       | Resume                       | フォーカス画面で「スマホで前回」のタスクを始めるボタン                                                                                                  |      |
+| PC の状況                  | PC status                    |                                                                                                                                                         |      |
+| PC で実行中                | Running on PC                |                                                                                                                                                         |      |
+| PC で途中終了              | Interrupted on PC            |                                                                                                                                                         |      |
+| 停止中（離席前のブロック） | Paused                       | PC のアプリ終了（`App closed`）と区別するため `Stopped` は使わない                                                                                      | ✅   |
+| 一時停止（フォーカス画面） | Hold / On hold               | Android（M-20）。操作は `Hold`、状態は `On hold`、途中で終えるのは `End hold`。PC の「停止中 / Paused」、「再開 / Resume」と区別する（2026-11-25 追加） |      |
+| 同期済み                   | Synced                       |                                                                                                                                                         |      |
+| 送信待ち / 未送信あり      | Pending                      | 日本語はデスクトップ「送信待ち」、Android「未送信あり」とずれているが、英語は統一する                                                                   |      |
+| オフライン                 | Offline                      |                                                                                                                                                         |      |
+| この PC のみ               | This PC only                 | ローカルモード                                                                                                                                          |      |
+| Quick Start                | Quick Start                  | デスクトップのタスク選択画面。既に英語                                                                                                                  |      |
+| タスク管理                 | Manage tasks                 | 画面タイトル・メニュー                                                                                                                                  |      |
+| 集計                       | Stats                        | Android の下部ナビ                                                                                                                                      |      |
 
 ### ローカルモードと暗号化（2026-10-23 追加）
 
