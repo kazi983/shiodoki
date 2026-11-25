@@ -50,6 +50,7 @@ class FocusActivity : ComponentActivity() {
               repository = container.taskRepository,
               desktopStateRepository = container.desktopStateRepository,
               lastSelectedTaskId = container.localStore.lastSelectedTaskId,
+              holdScreen = controller::onHold,
               startTask = controller::onTaskSelected,
             )
           },

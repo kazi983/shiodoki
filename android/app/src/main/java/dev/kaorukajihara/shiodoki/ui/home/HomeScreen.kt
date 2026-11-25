@@ -90,6 +90,7 @@ fun HomeScreen(
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   val pcStatus by viewModel.pcStatus.collectAsStateWithLifecycle()
+  val holdCard by viewModel.holdCard.collectAsStateWithLifecycle()
   val snackbarHostState = remember { SnackbarHostState() }
   val saveFailed = stringResource(R.string.save_failed)
   val completed = stringResource(R.string.task_completed)
@@ -118,6 +119,10 @@ fun HomeScreen(
     snackbarHost = { SnackbarHost(snackbarHostState) },
   ) { padding ->
     Column(Modifier.fillMaxSize().padding(padding)) {
+      // Above everything while the focus screen is held (design §6.9).
+      holdCard?.let {
+        HoldCardView(it, onEnd = viewModel::endHold, Modifier.padding(start = 24.dp, end = 24.dp, bottom = 12.dp))
+      }
       // Not shown until state/desktop is loaded, so "no data" does not flash on start.
       pcStatus?.let { PcStatusCard(it, Modifier.padding(horizontal = 24.dp)) }
       TaskList(

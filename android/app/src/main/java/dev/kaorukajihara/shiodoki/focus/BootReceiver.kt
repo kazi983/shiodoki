@@ -8,7 +8,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-/** Starts [FocusService] after a reboot or an app update when the feature is on (design §6.1). */
+/**
+ * Starts [FocusService] after a reboot or an app update when the feature is on (design §6.1), and
+ * sets the off reminder's alarm again when it is off (§6.10).
+ */
 class BootReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent) {
     if (intent.action != Intent.ACTION_BOOT_COMPLETED &&
@@ -22,6 +25,7 @@ class BootReceiver : BroadcastReceiver() {
     CoroutineScope(Dispatchers.Main).launch {
       try {
         container.focusFeature.startIfEnabled(signedIn = container.authManager.account.value != null)
+        container.focusFeature.rescheduleOffReminder()
       } finally {
         pending.finish()
       }

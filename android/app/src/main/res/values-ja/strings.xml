@@ -145,4 +145,29 @@
   <string name="notification_missing_permission">権限が不足しています</string>
   <string name="notification_running">%1$s 実行中（%2$s〜）</string>
   <string name="notification_idle">待機中</string>
+
+  <!-- Hold of the focus screen (M-20, design §6.9) -->
+  <string name="focus_hold">フォーカス画面を一時停止</string>
+  <string name="hold_sheet_title">フォーカス画面を一時停止</string>
+  <string name="hold_sheet_subtitle">時間が来たら自動で戻ります</string>
+  <string name="hold_duration">時間</string>
+  <string name="hold_hours_unit">時間</string>
+  <string name="hold_minutes_unit">分</string>
+  <string name="hold_reason">理由</string>
+  <string name="hold_reason_placeholder">例：イベントに参加中</string>
+  <string name="hold_reason_hint">%1$d 文字以上</string>
+  <string name="hold_confirm">一時停止</string>
+  <string name="hold_end">一時停止を終了</string>
+  <string name="hold_card_title">一時停止中</string>
+  <string name="hold_left_hours">あと %1$d 時間</string>
+  <string name="hold_left_hours_minutes">あと %1$d 時間 %2$d 分</string>
+  <string name="hold_left_within_half_hour">あと 30 分以内</string>
+  <string name="hold_notification_title">一時停止中・%1$s</string>
+  <string name="hold_notification_text">時間が来たら自動で戻ります</string>
+  <string name="notification_channel_hold">一時停止の残り時間</string>
+
+  <!-- Reminder while the feature is off (M-21, design §6.10) -->
+  <string name="notification_channel_off_reminder">機能オフのお知らせ</string>
+  <string name="off_reminder_title">フォーカス画面がオフになっています</string>
+  <string name="off_reminder_text">タップして設定を開く</string>
 </resources>

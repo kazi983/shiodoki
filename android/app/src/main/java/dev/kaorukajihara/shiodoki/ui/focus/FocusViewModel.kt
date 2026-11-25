@@ -11,6 +11,8 @@ import dev.kaorukajihara.shiodoki.data.TaskRepository
 import dev.kaorukajihara.shiodoki.data.TasksSnapshot
 import dev.kaorukajihara.shiodoki.data.moveTask
 import dev.kaorukajihara.shiodoki.data.undoMove
+import dev.kaorukajihara.shiodoki.focus.MAX_HOLD_HALF_HOURS
+import dev.kaorukajihara.shiodoki.focus.isValidHoldReason
 import dev.kaorukajihara.shiodoki.model.DesktopState
 import dev.kaorukajihara.shiodoki.model.Priority
 import dev.kaorukajihara.shiodoki.model.Task
@@ -70,6 +72,8 @@ class FocusViewModel(
   private val repository: TaskRepository,
   desktopStateRepository: DesktopStateRepository,
   lastSelectedTaskId: Flow<String?>,
+  /** `FocusController.onHold`; the activity closes on its own (design §6.9). */
+  private val holdScreen: (halfHours: Int, reason: String) -> Unit = { _, _ -> },
   private val startTask: (taskId: String, taskName: String) -> Unit,
 ) : ViewModel() {
   val uiState: StateFlow<FocusUiState> =
@@ -133,6 +137,45 @@ class FocusViewModel(
     pendingStart = null
   }
 
+  /** The hold sheet (M-20, design §5.7): open, with its duration and reason. */
+  var holdSheetOpen by mutableStateOf(false)
+    private set
+
+  /** The duration in half hours, 1 (30 min) to [MAX_HOLD_HALF_HOURS] (72 h). Starts at 1 hour. */
+  var holdHalfHours by mutableStateOf(DEFAULT_HOLD_HALF_HOURS)
+    private set
+
+  var holdReason by mutableStateOf("")
+    private set
+
+  /** The reason has enough characters; the button stays disabled until then. */
+  val canHold: Boolean get() = isValidHoldReason(holdReason)
+
+  fun openHoldSheet() {
+    holdSheetOpen = true
+  }
+
+  /** "キャンセル", Back, or a tap outside: back to the list, still Prompting. */
+  fun closeHoldSheet() {
+    holdSheetOpen = false
+  }
+
+  /** The two wheels. 0 h 0 min becomes 30 min, and 72 h 30 min becomes 72 h. */
+  fun setHoldTime(hours: Int, minutes: Int) {
+    holdHalfHours = (hours * 2 + minutes / 30).coerceIn(1, MAX_HOLD_HALF_HOURS)
+  }
+
+  fun onHoldReasonChange(value: String) {
+    holdReason = value
+  }
+
+  /** "一時停止": no confirmation, the reason was the hurdle (Q-A12). */
+  fun hold() {
+    if (!canHold) return
+    holdSheetOpen = false
+    holdScreen(holdHalfHours, holdReason)
+  }
+
   /** Swipe on a row (design §5.7): completes the task without closing the screen. */
   fun complete(taskId: String) = repository.update(taskId, TaskPatch(completed = true))
 
@@ -144,3 +187,5 @@ class FocusViewModel(
 
   fun undoMove(move: TaskMove) = repository.undoMove(move)
 }
+
+private const val DEFAULT_HOLD_HALF_HOURS = 2

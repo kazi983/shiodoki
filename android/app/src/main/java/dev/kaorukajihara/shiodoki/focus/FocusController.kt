@@ -26,19 +26,26 @@ data class FocusConfig(
   val lastSeenIntervalMs: Long,
   /** The focus screen is shown again this long after leaving it without a choice (M-14). */
   val repromptAfterLeaveMs: Long,
+  /** One hour of a hold (M-20); the test mode makes it a minute (design §6.9). */
+  val holdHourMs: Long,
 ) {
+  /** The step of hold durations and of the remaining time shown. */
+  val holdHalfHourMs: Long get() = holdHourMs / 2
+
   companion object {
     val DEFAULT = FocusConfig(
       intervalMs = 30 * 60_000L,
       minRecordMs = 60_000L,
       lastSeenIntervalMs = 60_000L,
       repromptAfterLeaveMs = 60_000L,
+      holdHourMs = 3_600_000L,
     )
     val TEST = FocusConfig(
       intervalMs = 30_000L,
       minRecordMs = 5_000L,
       lastSeenIntervalMs = 5_000L,
       repromptAfterLeaveMs = 10_000L,
+      holdHourMs = 60_000L,
     )
   }
 }
@@ -60,6 +67,20 @@ sealed interface FocusState {
     val taskName: String,
     val startedAt: Instant,
   ) : FocusState
+
+  /** The focus screen is held until [until] (M-20): unlocks do not show it. */
+  data class OnHold(val until: Instant, val reason: String) : FocusState
+}
+
+/** A hold lasts from half an hour to 72 hours, in half-hour steps (M-20). */
+const val MAX_HOLD_HALF_HOURS = 144
+
+/** The reason must be typed every time; this many characters at least (M-20). */
+const val MIN_HOLD_REASON_LENGTH = 3
+
+fun isValidHoldReason(reason: String): Boolean {
+  val trimmed = reason.trim()
+  return trimmed.codePointCount(0, trimmed.length) >= MIN_HOLD_REASON_LENGTH
 }
 
 /**
@@ -113,8 +134,38 @@ class FocusController(
   }
 
   fun onUnlock() {
+    expireHoldIfDue()
     if (_state.value != FocusState.Idle || !canPrompt()) return
     prompt()
+  }
+
+  /**
+   * "一時停止" on the focus screen (M-20, design §6.9): no screen until [halfHours] half hours
+   * from now. Nothing is recorded. Ignored with an out-of-range duration or a too short reason.
+   */
+  fun onHold(halfHours: Int, reason: String) {
+    if (_state.value != FocusState.Prompting) return
+    if (halfHours !in 1..MAX_HOLD_HALF_HOURS || !isValidHoldReason(reason)) return
+    val hold = FocusState.OnHold(now().plusMillis(halfHours * config.holdHalfHourMs), reason.trim())
+    _state.value = hold
+    enqueue { store.saveHold(SavedHold(hold.until, hold.reason)) }
+  }
+
+  /** "一時停止を終了" (notification or home card): the next unlock shows the screen again. */
+  fun endHold() {
+    if (_state.value !is FocusState.OnHold) return
+    clearHold()
+  }
+
+  /**
+   * Ends a hold whose time has come. The screen is not shown now: the next unlock does that
+   * (design §6.9). Returns true when it ended one.
+   */
+  fun expireHoldIfDue(): Boolean {
+    val hold = _state.value as? FocusState.OnHold ?: return false
+    if (now().isBefore(hold.until)) return false
+    clearHold()
+    return true
   }
 
   fun onTaskSelected(taskId: String, taskName: String) {
@@ -157,7 +208,8 @@ class FocusController(
       FocusState.Prompting -> closeScreen()
       // The next unlock shows the screen anyway.
       FocusState.Away -> cancelReprompt()
-      FocusState.Idle -> Unit
+      // A hold outlives screen offs; it is checked against the clock on unlock.
+      is FocusState.OnHold, FocusState.Idle -> Unit
     }
   }
 
@@ -167,6 +219,7 @@ class FocusController(
       is FocusState.Running -> finishSession(EndReason.APP_EXIT)
       FocusState.Prompting -> closeScreen()
       FocusState.Away -> cancelReprompt()
+      is FocusState.OnHold -> clearHold()
       FocusState.Idle -> Unit
     }
   }
@@ -177,6 +230,7 @@ class FocusController(
    * data is the one saved.
    */
   fun recover() {
+    restoreHold()
     if (_state.value is FocusState.Running) return
     enqueue {
       val saved = store.loadRunning() ?: return@enqueue
@@ -249,6 +303,26 @@ class FocusController(
   private fun closeScreen() {
     _state.value = FocusState.Idle
     screen.dismiss()
+  }
+
+  /**
+   * A hold saved by an earlier process (reboot, update, forced stop) comes back; one that has
+   * ended meanwhile is dropped. Applied only while nothing else is going on.
+   */
+  private fun restoreHold() {
+    enqueue {
+      val saved = store.loadHold() ?: return@enqueue
+      if (!now().isBefore(saved.until)) {
+        if (_state.value !is FocusState.OnHold) store.clearHold()
+      } else if (_state.value == FocusState.Idle) {
+        _state.value = FocusState.OnHold(saved.until, saved.reason)
+      }
+    }
+  }
+
+  private fun clearHold() {
+    _state.value = FocusState.Idle
+    enqueue { store.clearHold() }
   }
 
   private fun cancelReprompt() {

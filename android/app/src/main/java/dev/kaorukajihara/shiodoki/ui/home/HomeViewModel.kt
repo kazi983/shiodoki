@@ -9,6 +9,10 @@ import dev.kaorukajihara.shiodoki.data.TaskRepository
 import dev.kaorukajihara.shiodoki.data.TasksSnapshot
 import dev.kaorukajihara.shiodoki.data.moveTask
 import dev.kaorukajihara.shiodoki.data.undoMove
+import dev.kaorukajihara.shiodoki.focus.FocusConfig
+import dev.kaorukajihara.shiodoki.focus.FocusState
+import dev.kaorukajihara.shiodoki.focus.HoldRemaining
+import dev.kaorukajihara.shiodoki.focus.holdRemaining
 import dev.kaorukajihara.shiodoki.model.Priority
 import dev.kaorukajihara.shiodoki.model.Task
 import dev.kaorukajihara.shiodoki.model.TaskDrop
@@ -17,6 +21,7 @@ import dev.kaorukajihara.shiodoki.model.taskOrder
 import java.time.Instant
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -44,9 +49,20 @@ fun toHomeUiState(snapshot: TasksSnapshot?): HomeUiState = HomeUiState(
   syncStatus = snapshot?.syncStatus,
 )
 
+/** The card over the task list while the focus screen is held (M-20, design §6.9). */
+data class HoldCard(val reason: String, val remaining: HoldRemaining)
+
+fun toHoldCard(state: FocusState, now: Instant, config: FocusConfig): HoldCard? {
+  val hold = state as? FocusState.OnHold ?: return null
+  return holdRemaining(hold.until, now, config)?.let { HoldCard(hold.reason, it) }
+}
+
 class HomeViewModel(
   private val repository: TaskRepository,
   desktopStateRepository: DesktopStateRepository,
+  focusState: StateFlow<FocusState> = MutableStateFlow(FocusState.Idle),
+  focusConfig: FocusConfig = FocusConfig.DEFAULT,
+  private val onEndHold: () -> Unit = {},
 ) : ViewModel() {
   val uiState: StateFlow<HomeUiState> = repository.snapshot
     .map(::toHomeUiState)
@@ -70,7 +86,19 @@ class HomeViewModel(
       desktopStateRepository.snapshot.value?.let { toPcStatus(it.state, Instant.now()) },
     )
 
+  /** null unless held. On the clock too, so the time left counts down while the screen is open. */
+  val holdCard: StateFlow<HoldCard?> = combine(focusState, clock()) { state, now -> toHoldCard(state, now, focusConfig) }
+    .distinctUntilChanged()
+    .stateIn(
+      viewModelScope,
+      SharingStarted.WhileSubscribed(5_000),
+      toHoldCard(focusState.value, Instant.now(), focusConfig),
+    )
+
   val writeFailures: Flow<Unit> = repository.writeFailures
+
+  /** "一時停止を終了" on the card: no confirmation (design §6.9). */
+  fun endHold() = onEndHold()
 
   fun complete(taskId: String) {
     repository.update(taskId, TaskPatch(completed = true))

@@ -17,6 +17,9 @@ data class SavedSession(
   val lastSeenAt: Instant,
 )
 
+/** A hold of the focus screen as saved on the device (M-20, design §6.9). */
+data class SavedHold(val until: Instant, val reason: String)
+
 /** The focus part of the on-device store (`LocalStore`, DataStore). */
 interface FocusStore {
   suspend fun loadRunning(): SavedSession?
@@ -30,6 +33,12 @@ interface FocusStore {
 
   /** The phone's previous choice (M-12); `state/preferences` is not touched. */
   suspend fun saveLastSelectedTaskId(taskId: String)
+
+  suspend fun loadHold(): SavedHold?
+
+  suspend fun saveHold(hold: SavedHold)
+
+  suspend fun clearHold()
 }
 
 /** Shows or closes the focus screen (`FocusActivity`, design §6.4). */

@@ -1,5 +1,6 @@
 package dev.kaorukajihara.shiodoki.ui
 
+import android.content.res.Resources
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -7,6 +8,7 @@ import androidx.compose.ui.res.booleanResource
 import androidx.compose.ui.res.stringResource
 import dev.kaorukajihara.shiodoki.R
 import dev.kaorukajihara.shiodoki.data.SyncStatus
+import dev.kaorukajihara.shiodoki.focus.HoldRemaining
 import dev.kaorukajihara.shiodoki.model.MAX_MEMO_LENGTH
 import dev.kaorukajihara.shiodoki.model.MAX_NAME_LENGTH
 import dev.kaorukajihara.shiodoki.model.Priority
@@ -69,3 +71,14 @@ fun priorityHeading(priority: Priority): String =
   } else {
     priority.shortName
   }
+
+/** "あと 47 時間 30 分" / "あと 48 時間" / "あと 30 分以内" (design §6.9). */
+fun holdRemainingText(resources: Resources, remaining: HoldRemaining): String = when {
+  remaining.withinHalfHour -> resources.getString(R.string.hold_left_within_half_hour)
+  remaining.minutes == 0 -> resources.getString(R.string.hold_left_hours, remaining.hours)
+  else -> resources.getString(R.string.hold_left_hours_minutes, remaining.hours, remaining.minutes)
+}
+
+/** "一時停止中・あと 47 時間 30 分", the title of the hold notifications. */
+fun holdNotificationTitle(resources: Resources, remaining: HoldRemaining): String =
+  resources.getString(R.string.hold_notification_title, holdRemainingText(resources, remaining))
