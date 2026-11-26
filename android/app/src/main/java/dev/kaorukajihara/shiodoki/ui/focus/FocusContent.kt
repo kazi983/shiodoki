@@ -34,6 +34,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -97,7 +98,7 @@ fun FocusContent(viewModel: FocusViewModel) {
       .navigationBarsPadding()
       .imePadding(),
   ) {
-    ModeBanner()
+    ModeBanner(onHold = viewModel::openHoldSheet)
 
     Column(
       modifier = Modifier
@@ -136,16 +137,20 @@ fun FocusContent(viewModel: FocusViewModel) {
   viewModel.pendingStart?.let {
     StartConfirmDialog(it, onConfirm = viewModel::confirmStart, onDismiss = viewModel::cancelStart)
   }
+  if (viewModel.holdSheetOpen) HoldSheet(viewModel)
 }
 
-/** The accent strip that tells this screen (tap = start) apart from the task list (tap = edit). */
+/**
+ * The accent strip that tells this screen (tap = start) apart from the task list (tap = edit).
+ * Its small stop button at the end opens the hold sheet (M-20).
+ */
 @Composable
-private fun ModeBanner() {
+private fun ModeBanner(onHold: () -> Unit) {
   Row(
     modifier = Modifier
       .fillMaxWidth()
       .background(ShiodokiColors.Accent)
-      .padding(horizontal = 24.dp, vertical = 12.dp),
+      .padding(start = 24.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
     verticalAlignment = Alignment.CenterVertically,
     horizontalArrangement = Arrangement.spacedBy(10.dp),
   ) {
@@ -155,7 +160,13 @@ private fun ModeBanner() {
       fontSize = 13.sp,
       fontWeight = FontWeight.Bold,
       color = ShiodokiColors.OnAccent,
+      maxLines = 1,
+      overflow = TextOverflow.Ellipsis,
+      modifier = Modifier.weight(1f),
     )
+    IconButton(onClick = onHold) {
+      Icon(FocusIcons.Hold, contentDescription = stringResource(R.string.focus_hold), tint = ShiodokiColors.OnAccent)
+    }
   }
 }
 
@@ -409,4 +420,7 @@ private object FocusIcons {
     "M12 17v4",
   )
   val History = strokeIcon("History", "M3.5 12a8.5 8.5 0 1 0 2.6-6.1", "M3.5 3.5v4.5H8", "M12 8v4.5l3 1.8")
+
+  /** A square in a circle: "stop for a while" (design canvas, hold button). */
+  val Hold = strokeIcon("Hold", "M12 2.5a9.5 9.5 0 1 0 0 19a9.5 9.5 0 1 0 0-19z", "M9.5 9.5h5v5h-5z")
 }

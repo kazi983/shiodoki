@@ -58,6 +58,11 @@
         <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
       </intent-filter>
     </receiver>
+
+    <!-- The morning reminder while the focus screen is off (design §6.10). Only our alarm sends it. -->
+    <receiver
+        android:name=".focus.OffReminderReceiver"
+        android:exported="false" />
   </application>
 
 </manifest>

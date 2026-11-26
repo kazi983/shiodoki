@@ -155,4 +155,29 @@
   <string name="notification_missing_permission">Missing permissions</string>
   <string name="notification_running">%1$s running (since %2$s)</string>
   <string name="notification_idle">Standing by</string>
+
+  <!-- Hold of the focus screen (M-20, design §6.9) -->
+  <string name="focus_hold">Hold focus screen</string>
+  <string name="hold_sheet_title">Hold the focus screen</string>
+  <string name="hold_sheet_subtitle">It comes back on its own</string>
+  <string name="hold_duration">Duration</string>
+  <string name="hold_hours_unit">h</string>
+  <string name="hold_minutes_unit">min</string>
+  <string name="hold_reason">Reason</string>
+  <string name="hold_reason_placeholder">e.g. At an event</string>
+  <string name="hold_reason_hint">%1$d+ characters</string>
+  <string name="hold_confirm">Hold</string>
+  <string name="hold_end">End hold</string>
+  <string name="hold_card_title">On hold</string>
+  <string name="hold_left_hours">%1$d h left</string>
+  <string name="hold_left_hours_minutes">%1$d h %2$d min left</string>
+  <string name="hold_left_within_half_hour">under 30 min left</string>
+  <string name="hold_notification_title">On hold · %1$s</string>
+  <string name="hold_notification_text">Comes back on its own</string>
+  <string name="notification_channel_hold">Hold time left</string>
+
+  <!-- Reminder while the feature is off (M-21, design §6.10) -->
+  <string name="notification_channel_off_reminder">Focus screen off reminder</string>
+  <string name="off_reminder_title">The focus screen is off</string>
+  <string name="off_reminder_text">Tap to open settings</string>
 </resources>

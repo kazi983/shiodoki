@@ -51,6 +51,23 @@ private class FakeFocusStore : FocusStore {
     yield()
     lastSelectedTaskId = taskId
   }
+
+  var hold: SavedHold? = null
+
+  override suspend fun loadHold(): SavedHold? {
+    yield()
+    return hold
+  }
+
+  override suspend fun saveHold(hold: SavedHold) {
+    yield()
+    this.hold = hold
+  }
+
+  override suspend fun clearHold() {
+    yield()
+    hold = null
+  }
 }
 
 private class FakeScreen : FocusScreen {
@@ -526,5 +543,130 @@ class FocusControllerTest {
     h.controller.onScreenOff()
     runCurrent()
     assertEquals(1, h.recorded.size)
+  }
+
+  // --- hold (M-20, design §6.9) ---
+
+  private fun Harness.hold(halfHours: Int = 6, reason: String = "イベント中") {
+    controller.onUnlock()
+    controller.onHold(halfHours, reason)
+    advance(0)
+  }
+
+  @Test
+  fun `hold closes the screen and saves until when and why`() = runTest {
+    val h = Harness(this)
+    h.hold(halfHours = 6, reason = "  イベント中 ")
+    val until = T0.plusMillis(3 * 60 * MINUTE)
+    assertEquals(FocusState.OnHold(until, "イベント中"), h.state)
+    assertEquals(SavedHold(until, "イベント中"), h.store.hold)
+    assertTrue(h.recorded.isEmpty())
+  }
+
+  @Test
+  fun `hold needs a reason of 3 characters and a duration of 30 minutes to 72 hours`() = runTest {
+    val h = Harness(this)
+    h.controller.onUnlock()
+    h.controller.onHold(2, " ab ")
+    h.controller.onHold(0, "イベント")
+    h.controller.onHold(MAX_HOLD_HALF_HOURS + 1, "イベント")
+    assertEquals(FocusState.Prompting, h.state)
+    h.controller.onHold(MAX_HOLD_HALF_HOURS, "旅行中")
+    assertTrue(h.state is FocusState.OnHold)
+  }
+
+  @Test
+  fun `hold only from the focus screen`() = runTest {
+    val h = Harness(this)
+    h.controller.onHold(2, "イベント")
+    assertEquals(FocusState.Idle, h.state)
+  }
+
+  @Test
+  fun `unlocks during a hold do not show the screen`() = runTest {
+    val h = Harness(this)
+    h.hold(halfHours = 2)
+    h.controller.onScreenOff()
+    h.advance(59 * MINUTE)
+    h.controller.onUnlock()
+    assertTrue(h.state is FocusState.OnHold)
+    assertEquals(1, h.screen.shown)
+  }
+
+  @Test
+  fun `the first unlock after the hold shows the screen`() = runTest {
+    val h = Harness(this)
+    h.hold(halfHours = 2)
+    h.advance(60 * MINUTE)
+    h.controller.onUnlock()
+    runCurrent()
+    assertEquals(FocusState.Prompting, h.state)
+    assertEquals(2, h.screen.shown)
+    assertNull(h.store.hold)
+  }
+
+  @Test
+  fun `a hold that ends while the screen is on waits for the next unlock`() = runTest {
+    val h = Harness(this)
+    h.hold(halfHours = 1)
+    h.advance(29 * MINUTE)
+    assertEquals(false, h.controller.expireHoldIfDue())
+    h.advance(MINUTE)
+    assertEquals(true, h.controller.expireHoldIfDue())
+    runCurrent()
+    assertEquals(FocusState.Idle, h.state)
+    assertEquals(1, h.screen.shown)
+    assertNull(h.store.hold)
+  }
+
+  @Test
+  fun `end hold early`() = runTest {
+    val h = Harness(this)
+    h.hold()
+    h.controller.endHold()
+    runCurrent()
+    assertEquals(FocusState.Idle, h.state)
+    assertNull(h.store.hold)
+    h.controller.onUnlock()
+    assertEquals(FocusState.Prompting, h.state)
+  }
+
+  @Test
+  fun `sign-out or turning the feature off ends a hold`() = runTest {
+    val h = Harness(this)
+    h.hold()
+    h.controller.stop()
+    runCurrent()
+    assertEquals(FocusState.Idle, h.state)
+    assertNull(h.store.hold)
+  }
+
+  @Test
+  fun `a saved hold comes back on service start`() = runTest {
+    val h = Harness(this)
+    val until = T0.plusMillis(48 * 60 * MINUTE)
+    h.store.hold = SavedHold(until, "旅行中")
+    h.controller.recover()
+    runCurrent()
+    assertEquals(FocusState.OnHold(until, "旅行中"), h.state)
+    h.controller.onUnlock()
+    assertEquals(0, h.screen.shown)
+  }
+
+  @Test
+  fun `a saved hold that has ended is dropped on service start`() = runTest {
+    val h = Harness(this)
+    h.store.hold = SavedHold(T0, "旅行中")
+    h.controller.recover()
+    runCurrent()
+    assertEquals(FocusState.Idle, h.state)
+    assertNull(h.store.hold)
+  }
+
+  @Test
+  fun `test mode makes an hour of hold a minute`() = runTest {
+    val h = Harness(this, FocusConfig.TEST)
+    h.hold(halfHours = 96)
+    assertEquals(FocusState.OnHold(T0.plusMillis(48 * MINUTE), "イベント中"), h.state)
   }
 }

@@ -27,6 +27,7 @@ import dev.kaorukajihara.shiodoki.ui.settings.SettingsScreen
 import dev.kaorukajihara.shiodoki.ui.settings.SettingsViewModel
 import dev.kaorukajihara.shiodoki.ui.unlock.UnlockScreen
 import dev.kaorukajihara.shiodoki.ui.unlock.UnlockViewModel
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 
 @Serializable object LoginRoute
@@ -50,7 +51,12 @@ private enum class Gate(val route: Any) {
  * Unlock vs. the app (docs/e2ee/design.md §5).
  */
 @Composable
-fun ShiodokiNavHost(container: AppContainer) {
+fun ShiodokiNavHost(
+  container: AppContainer,
+  /** true when the off reminder asked for the settings screen (design §6.10). */
+  openSettings: StateFlow<Boolean>,
+  onSettingsOpened: () -> Unit,
+) {
   val authManager = container.authManager
   val taskRepository = container.taskRepository
   val desktopStateRepository = container.desktopStateRepository
@@ -95,6 +101,15 @@ fun ShiodokiNavHost(container: AppContainer) {
     }
   }
 
+  // The off reminder's tap. Before sign-in or unlock it waits until the app is reachable.
+  val settingsRequested by openSettings.collectAsStateWithLifecycle()
+  LaunchedEffect(settingsRequested, gate) {
+    if (settingsRequested && gate == Gate.APP) {
+      selectTab(MainTab.SETTINGS)
+      onSettingsOpened()
+    }
+  }
+
   NavHost(navController, startDestination) {
     composable<LoginRoute> {
       LoginScreen(viewModel { LoginViewModel(authManager) })
@@ -104,7 +119,15 @@ fun ShiodokiNavHost(container: AppContainer) {
     }
     composable<HomeRoute> {
       HomeScreen(
-        viewModel = viewModel { HomeViewModel(taskRepository, desktopStateRepository) },
+        viewModel = viewModel {
+          HomeViewModel(
+            taskRepository,
+            desktopStateRepository,
+            focusState = container.focusController.state,
+            focusConfig = container.focusConfig,
+            onEndHold = container.focusController::endHold,
+          )
+        },
         onAddTask = { navController.navigate(EditTaskRoute()) },
         onEditTask = { navController.navigate(EditTaskRoute(it)) },
         onSelectTab = selectTab,

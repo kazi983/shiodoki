@@ -16,8 +16,20 @@ class FocusFeature(
   suspend fun setEnabled(enabled: Boolean) {
     localStore.setFocusEnabled(enabled)
     // Turning on happens in the settings screen (foreground), so starting is allowed. Turning
-    // off ends a running session through FocusService.onDestroy.
-    if (enabled) FocusService.start(context) else FocusService.stop(context)
+    // off ends a running session and a hold through FocusService.onDestroy.
+    if (enabled) {
+      OffReminder.cancel(context)
+      FocusService.start(context)
+    } else {
+      FocusService.stop(context)
+      // Every morning until it is turned on again (M-21, design §6.10).
+      OffReminder.schedule(context)
+    }
+  }
+
+  /** After a reboot or an app update the alarm is gone; set it again while still off. */
+  suspend fun rescheduleOffReminder() {
+    if (localStore.offReminderArmed.first() && !enabled.first()) OffReminder.schedule(context)
   }
 
   /**

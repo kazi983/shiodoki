@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dev.kaorukajihara.shiodoki.focus.FocusStore
+import dev.kaorukajihara.shiodoki.focus.SavedHold
 import dev.kaorukajihara.shiodoki.focus.SavedSession
 import java.time.Instant
 import kotlinx.coroutines.flow.Flow
@@ -26,8 +27,18 @@ class LocalStore(context: Context) : FocusStore {
   /** The phone's previous choice (M-12). */
   val lastSelectedTaskId: Flow<String?> = dataStore.data.map { it[LAST_SELECTED_TASK_ID] }
 
+  /**
+   * The off reminder (M-21) is set: the feature was turned off and not on again since. Kept on
+   * sign-out like [focusEnabled]; the reminder checks the sign-in itself.
+   */
+  val offReminderArmed: Flow<Boolean> = dataStore.data.map { it[OFF_REMINDER_ARMED] ?: false }
+
+  /** Also arms or disarms the off reminder (design §6.10). */
   suspend fun setFocusEnabled(enabled: Boolean) {
-    dataStore.edit { it[FOCUS_ENABLED] = enabled }
+    dataStore.edit {
+      it[FOCUS_ENABLED] = enabled
+      it[OFF_REMINDER_ARMED] = !enabled
+    }
   }
 
   /** Sign-out (design §7.2 step 6): drop everything that belongs to the account, the data key included. */
@@ -37,6 +48,7 @@ class LocalStore(context: Context) : FocusStore {
       prefs.remove(DEK_UID)
       prefs.remove(SEALED_DEK)
       RUNNING_KEYS.forEach { prefs.remove(it) }
+      HOLD_KEYS.forEach { prefs.remove(it) }
     }
   }
 
@@ -88,11 +100,36 @@ class LocalStore(context: Context) : FocusStore {
     dataStore.edit { it[LAST_SELECTED_TASK_ID] = taskId }
   }
 
+  override suspend fun loadHold(): SavedHold? {
+    val p = dataStore.data.first()
+    return SavedHold(
+      until = Instant.ofEpochMilli(p[HOLD_UNTIL] ?: return null),
+      reason = p[HOLD_REASON] ?: "",
+    )
+  }
+
+  override suspend fun saveHold(hold: SavedHold) {
+    dataStore.edit {
+      it[HOLD_UNTIL] = hold.until.toEpochMilli()
+      it[HOLD_REASON] = hold.reason
+    }
+  }
+
+  override suspend fun clearHold() {
+    dataStore.edit { prefs -> HOLD_KEYS.forEach { prefs.remove(it) } }
+  }
+
   private companion object {
     val FOCUS_ENABLED = booleanPreferencesKey("focusEnabled")
     val LAST_SELECTED_TASK_ID = stringPreferencesKey("lastSelectedTaskId")
     val DEK_UID = stringPreferencesKey("dekUid")
     val SEALED_DEK = stringPreferencesKey("sealedDek")
+    val OFF_REMINDER_ARMED = booleanPreferencesKey("offReminderArmed")
+
+    // The hold of the focus screen (design §6.9). The reason stays on the device, in plain text.
+    val HOLD_UNTIL = longPreferencesKey("holdUntil")
+    val HOLD_REASON = stringPreferencesKey("holdReason")
+    val HOLD_KEYS: List<Preferences.Key<*>> = listOf(HOLD_UNTIL, HOLD_REASON)
 
     // The running session (design §6.6).
     val RUNNING_SESSION_ID = stringPreferencesKey("runningSessionId")

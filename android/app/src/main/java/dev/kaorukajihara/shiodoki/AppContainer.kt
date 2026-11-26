@@ -75,6 +75,9 @@ class AppContainer(context: Context) {
    * The focus state machine, shared by FocusService and FocusActivity (design §6.1). Its scope
    * runs on the main thread like the broadcasts and UI events that drive it.
    */
+  /** Debug builds always use the short test intervals, like desktop TASK_MODE=test (design §6.8). */
+  val focusConfig: FocusConfig = if (BuildConfig.DEBUG) FocusConfig.TEST else FocusConfig.DEFAULT
+
   val focusController: FocusController = run {
     val appContext = context.applicationContext
     val deviceGuards = DeviceGuards(appContext)
@@ -95,8 +98,7 @@ class AppContainer(context: Context) {
         }
         signedIn && unlocked && overlay && !busy
       },
-      // Debug builds always use the short test intervals, like desktop TASK_MODE=test (design §6.8).
-      config = if (BuildConfig.DEBUG) FocusConfig.TEST else FocusConfig.DEFAULT,
+      config = focusConfig,
       onStoreError = { Log.w(TAG, "Focus store write failed", it) },
     )
   }
