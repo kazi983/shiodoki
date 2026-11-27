@@ -34,6 +34,8 @@ export interface RunningInfo {
   endsAt: string;
   /** ISO 8601: work stop time of the leave schedule. */
   stopAt: string | null;
+  /** Counting work past the stop time (started at stopAt; `endsAt` does not apply). */
+  overtime: boolean;
 }
 
 /** Data for the leave warning / block windows. */
@@ -41,8 +43,10 @@ export interface LeaveInfo {
   schedule: LeaveScheduleStatus | null;
   /** Task of the running session (warning: to leave a note for next time). */
   task: Task | null;
-  /** Work done since the start of the work day (block). */
+  /** Work done since the start of the work day (block), the running overtime included. */
   today: DaySummary;
+  /** An overtime session is running, so not everything is recorded yet. */
+  overtimeRunning: boolean;
 }
 
 export interface StartSessionRequest {

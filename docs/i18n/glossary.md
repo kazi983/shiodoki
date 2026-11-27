@@ -47,6 +47,7 @@
 | 前回の続き                 | Continue last task           |                                                                                                                                                         | ✅   |
 | 離席時刻                   | Leave at                     | 席を立つ時刻。UI は動詞句 `Leave at 23:30`。名詞 `leave time` は休暇と読まれるので避ける                                                                | ✅   |
 | 離席スケジュール           | Leave schedule               |                                                                                                                                                         |      |
+| 超過                       | Overtime                     | 作業ストップの時刻を過ぎてからの作業時間。同じタスクの時間として数え、今日の集計では別に出す                                                            |      |
 | 作業ストップ               | Wrap up                      | 離席時刻の N 分前、作業がブロックされる時刻（コードの `stopAt`）。離席時刻（`leaveAt`）とは別の時刻                                                     | ✅   |
 | 次の予定                   | Next plan                    | 外出・就寝も含むので `appointment` は避ける。時刻のラベルには使わず「離席時刻」とする                                                                   | ✅   |
 | 何分前に止めるか           | Stop how many minutes before | 画面は `Leave at [23:00] wrap up [5 min before]`、トレイは `Wrap up ▸ When I leave`                                                                     |      |

@@ -21,7 +21,7 @@ The name is Japanese: _shiodoki_ (潮時) means "the right moment to switch".
 
 - **30-minute focus loop** — a picker asks which task to work on next; a small overlay shows the remaining time.
 - **Leave time** — set when you have to get up from the desk. Five minutes before, a warning lets you leave a note for
-  next time; at the time, a full-screen block shows today's time per task.
+  next time; at the time, a full-screen block shows today's time per task. Work that goes on past it is still counted, as overtime.
 - **Task management** — categories (Now, Routine, Soon, Anytime, Someday, Break), drag-and-drop ordering, notes,
   search, keyboard shortcuts and autosave.
 - **Local or cloud** — use it on one PC with no network at all, or sign in with Google to sync with other PCs and the

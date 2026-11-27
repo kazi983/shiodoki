@@ -209,6 +209,11 @@ describe("sessions", () => {
     await assertSucceeds(batch.commit());
   });
 
+  test("desktop overtime session past the stop time is accepted", async () => {
+    const ref = doc(dbAs(ALICE), `users/${ALICE}/sessions/s1`);
+    await assertSucceeds(setDoc(ref, { ...session, endReason: "screen_off", overtime: true }));
+  });
+
   test("sessions are append-only", async () => {
     const ref = doc(dbAs(ALICE), `users/${ALICE}/sessions/s1`);
     await assertSucceeds(setDoc(ref, session));
@@ -220,6 +225,7 @@ describe("sessions", () => {
     const ref = doc(dbAs(ALICE), `users/${ALICE}/sessions/s1`);
     await assertFails(setDoc(ref, { ...session, taskName: "Write requirements" }));
     await assertFails(setDoc(ref, { ...session, endReason: "unknown" }));
+    await assertFails(setDoc(ref, { ...session, overtime: "yes" }));
     await assertFails(setDoc(ref, { ...session, endedAt: session.startedAt, startedAt: session.endedAt }));
     await assertFails(setDoc(doc(dbAs(BOB), `users/${ALICE}/sessions/s2`), session));
   });

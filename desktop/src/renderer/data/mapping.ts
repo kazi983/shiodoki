@@ -83,6 +83,8 @@ export function sessionToDoc(s: SessionRecord): Record<string, unknown> {
     elapsedMinutes: s.elapsedMinutes,
     endReason: s.endReason,
     device: s.device.slice(0, 100),
+    // Only written when true, so sessions stay as before for clients that do not know it.
+    ...(s.overtime ? { overtime: true } : {}),
   };
 }
 
@@ -97,6 +99,7 @@ export function docToSession(id: string, d: DocumentData): SessionRecord {
     elapsedMinutes: typeof d.elapsedMinutes === "number" ? d.elapsedMinutes : 0,
     endReason: d.endReason as SessionRecord["endReason"],
     device: typeof d.device === "string" ? d.device : "",
+    ...(d.overtime === true ? { overtime: true } : {}),
   };
 }
 

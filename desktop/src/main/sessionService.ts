@@ -6,6 +6,7 @@ interface RunningSession {
   taskId: string;
   taskName: string;
   startedAt: Date;
+  overtime: boolean;
 }
 
 /**
@@ -18,8 +19,9 @@ export class SessionService {
 
   constructor(private readonly device: string) {}
 
-  start(task: Pick<Task, "id" | "name">, now: Date = new Date()): void {
-    this.running = { taskId: task.id, taskName: task.name, startedAt: now };
+  /** `overtime`: started at the leave schedule's stop time, to keep counting past it. */
+  start(task: Pick<Task, "id" | "name">, now: Date = new Date(), options: { overtime?: boolean } = {}): void {
+    this.running = { taskId: task.id, taskName: task.name, startedAt: now, overtime: options.overtime ?? false };
   }
 
   get current(): Readonly<RunningSession> | null {
@@ -27,9 +29,15 @@ export class SessionService {
   }
 
   finish(reason: EndReason, now: Date = new Date()): SessionRecord | null {
+    const record = this.peek(reason, now);
+    this.running = null;
+    return record;
+  }
+
+  /** The record finish() would return, without ending the session (to show it while it runs). */
+  peek(reason: EndReason, now: Date = new Date()): SessionRecord | null {
     const s = this.running;
     if (!s) return null;
-    this.running = null;
     return {
       id: randomUUID(),
       taskId: s.taskId,
@@ -39,6 +47,7 @@ export class SessionService {
       elapsedMinutes: elapsedMinutes(s.startedAt, now),
       endReason: reason,
       device: this.device,
+      ...(s.overtime ? { overtime: true } : {}),
     };
   }
 }

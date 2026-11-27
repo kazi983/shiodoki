@@ -140,6 +140,11 @@ export const ja = {
     completeAndPick: "完了して次を選ぶ",
     tabAria: (minutes: number) => `残り${minutes}分。クリックでセッションを完了`,
     tabTitle: "セッションを完了してタスクを選ぶ",
+    overtime: <T>(elapsed: T, stopTime: string | null): (string | T)[] =>
+      stopTime ? ["超過 ", elapsed, ` · ${stopTime} に作業ストップ`] : ["超過 ", elapsed],
+    finishOvertime: "作業を終える",
+    overtimeTabAria: (minutes: number) => `超過${minutes}分。クリックで作業を終える`,
+    overtimeTabTitle: "超過中の作業を終えて記録する",
   },
   leave: {
     stopAt: (time: string) => `${time} に作業ストップ`,
@@ -154,9 +159,12 @@ export const ja = {
     blockTitle: "離席時刻です",
     blockSub: "PC を休止状態にして、次の予定へ向かいましょう",
     todayTotal: "今日の作業時間",
+    todayOvertime: "うち超過",
     todayByTask: "今日のタスク別時間",
+    taskOvertime: (time: string) => `超過 ${time}`,
     todayEmpty: "今日の記録はまだありません",
     allRecorded: "今日のセッションはすべて記録済みです",
+    overtimeRunning: "超過中の作業も数えています。PC を休止状態にすると記録されます",
     closeBlock: "閉じる（5 分後にまた表示されます）",
   },
   login: {
