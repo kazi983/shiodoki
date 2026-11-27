@@ -71,6 +71,7 @@ const DEFAULT_BLOCK_RELEASE_MS = 30 * 60_000;
  *   picker --snooze (Esc / close)--> snoozed --5 min--> picker
  *   any --leave warning--> warning window; --leave stop--> block window
  *   block window --close--> still blocked --5 min--> block window
+ *   leave stop with a running session --> overtime session for the same task until screen off / exit / overlay click
  *   blocked --screen off for 30 min or more--> picker without a leave schedule
  *   any --screen off--> session recorded, nothing scheduled --screen on--> picker
  *
@@ -150,17 +151,20 @@ export class AppController {
       startedAt: current.startedAt.toISOString(),
       endsAt: endsAt.toISOString(),
       stopAt: this.leave.status()?.stopAt ?? null,
+      overtime: current.overtime,
     };
   }
 
   /** For the leave warning / block windows. */
   async getLeaveInfo(): Promise<LeaveInfo> {
     const current = this.sessions.current;
+    // The overtime session runs while the block screen is up: count it too, as it would be recorded.
+    const running = current?.overtime ? this.sessions.peek("completed", this.now()) : null;
     const [task, today] = await Promise.all([
       current ? this.tasks.get(current.taskId).catch(() => null) : Promise.resolve(null),
-      this.tasks.todaySummary(),
+      this.tasks.todaySummary(running && running.elapsedMinutes > 0 ? running : null),
     ]);
-    return { schedule: this.leave.status(), task, today };
+    return { schedule: this.leave.status(), task, today, overtimeRunning: current?.overtime ?? false };
   }
 
   /**
@@ -232,7 +236,7 @@ export class AppController {
   // session end
   // -------------------------
 
-  /** Overlay click: finish the current session and pick the next task. */
+  /** Overlay click: finish the current session and pick the next task (while blocked: only finish the overtime). */
   async completeFromOverlay(): Promise<void> {
     this.timer.cancel(this.intervalTimer);
     this.intervalTimer = null;
@@ -256,7 +260,8 @@ export class AppController {
     const record = this.sessions.finish(reason, this.now());
     // Record before reporting the new status, so whoever sees "idle" in
     // state/desktop (the Android app) also finds the finished session.
-    await this.tasks.recordSession(record);
+    // An overtime under a minute is the user leaving right after the stop, not work: it is not a session.
+    if (!(record?.overtime && record.elapsedMinutes === 0)) await this.tasks.recordSession(record);
     if (this.status === "running") {
       this.nextPromptAt = null;
       this.setStatus("idle");
@@ -285,12 +290,19 @@ export class AppController {
     this.timer.cancel(this.intervalTimer);
     this.intervalTimer = null;
     this.cancelSnooze();
+    const running = this.sessions.current;
     await this.finishSession("leave_stop");
     this.nextPromptAt = null;
     this.setStatus("leave_blocked");
     this.windows.closePicker();
     this.windows.closeManagement();
     this.windows.closeLeave();
+    if (running) {
+      // Work often goes on past the stop time: keep counting it for the same task, marked as overtime.
+      // No 30-minute mark: it ends at screen off, app exit or an overlay click.
+      this.sessions.start({ id: running.taskId, name: running.taskName }, this.now(), { overtime: true });
+      this.windows.showOverlay();
+    }
     this.windows.showLeave("block");
   }
 

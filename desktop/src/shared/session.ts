@@ -13,6 +13,8 @@ export interface SessionRecord {
   elapsedMinutes: number;
   endReason: EndReason;
   device: string;
+  /** Worked past the leave schedule's stop time (the block screen was up). Missing means false. */
+  overtime?: boolean;
 }
 
 export function elapsedMinutes(startedAt: Date, endedAt: Date): number {
@@ -21,10 +23,13 @@ export function elapsedMinutes(startedAt: Date, endedAt: Date): number {
 
 /** Time worked per task since the start of the work day (block screen). */
 export interface DaySummary {
+  /** Overtime included. */
   totalMinutes: number;
+  /** Part of totalMinutes worked past the stop time. */
+  overtimeMinutes: number;
   sessionCount: number;
-  /** Most time first. */
-  tasks: Array<{ taskId: string; taskName: string; minutes: number }>;
+  /** Most time first; `minutes` includes `overtimeMinutes`. */
+  tasks: Array<{ taskId: string; taskName: string; minutes: number; overtimeMinutes: number }>;
 }
 
 /** Hour at which a new work day starts, so working past midnight still counts as "today". */
@@ -38,17 +43,22 @@ export function startOfWorkDay(now: Date): Date {
 }
 
 export function summarizeSessions(sessions: SessionRecord[]): DaySummary {
-  const byTask = new Map<string, { taskId: string; taskName: string; minutes: number }>();
+  const byTask = new Map<string, DaySummary["tasks"][number]>();
   let totalMinutes = 0;
+  let overtimeMinutes = 0;
   for (const s of sessions) {
+    const overtime = s.overtime ? s.elapsedMinutes : 0;
     totalMinutes += s.elapsedMinutes;
-    const entry = byTask.get(s.taskId) ?? { taskId: s.taskId, taskName: s.taskName, minutes: 0 };
+    overtimeMinutes += overtime;
+    const entry = byTask.get(s.taskId) ?? { taskId: s.taskId, taskName: s.taskName, minutes: 0, overtimeMinutes: 0 };
     entry.minutes += s.elapsedMinutes;
+    entry.overtimeMinutes += overtime;
     entry.taskName = s.taskName;
     byTask.set(s.taskId, entry);
   }
   return {
     totalMinutes,
+    overtimeMinutes,
     sessionCount: sessions.length,
     tasks: [...byTask.values()].sort((a, b) => b.minutes - a.minutes),
   };

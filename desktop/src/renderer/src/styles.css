@@ -1192,7 +1192,7 @@ html:has(.overlay-root) body {
 
 .today-row {
   display: grid;
-  grid-template-columns: 200px minmax(0, 1fr) 64px;
+  grid-template-columns: 200px minmax(0, 1fr) 96px;
   gap: 14px;
   align-items: center;
   font-size: 13px;
@@ -1213,11 +1213,23 @@ html:has(.overlay-root) body {
   background: var(--accent);
 }
 
+/* Overtime: the part of the bar past the stop time, and its minutes under the total. */
+.today-bar span.overtime {
+  background: var(--warn);
+}
+
 .today-time {
+  display: flex;
+  flex-direction: column;
   font-family: var(--mono);
   font-size: 12px;
   color: var(--sub);
   text-align: right;
+}
+
+.today-overtime,
+.block-stat.overtime .mono {
+  color: var(--warn-text);
 }
 
 .today-empty {

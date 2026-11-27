@@ -129,9 +129,10 @@ export class TaskService {
     this.onChanged();
   }
 
-  /** Time worked per task since the start of the work day. */
-  async todaySummary(): Promise<DaySummary> {
-    return summarizeSessions(await this.repo.listSessionsSince(startOfWorkDay(this.now())));
+  /** Time worked per task since the start of the work day; `running` adds a session not recorded yet. */
+  async todaySummary(running: SessionRecord | null = null): Promise<DaySummary> {
+    const sessions = await this.repo.listSessionsSince(startOfWorkDay(this.now()));
+    return summarizeSessions(running ? [...sessions, running] : sessions);
   }
 
   async getPreferences(): Promise<Preferences> {

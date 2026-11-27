@@ -213,12 +213,18 @@ describe("leave schedule", () => {
     controller.dismissWarning();
     expect(windows.leave).toBeNull();
 
-    // 23:15 stop
+    // 23:15 stop: the session so far is recorded and the same task goes on as overtime
     await vi.advanceTimersByTimeAsync(5 * MIN);
     expect(windows.leave).toBe("block");
-    expect(windows.overlay).toBe(false);
+    expect(windows.overlay).toBe(true);
     expect(controller.currentStatus).toBe("leave_blocked");
-    expect(storedSessions()).toMatchObject([{ elapsedMinutes: 25, endReason: "leave_stop" }]);
+    expect(storedSessions()).toEqual([expect.objectContaining({ elapsedMinutes: 25, endReason: "leave_stop" })]);
+    expect(storedSessions()[0]).not.toHaveProperty("overtime");
+    expect(controller.getRunningInfo()).toMatchObject({
+      taskName: "Write code",
+      startedAt: new Date(2026, 9, 6, 23, 15).toISOString(),
+      overtime: true,
+    });
 
     // Nothing reopens and no new session can start
     await controller.openPicker();
@@ -228,6 +234,75 @@ describe("leave schedule", () => {
     await expect(controller.startSession({ taskId: t.id })).rejects.toThrow();
     await vi.advanceTimersByTimeAsync(60 * MIN);
     expect(windows.picker).toBe(false);
+  });
+
+  test("overtime has no 30-minute mark and is recorded for the same task at screen off", async () => {
+    const t = await addTask();
+    vi.setSystemTime(new Date(2026, 9, 6, 23, 0));
+    await controller.startSession({ taskId: t.id, leave: LEAVE });
+    await vi.advanceTimersByTimeAsync(15 * MIN);
+    controller.closeBlock();
+
+    // 00:00: 45 minutes past the stop, still one running overtime
+    await vi.advanceTimersByTimeAsync(45 * MIN);
+    expect(windows.overlay).toBe(true);
+    expect(windows.picker).toBe(false);
+    expect(storedSessions()).toHaveLength(1);
+
+    await controller.onScreenOff();
+    expect(windows.overlay).toBe(false);
+    expect(storedSessions()).toMatchObject([
+      { elapsedMinutes: 15, endReason: "leave_stop" },
+      { elapsedMinutes: 45, endReason: "screen_off", overtime: true },
+    ]);
+    expect((await tasks.get(t.id)).totalMinutes).toBe(60);
+    expect((await tasks.todaySummary()).overtimeMinutes).toBe(45);
+
+    // A short screen off keeps the block but does not count again
+    controller.onScreenOn();
+    expect(windows.leave).toBe("block");
+    expect(controller.getRunningInfo()).toBeNull();
+    await vi.advanceTimersByTimeAsync(10 * MIN);
+    expect(storedSessions()).toHaveLength(2);
+  });
+
+  test("overtime ends with an overlay click or app exit, and under a minute is not recorded", async () => {
+    const t = await addTask();
+    vi.setSystemTime(new Date(2026, 9, 6, 23, 0));
+    await controller.startSession({ taskId: t.id, leave: LEAVE });
+    await vi.advanceTimersByTimeAsync(15 * MIN);
+    await vi.advanceTimersByTimeAsync(20 * MIN);
+    await controller.completeFromOverlay();
+    expect(windows.overlay).toBe(false);
+    expect(windows.picker).toBe(false);
+    expect(controller.currentStatus).toBe("leave_blocked");
+    expect(storedSessions().at(-1)).toMatchObject({ elapsedMinutes: 20, endReason: "completed", overtime: true });
+    await expect(controller.startSession({ taskId: t.id })).rejects.toThrow();
+
+    const t2 = await addTask("Other");
+    vi.setSystemTime(new Date(2026, 9, 7, 22, 0));
+    const c = new AppController(tasks, new SessionService("pc"), new TimerService(), windows, lifecycle, {
+      intervalMs: INTERVAL,
+      snoozeMs: SNOOZE,
+      testMode: false,
+    });
+    c.start();
+    await c.startSession({ taskId: t2.id, leave: { leaveTime: "22:20", bufferMinutes: 0 } });
+    await vi.advanceTimersByTimeAsync(20 * MIN + 59_000);
+    await c.exit();
+    expect(storedSessions().slice(-1)).toMatchObject([{ taskId: t2.id, elapsedMinutes: 20, endReason: "leave_stop" }]);
+  });
+
+  test("no overtime when nothing was running at the stop time", async () => {
+    const t = await addTask();
+    vi.setSystemTime(new Date(2026, 9, 6, 23, 0));
+    await controller.startSession({ taskId: t.id, leave: LEAVE });
+    await controller.completeFromOverlay();
+    await vi.advanceTimersByTimeAsync(15 * MIN);
+    expect(windows.leave).toBe("block");
+    expect(windows.overlay).toBe(false);
+    expect(controller.getRunningInfo()).toBeNull();
+    expect((await controller.getLeaveInfo()).overtimeRunning).toBe(false);
   });
 
   test("closing the block screen keeps the app blocked and shows it again every 5 minutes", async () => {
@@ -297,6 +372,7 @@ describe("leave schedule", () => {
       startedAt: new Date(2026, 9, 6, 22, 30).toISOString(),
       endsAt: new Date(2026, 9, 6, 23, 0).toISOString(),
       stopAt: new Date(2026, 9, 6, 23, 15).toISOString(),
+      overtime: false,
     });
 
     // 23:00 interval, next session, 23:10 warning
@@ -308,14 +384,24 @@ describe("leave schedule", () => {
     expect(warning.schedule?.stopAt).toBe(new Date(2026, 9, 6, 23, 15).toISOString());
     expect(warning.today).toMatchObject({ totalMinutes: 30, sessionCount: 1 });
 
-    // 23:15 stop: the last session is in the summary
+    // 23:15 stop: the last session is in the summary; the overtime has not reached a minute yet
     await vi.advanceTimersByTimeAsync(5 * MIN);
     const block = await controller.getLeaveInfo();
-    expect(block.task).toBeNull();
+    expect(block.overtimeRunning).toBe(true);
     expect(block.today).toEqual({
       totalMinutes: 45,
+      overtimeMinutes: 0,
       sessionCount: 2,
-      tasks: [{ taskId: t.id, taskName: "Write code", minutes: 45 }],
+      tasks: [{ taskId: t.id, taskName: "Write code", minutes: 45, overtimeMinutes: 0 }],
+    });
+
+    // 23:27: the running overtime counts, apart
+    await vi.advanceTimersByTimeAsync(12 * MIN);
+    expect((await controller.getLeaveInfo()).today).toEqual({
+      totalMinutes: 57,
+      overtimeMinutes: 12,
+      sessionCount: 3,
+      tasks: [{ taskId: t.id, taskName: "Write code", minutes: 57, overtimeMinutes: 12 }],
     });
   });
 

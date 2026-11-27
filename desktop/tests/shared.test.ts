@@ -212,13 +212,34 @@ describe("work day summary", () => {
     });
     expect(summarizeSessions([s("a", "A", 10), s("b", "B", 30), s("a", "A2", 25)])).toEqual({
       totalMinutes: 65,
+      overtimeMinutes: 0,
       sessionCount: 3,
       tasks: [
-        { taskId: "a", taskName: "A2", minutes: 35 },
-        { taskId: "b", taskName: "B", minutes: 30 },
+        { taskId: "a", taskName: "A2", minutes: 35, overtimeMinutes: 0 },
+        { taskId: "b", taskName: "B", minutes: 30, overtimeMinutes: 0 },
       ],
     });
-    expect(summarizeSessions([])).toEqual({ totalMinutes: 0, sessionCount: 0, tasks: [] });
+    expect(summarizeSessions([])).toEqual({ totalMinutes: 0, overtimeMinutes: 0, sessionCount: 0, tasks: [] });
+  });
+
+  test("overtime counts in the totals and apart", () => {
+    const s = (elapsedMinutes: number, overtime?: boolean): SessionRecord => ({
+      id: `a-${elapsedMinutes}`,
+      taskId: "a",
+      taskName: "A",
+      startedAt: "2026-10-06T10:00:00.000Z",
+      endedAt: "2026-10-06T10:30:00.000Z",
+      elapsedMinutes,
+      endReason: overtime ? "screen_off" : "leave_stop",
+      device: "pc",
+      ...(overtime ? { overtime } : {}),
+    });
+    expect(summarizeSessions([s(30), s(12, true)])).toEqual({
+      totalMinutes: 42,
+      overtimeMinutes: 12,
+      sessionCount: 2,
+      tasks: [{ taskId: "a", taskName: "A", minutes: 42, overtimeMinutes: 12 }],
+    });
   });
 });
 

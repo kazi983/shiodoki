@@ -62,7 +62,7 @@ service cloud.firestore {
 
     function isValidSession(d) {
       return d.keys().hasOnly(['taskId', 'taskName', 'startedAt', 'endedAt',
-                               'elapsedMinutes', 'endReason', 'device'])
+                               'elapsedMinutes', 'endReason', 'device', 'overtime'])
         && d.keys().hasAll(['taskId', 'taskName', 'startedAt', 'endedAt',
                             'elapsedMinutes', 'endReason', 'device'])
         && d.taskId is string && d.taskId.size() > 0
@@ -72,7 +72,9 @@ service cloud.firestore {
         && d.endedAt >= d.startedAt
         && isNonNegativeInt(d.elapsedMinutes)
         && d.endReason in ['completed', 'interval', 'leave_stop', 'app_exit', 'screen_off']
-        && d.device is string && d.device.size() <= 100;
+        && d.device is string && d.device.size() <= 100
+        // Optional: worked past the leave schedule's stop time (desktop only).
+        && d.get('overtime', false) is bool;
     }
 
     function isValidDesktopState(d) {

@@ -140,6 +140,11 @@ export const en: Messages = {
     completeAndPick: "Done, pick the next task",
     tabAria: (minutes) => `${minutes} min left. Click to finish the session`,
     tabTitle: "Finish the session and pick a task",
+    overtime: (elapsed, stopTime) =>
+      stopTime ? ["Overtime ", elapsed, ` · Wrap up at ${stopTime}`] : ["Overtime ", elapsed],
+    finishOvertime: "Stop working",
+    overtimeTabAria: (minutes) => `${minutes} min overtime. Click to stop working`,
+    overtimeTabTitle: "Stop working and record the overtime",
   },
   leave: {
     stopAt: (time) => `Wrap up at ${time}`,
@@ -154,9 +159,12 @@ export const en: Messages = {
     blockTitle: "Time to leave",
     blockSub: "Put your PC to sleep and head to your next plan",
     todayTotal: "Worked today",
+    todayOvertime: "Overtime",
     todayByTask: "Time by task today",
+    taskOvertime: (time) => `${time} overtime`,
     todayEmpty: "Nothing recorded today yet",
     allRecorded: "All of today's sessions are recorded",
+    overtimeRunning: "Overtime is being counted too. It is recorded when you put your PC to sleep",
     closeBlock: "Close (shown again in 5 minutes)",
   },
   login: {

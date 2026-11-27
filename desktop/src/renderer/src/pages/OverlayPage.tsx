@@ -14,6 +14,7 @@ const DRAG_THRESHOLD_PX = 4;
  * Always-on-top tab on the right edge while a session runs: a ring with the
  * minutes left. On hover it expands to show the task and a complete button.
  * Dragging moves it up or down; it stays on the right edge.
+ * Past the stop time (overtime) it counts up instead, in the warning color.
  */
 export function OverlayPage() {
   const [expanded, setExpanded] = useState(false);
@@ -82,16 +83,21 @@ export function OverlayPage() {
     void window.api.overlay.complete();
   }
 
+  const overtime = info?.overtime ?? false;
+  const startedAt = info ? new Date(info.startedAt).getTime() : 0;
   const endsAt = info ? new Date(info.endsAt).getTime() : 0;
-  const total = info ? endsAt - new Date(info.startedAt).getTime() : 1;
+  const total = info ? endsAt - startedAt : 1;
   const remaining = Math.max(0, endsAt - now.getTime());
-  const warn = remaining <= Math.min(WARN_MS, total / 6);
+  const overtimeMs = Math.max(0, now.getTime() - startedAt);
+  const warn = overtime || remaining <= Math.min(WARN_MS, total / 6);
   const color = warn ? "var(--warn)" : "var(--accent)";
   const minutesLeft = Math.ceil(remaining / 60_000);
+  const overtimeMinutes = Math.floor(overtimeMs / 60_000);
   const text = t().overlay;
+  const stopTime = info?.stopAt ? formatHHMM(new Date(info.stopAt)) : null;
 
   const ring = (
-    <Ring size={44} width={4} fraction={total > 0 ? remaining / total : 0} color={color}>
+    <Ring size={44} width={4} fraction={overtime ? 1 : total > 0 ? remaining / total : 0} color={color}>
       <text
         x="22"
         y="27"
@@ -101,7 +107,7 @@ export function OverlayPage() {
         fontWeight="600"
         fill={warn ? "var(--warn-text)" : "var(--text-strong)"}
       >
-        {minutesLeft}
+        {overtime ? `+${overtimeMinutes}` : minutesLeft}
       </text>
     </Ring>
   );
@@ -125,18 +131,25 @@ export function OverlayPage() {
                 {info?.taskName ?? ""}
               </span>
               <span className="overlay-sub">
-                {text.remaining(
-                  <span key="countdown" className="mono">
-                    {formatCountdown(remaining)}
-                  </span>,
-                  info?.stopAt ? formatHHMM(new Date(info.stopAt)) : null,
-                )}
+                {overtime
+                  ? text.overtime(
+                      <span key="countdown" className="mono">
+                        {formatCountdown(overtimeMs)}
+                      </span>,
+                      stopTime,
+                    )
+                  : text.remaining(
+                      <span key="countdown" className="mono">
+                        {formatCountdown(remaining)}
+                      </span>,
+                      stopTime,
+                    )}
               </span>
             </div>
           </div>
           <button type="button" className="btn btn-primary overlay-complete" onClick={complete}>
             <CheckIcon />
-            {text.completeAndPick}
+            {overtime ? text.finishOvertime : text.completeAndPick}
           </button>
         </div>
       ) : (
@@ -144,8 +157,8 @@ export function OverlayPage() {
           type="button"
           className="overlay-tab"
           onClick={complete}
-          aria-label={text.tabAria(minutesLeft)}
-          title={text.tabTitle}
+          aria-label={overtime ? text.overtimeTabAria(overtimeMinutes) : text.tabAria(minutesLeft)}
+          title={overtime ? text.overtimeTabTitle : text.tabTitle}
         >
           {ring}
         </button>

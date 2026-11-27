@@ -9,8 +9,12 @@ import { formatCountdown, useNow } from "../useNow";
 
 /**
  * warning: 5 minutes before the stop time (dismissible); leave a note on the running task
- * block:   stop time reached, with today's work; closing it only hides it for 5 minutes (the app stays blocked)
+ * block:   stop time reached, with today's work (overtime shown apart, the running one included);
+ *          closing it only hides it for 5 minutes (the app stays blocked)
  */
+/** The block screen reloads today's work this often while an overtime runs. */
+const OVERTIME_REFRESH_MS = 30_000;
+
 export function LeavePage({ mode }: { mode: "warning" | "block" }) {
   const [info, setInfo] = useState<LeaveInfo | null>(null);
 
@@ -18,6 +22,13 @@ export function LeavePage({ mode }: { mode: "warning" | "block" }) {
     document.title = "Shiodoki";
     void window.api.leave.getState().then(setInfo);
   }, []);
+
+  const overtimeRunning = info?.overtimeRunning ?? false;
+  useEffect(() => {
+    if (!overtimeRunning) return;
+    const id = setInterval(() => void window.api.leave.getState().then(setInfo), OVERTIME_REFRESH_MS);
+    return () => clearInterval(id);
+  }, [overtimeRunning]);
 
   return mode === "warning" ? <LeaveWarning info={info} /> : <LeaveBlock info={info} />;
 }
@@ -141,6 +152,12 @@ function LeaveBlock({ info }: { info: LeaveInfo | null }) {
                 <span className="mono">{formatDuration(today.totalMinutes, "0m")}</span>
                 <span>{text.todayTotal}</span>
               </div>
+              {today.overtimeMinutes > 0 && (
+                <div className="block-stat overtime">
+                  <span className="mono">{formatDuration(today.overtimeMinutes, "0m")}</span>
+                  <span>{text.todayOvertime}</span>
+                </div>
+              )}
               <div className="block-stat">
                 <span className="mono">{today.sessionCount}</span>
                 <span>{common.sessions}</span>
@@ -157,16 +174,24 @@ function LeaveBlock({ info }: { info: LeaveInfo | null }) {
                 {t.taskName}
               </span>
               <span className="today-bar">
-                <span style={{ width: `${Math.round((t.minutes / max) * 100)}%` }} />
+                <span style={{ width: `${Math.round(((t.minutes - t.overtimeMinutes) / max) * 100)}%` }} />
+                {t.overtimeMinutes > 0 && (
+                  <span className="overtime" style={{ width: `${Math.round((t.overtimeMinutes / max) * 100)}%` }} />
+                )}
               </span>
-              <span className="today-time">{formatDuration(t.minutes, "0m")}</span>
+              <span className="today-time">
+                {formatDuration(t.minutes, "0m")}
+                {t.overtimeMinutes > 0 && (
+                  <span className="today-overtime">{text.taskOvertime(formatDuration(t.overtimeMinutes, "0m"))}</span>
+                )}
+              </span>
             </div>
           ))}
         </section>
 
         <footer className="block-footer">
-          <CheckIcon size={14} />
-          {text.allRecorded}
+          {!info?.overtimeRunning && <CheckIcon size={14} />}
+          {info?.overtimeRunning ? text.overtimeRunning : text.allRecorded}
           <button type="button" className="link-btn" onClick={() => void window.api.leave.closeBlock()}>
             {text.closeBlock}
           </button>

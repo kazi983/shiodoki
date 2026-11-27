@@ -117,6 +117,7 @@ function toSession(id, d, open) {
     elapsedMinutes: typeof d.elapsedMinutes === "number" ? d.elapsedMinutes : 0,
     endReason: d.endReason,
     device: typeof d.device === "string" ? d.device : "",
+    ...(d.overtime === true ? { overtime: true } : {}),
   };
 }
 

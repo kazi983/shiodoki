@@ -152,6 +152,27 @@ describe("FirestoreStore (rules enforced)", () => {
     expect(found).toEqual([recent]);
   });
 
+  test("an overtime session keeps its flag through the rules and back", async () => {
+    const task = newTask();
+    store.createTask(task);
+    const now = Date.now();
+    const overtime = {
+      id: randomUUID(),
+      taskId: task.id,
+      taskName: task.name,
+      startedAt: new Date(now - 12 * 60000).toISOString(),
+      endedAt: new Date(now).toISOString(),
+      elapsedMinutes: 12,
+      endReason: "screen_off" as const,
+      device: "test-pc",
+      overtime: true,
+    };
+    store.recordSession(overtime);
+    expect(await store.flush(10000)).toBe(true);
+    const found = (await store.listSessionsSince(new Date(now - 60000))).filter((s) => s.taskId === task.id);
+    expect(found).toEqual([overtime]);
+  });
+
   test("preferences and desktop state", async () => {
     store.setPreferences({ lastSelectedTaskId: "abc" });
     store.setDesktopState({
